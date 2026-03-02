@@ -7,7 +7,9 @@ import NewsSection from '@/components/radio/NewsSection';
 import WhatsAppButton from '@/components/radio/WhatsAppButton';
 import RadioFooter from '@/components/radio/RadioFooter';
 import WorldMap from '@/components/radio/WorldMap';
-import { useMemo, lazy, Suspense } from 'react';
+import GoogleAd from '@/components/radio/GoogleAd';
+import { useMemo } from 'react';
+import { Phone } from 'lucide-react';
 
 const SponsorBlock = ({ sponsors, align = 'center', className = '' }: { sponsors: any[]; align?: string; className?: string }) => {
   if (sponsors.length === 0) return null;
@@ -65,21 +67,44 @@ const Index = () => {
     <div className="min-h-screen" style={bgStyle}>
       <RadioHeader />
 
-      {/* Topo sponsors */}
-      <SponsorBlock sponsors={topoSponsors} align={align} className="bg-muted" />
+      {/* Google Ads - Topo */}
+      {config.ads_topo_ativo && config.ads_topo_codigo && (
+        <GoogleAd codigo={config.ads_topo_codigo} className="py-2 bg-muted/50" />
+      )}
 
-      <div id="programacao"><RadioPlayer /></div>
+      {/* Topo sponsors */}
+      {config.visibilidade_patrocinadores && <SponsorBlock sponsors={topoSponsors} align={align} className="bg-muted" />}
+
+      {/* Telefone fixo */}
+      {config.telefone_contato && (
+        <div className="bg-primary/5 border-b border-primary/10">
+          <div className="container mx-auto px-4 py-2 flex items-center justify-center gap-2 text-sm">
+            <Phone className="w-4 h-4 text-primary" />
+            <span className="font-medium">Contato:</span>
+            <a href={`tel:${config.telefone_contato.replace(/\D/g, '')}`} className="text-primary font-semibold hover:underline">
+              {config.telefone_contato}
+            </a>
+          </div>
+        </div>
+      )}
+
+      {config.visibilidade_player && <div id="programacao"><RadioPlayer /></div>}
 
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Centro sponsors */}
-        <SponsorBlock sponsors={centroSponsors} align={align} />
+        {config.visibilidade_patrocinadores && <SponsorBlock sponsors={centroSponsors} align={align} />}
 
         {/* Slider */}
-        <ImageSlider />
+        {config.visibilidade_slides && <ImageSlider />}
+
+        {/* Google Ads - Meio */}
+        {config.ads_meio_ativo && config.ads_meio_codigo && (
+          <GoogleAd codigo={config.ads_meio_codigo} className="py-4" />
+        )}
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-8">
-          {esquerdaSponsors.length > 0 && (
+          {config.visibilidade_patrocinadores && esquerdaSponsors.length > 0 && (
             <div className="hidden lg:flex flex-col items-center gap-4">
               {esquerdaSponsors.map(p => (
                 <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
@@ -94,15 +119,14 @@ const Index = () => {
           )}
 
           <div className="space-y-8">
-            {/* Notícias + Músicas + Mapa */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div id="noticias" className="lg:col-span-1"><NewsSection /></div>
-              <div className="lg:col-span-1"><RecentSongs /></div>
+              {config.visibilidade_noticias && <div id="noticias" className="lg:col-span-1"><NewsSection /></div>}
+              {config.visibilidade_musicas && <div className="lg:col-span-1"><RecentSongs /></div>}
               <div className="lg:col-span-1"><WorldMap /></div>
             </div>
           </div>
 
-          {direitaSponsors.length > 0 && (
+          {config.visibilidade_patrocinadores && direitaSponsors.length > 0 && (
             <div className="hidden lg:flex flex-col items-center gap-4">
               {direitaSponsors.map(p => (
                 <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
@@ -117,6 +141,11 @@ const Index = () => {
           )}
         </div>
       </main>
+
+      {/* Google Ads - Rodapé */}
+      {config.ads_rodape_ativo && config.ads_rodape_codigo && (
+        <GoogleAd codigo={config.ads_rodape_codigo} className="py-4 bg-muted/50" />
+      )}
 
       <RadioFooter />
       <div id="contato"><WhatsAppButton /></div>

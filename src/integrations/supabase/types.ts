@@ -222,6 +222,12 @@ export type Database = {
       }
       radio_config: {
         Row: {
+          ads_meio_ativo: boolean
+          ads_meio_codigo: string
+          ads_rodape_ativo: boolean
+          ads_rodape_codigo: string
+          ads_topo_ativo: boolean
+          ads_topo_codigo: string
           cor_fundo: string
           cor_primaria: string
           cor_secundaria: string
@@ -238,12 +244,25 @@ export type Database = {
           patrocinador_alinhamento: string
           player_posicao: string
           streaming_url: string
+          telefone_contato: string
           tema: string
           updated_at: string
+          visibilidade_logo: boolean
+          visibilidade_musicas: boolean
+          visibilidade_noticias: boolean
+          visibilidade_patrocinadores: boolean
+          visibilidade_player: boolean
+          visibilidade_slides: boolean
           whatsapp_mensagem: string
           whatsapp_numero: string
         }
         Insert: {
+          ads_meio_ativo?: boolean
+          ads_meio_codigo?: string
+          ads_rodape_ativo?: boolean
+          ads_rodape_codigo?: string
+          ads_topo_ativo?: boolean
+          ads_topo_codigo?: string
           cor_fundo?: string
           cor_primaria?: string
           cor_secundaria?: string
@@ -260,12 +279,25 @@ export type Database = {
           patrocinador_alinhamento?: string
           player_posicao?: string
           streaming_url?: string
+          telefone_contato?: string
           tema?: string
           updated_at?: string
+          visibilidade_logo?: boolean
+          visibilidade_musicas?: boolean
+          visibilidade_noticias?: boolean
+          visibilidade_patrocinadores?: boolean
+          visibilidade_player?: boolean
+          visibilidade_slides?: boolean
           whatsapp_mensagem?: string
           whatsapp_numero?: string
         }
         Update: {
+          ads_meio_ativo?: boolean
+          ads_meio_codigo?: string
+          ads_rodape_ativo?: boolean
+          ads_rodape_codigo?: string
+          ads_topo_ativo?: boolean
+          ads_topo_codigo?: string
           cor_fundo?: string
           cor_primaria?: string
           cor_secundaria?: string
@@ -282,8 +314,15 @@ export type Database = {
           patrocinador_alinhamento?: string
           player_posicao?: string
           streaming_url?: string
+          telefone_contato?: string
           tema?: string
           updated_at?: string
+          visibilidade_logo?: boolean
+          visibilidade_musicas?: boolean
+          visibilidade_noticias?: boolean
+          visibilidade_patrocinadores?: boolean
+          visibilidade_player?: boolean
+          visibilidade_slides?: boolean
           whatsapp_mensagem?: string
           whatsapp_numero?: string
         }

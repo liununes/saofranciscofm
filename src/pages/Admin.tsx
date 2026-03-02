@@ -3,7 +3,7 @@ import { useRadio } from '@/contexts/RadioContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Instagram, Facebook, Youtube, Smartphone, Apple, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Instagram, Facebook, Youtube, Smartphone, Apple, Link as LinkIcon, Phone, ToggleLeft, Megaphone } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -154,6 +154,19 @@ const AdminPanel = () => {
       cor_fundo: rc.cor_fundo,
       imagem_fundo: rc.imagem_fundo,
       imagem_fundo_modo: rc.imagem_fundo_modo,
+      telefone_contato: rc.telefone_contato,
+      visibilidade_logo: rc.visibilidade_logo,
+      visibilidade_noticias: rc.visibilidade_noticias,
+      visibilidade_musicas: rc.visibilidade_musicas,
+      visibilidade_player: rc.visibilidade_player,
+      visibilidade_patrocinadores: rc.visibilidade_patrocinadores,
+      visibilidade_slides: rc.visibilidade_slides,
+      ads_topo_codigo: rc.ads_topo_codigo,
+      ads_topo_ativo: rc.ads_topo_ativo,
+      ads_meio_codigo: rc.ads_meio_codigo,
+      ads_meio_ativo: rc.ads_meio_ativo,
+      ads_rodape_codigo: rc.ads_rodape_codigo,
+      ads_rodape_ativo: rc.ads_rodape_ativo,
     }).eq('id', rc.id);
     setSaving(false);
     if (error) toast.error('Erro ao salvar.');
@@ -281,6 +294,8 @@ const AdminPanel = () => {
             {hasPermission('editar_cores_layout') && <TabsTrigger value="aparencia" className="gap-1.5 text-xs"><Palette className="w-3.5 h-3.5" /> Aparência</TabsTrigger>}
             {hasPermission('editar_paginas') && <TabsTrigger value="paginas" className="gap-1.5 text-xs"><FileText className="w-3.5 h-3.5" /> Páginas</TabsTrigger>}
             {hasPermission('editar_geral') && <TabsTrigger value="redes_sociais" className="gap-1.5 text-xs"><Globe className="w-3.5 h-3.5" /> Redes Sociais</TabsTrigger>}
+            {hasPermission('editar_geral') && <TabsTrigger value="visibilidade" className="gap-1.5 text-xs"><ToggleLeft className="w-3.5 h-3.5" /> Visibilidade</TabsTrigger>}
+            {hasPermission('editar_geral') && <TabsTrigger value="anuncios" className="gap-1.5 text-xs"><Megaphone className="w-3.5 h-3.5" /> Anúncios</TabsTrigger>}
             {(isAdmin || hasPermission('gerenciar_usuarios')) && <TabsTrigger value="usuarios" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> Usuários</TabsTrigger>}
             <TabsTrigger value="perfil" className="gap-1.5 text-xs"><User className="w-3.5 h-3.5" /> Perfil</TabsTrigger>
           </TabsList>
@@ -330,6 +345,7 @@ const AdminPanel = () => {
                     </Select>
                   </div>
                   <div><Label>Música Atual</Label><Input value={rc.musica_atual || ''} onChange={e => setRc({ ...rc, musica_atual: e.target.value })} /></div>
+                  <div><Label><Phone className="w-3.5 h-3.5 inline mr-1" />Telefone de Contato</Label><Input value={rc.telefone_contato || ''} onChange={e => setRc({ ...rc, telefone_contato: e.target.value })} placeholder="3511-2000" /></div>
                 </div>
               </div>
             </TabsContent>
@@ -447,6 +463,14 @@ const AdminPanel = () => {
                             <ImageUpload value={n.imagem_url} onChange={url => updateNoticiaImmediate(n.id, { imagem_url: url })} folder="noticias" />
                             <ImageHint text="1200×630 px (paisagem)" />
                           </div>
+                          {n.created_at && (
+                            <p className="text-xs text-muted-foreground">
+                              Publicado: {new Date(n.created_at).toLocaleDateString('pt-BR')}
+                              {n.updated_at && n.updated_at !== n.created_at && (
+                                <> · Atualizado: {new Date(n.updated_at).toLocaleDateString('pt-BR')} às {new Date(n.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>
+                              )}
+                            </p>
+                          )}
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => deleteNoticia(n.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </div>
@@ -660,6 +684,66 @@ const AdminPanel = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Visibilidade */}
+          {hasPermission('editar_geral') && (
+            <TabsContent value="visibilidade">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <h2 className="font-display font-bold text-foreground">Controle de Visibilidade</h2>
+                <p className="text-sm text-muted-foreground">Ative ou desative seções da página inicial. As alterações são aplicadas ao salvar.</p>
+                <div className="space-y-4">
+                  {[
+                    { key: 'visibilidade_logo', label: 'Logo Principal' },
+                    { key: 'visibilidade_player', label: 'Player de Áudio' },
+                    { key: 'visibilidade_noticias', label: 'Notícias' },
+                    { key: 'visibilidade_musicas', label: 'Últimas Músicas' },
+                    { key: 'visibilidade_patrocinadores', label: 'Patrocinadores' },
+                    { key: 'visibilidade_slides', label: 'Imagens / Slides' },
+                  ].map(item => (
+                    <div key={item.key} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="font-medium text-sm text-foreground">{item.label}</span>
+                      <Switch
+                        checked={rc[item.key] ?? true}
+                        onCheckedChange={checked => setRc({ ...rc, [item.key]: checked })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Anúncios Google Ads */}
+          {hasPermission('editar_geral') && (
+            <TabsContent value="anuncios">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-6">
+                <h2 className="font-display font-bold text-foreground">Espaços para Google Ads</h2>
+                <p className="text-sm text-muted-foreground">Cole o código do Google Ads em cada espaço e ative para exibir no site.</p>
+                {[
+                  { codigoKey: 'ads_topo_codigo', ativoKey: 'ads_topo_ativo', label: 'Topo do Site' },
+                  { codigoKey: 'ads_meio_codigo', ativoKey: 'ads_meio_ativo', label: 'Meio do Conteúdo' },
+                  { codigoKey: 'ads_rodape_codigo', ativoKey: 'ads_rodape_ativo', label: 'Rodapé' },
+                ].map(ad => (
+                  <div key={ad.codigoKey} className="p-4 bg-muted rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm text-foreground">{ad.label}</span>
+                      <Switch
+                        checked={rc[ad.ativoKey] ?? false}
+                        onCheckedChange={checked => setRc({ ...rc, [ad.ativoKey]: checked })}
+                      />
+                    </div>
+                    <Textarea
+                      placeholder="Cole aqui o código do Google Ads..."
+                      value={rc[ad.codigoKey] || ''}
+                      onChange={e => setRc({ ...rc, [ad.codigoKey]: e.target.value })}
+                      rows={4}
+                      className="font-mono text-xs"
+                    />
+                  </div>
+                ))}
               </div>
             </TabsContent>
           )}
