@@ -1,5 +1,6 @@
 import { useRadio } from '@/contexts/RadioContext';
 import { Newspaper, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const NewsSection = () => {
   const { config } = useRadio();
@@ -13,7 +14,7 @@ const NewsSection = () => {
       <div className="space-y-4">
         {config.noticias.map(n => (
           <article key={n.id} className="group">
-            <a href={n.link_completo} className="block p-3 rounded-lg hover:bg-muted transition-colors">
+            <Link to={`/noticia/${n.id}`} className="block p-3 rounded-lg hover:bg-muted transition-colors">
               <div className="flex gap-3">
                 {n.imagem && (
                   <img src={n.imagem} alt={n.titulo} className="w-20 h-16 rounded-lg object-cover flex-shrink-0" />
@@ -28,7 +29,7 @@ const NewsSection = () => {
                   </span>
                 </div>
               </div>
-            </a>
+            </Link>
           </article>
         ))}
       </div>

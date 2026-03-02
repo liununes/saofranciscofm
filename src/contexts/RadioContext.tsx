@@ -59,6 +59,10 @@ export interface RadioConfig {
   whatsapp_mensagem: string;
   cor_primaria: string;
   cor_secundaria: string;
+  cor_texto: string;
+  cor_fundo: string;
+  imagem_fundo: string;
+  imagem_fundo_modo: string;
   locutor_ao_vivo: string;
   programa_ao_vivo: string;
   horario_inicio: string;
@@ -81,6 +85,10 @@ const defaultConfig: RadioConfig = {
   whatsapp_mensagem: 'Olá! Quero fazer um pedido musical! 🎵',
   cor_primaria: '#005BBB',
   cor_secundaria: '#FFA500',
+  cor_texto: '#1a1a2e',
+  cor_fundo: '#f5f7fa',
+  imagem_fundo: '',
+  imagem_fundo_modo: 'cover',
   locutor_ao_vivo: '',
   programa_ao_vivo: '',
   horario_inicio: '',
@@ -149,6 +157,10 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       whatsapp_mensagem: rc?.whatsapp_mensagem || prev.whatsapp_mensagem,
       cor_primaria: rc?.cor_primaria || prev.cor_primaria,
       cor_secundaria: rc?.cor_secundaria || prev.cor_secundaria,
+      cor_texto: rc?.cor_texto || prev.cor_texto,
+      cor_fundo: rc?.cor_fundo || prev.cor_fundo,
+      imagem_fundo: rc?.imagem_fundo || '',
+      imagem_fundo_modo: rc?.imagem_fundo_modo || 'cover',
       musicas_recentes: (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
       noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '' })),
       patrocinadores: (patrocinadores || []).map(p => ({
@@ -156,8 +168,8 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
         nome: p.nome,
         imagem: p.imagem_url || '',
         link: p.link || '',
-        tipo: (p as any).tipo || 'normal',
-        posicao: (p as any).posicao || 'rodape',
+        tipo: (p.tipo === 'premium' ? 'premium' : 'normal') as 'normal' | 'premium',
+        posicao: p.posicao || 'rodape',
       })),
       slide_imagens: (slides || []).map(s => ({ id: s.id, imagem: s.imagem_url, ordem: s.ordem })),
     }));

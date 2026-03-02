@@ -61,6 +61,7 @@ export type Database = {
       }
       noticias: {
         Row: {
+          conteudo: string | null
           created_at: string
           id: string
           imagem_url: string | null
@@ -70,6 +71,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          conteudo?: string | null
           created_at?: string
           id?: string
           imagem_url?: string | null
@@ -79,11 +81,42 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          conteudo?: string | null
           created_at?: string
           id?: string
           imagem_url?: string | null
           link_completo?: string | null
           resumo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      paginas: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          imagem_url: string | null
+          slug: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          slug: string
+          titulo?: string
+          updated_at?: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          slug?: string
           titulo?: string
           updated_at?: string
         }
@@ -189,9 +222,13 @@ export type Database = {
       }
       radio_config: {
         Row: {
+          cor_fundo: string
           cor_primaria: string
           cor_secundaria: string
+          cor_texto: string
           id: string
+          imagem_fundo: string | null
+          imagem_fundo_modo: string
           logo_extra: string | null
           logo_principal: string | null
           musica_atual: string | null
@@ -203,9 +240,13 @@ export type Database = {
           whatsapp_numero: string
         }
         Insert: {
+          cor_fundo?: string
           cor_primaria?: string
           cor_secundaria?: string
+          cor_texto?: string
           id?: string
+          imagem_fundo?: string | null
+          imagem_fundo_modo?: string
           logo_extra?: string | null
           logo_principal?: string | null
           musica_atual?: string | null
@@ -217,9 +258,13 @@ export type Database = {
           whatsapp_numero?: string
         }
         Update: {
+          cor_fundo?: string
           cor_primaria?: string
           cor_secundaria?: string
+          cor_texto?: string
           id?: string
+          imagem_fundo?: string | null
+          imagem_fundo_modo?: string
           logo_extra?: string | null
           logo_principal?: string | null
           musica_atual?: string | null

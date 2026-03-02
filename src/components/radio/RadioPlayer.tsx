@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
@@ -8,7 +8,23 @@ const RadioPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const attemptedAutoplay = useRef(false);
+
+  // Autoplay on mount
+  useEffect(() => {
+    if (attemptedAutoplay.current || !audioRef.current) return;
+    attemptedAutoplay.current = true;
+    const audio = audioRef.current;
+    audio.src = config.streaming_url;
+    audio.volume = volume / 100;
+    audio.play().then(() => {
+      setIsPlaying(true);
+    }).catch(() => {
+      setAutoplayBlocked(true);
+    });
+  }, [config.streaming_url]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -17,6 +33,7 @@ const RadioPlayer = () => {
     } else {
       audioRef.current.src = config.streaming_url;
       audioRef.current.play().catch(() => {});
+      setAutoplayBlocked(false);
     }
     setIsPlaying(!isPlaying);
   };
@@ -36,11 +53,19 @@ const RadioPlayer = () => {
     setIsMuted(!isMuted);
   };
 
+  // Auto-reflow: if sponsors are on the right, push player left; vice versa
+  const rightSponsors = config.patrocinadores.filter(p => p.posicao === 'direita');
+  const leftSponsors = config.patrocinadores.filter(p => p.posicao === 'esquerda');
+  
+  let effectivePosition = config.player_posicao;
+  if (rightSponsors.length > 0 && leftSponsors.length === 0) effectivePosition = 'left';
+  else if (leftSponsors.length > 0 && rightSponsors.length === 0) effectivePosition = 'right';
+
   const positionClass = {
     left: 'justify-start',
     center: 'justify-center',
     right: 'justify-end',
-  }[config.player_posicao];
+  }[effectivePosition];
 
   return (
     <section className="gradient-hero py-6">
@@ -67,6 +92,14 @@ const RadioPlayer = () => {
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
+              {autoplayBlocked && !isPlaying && (
+                <button
+                  onClick={togglePlay}
+                  className="px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-[10px] font-bold uppercase tracking-wider animate-pulse"
+                >
+                  🔊 Ativar som
+                </button>
+              )}
               {isLive && (
                 <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-live text-primary-foreground text-[10px] font-bold uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-live-pulse" />
