@@ -75,8 +75,8 @@ const Index = () => {
       {/* Topo sponsors */}
       {config.visibilidade_patrocinadores && <SponsorBlock sponsors={topoSponsors} align={align} className="bg-muted" />}
 
-      {/* Telefone fixo */}
-      {config.telefone_contato && (
+      {/* Telefone fixo - posição topo */}
+      {config.visibilidade_telefone && config.telefone_contato && config.telefone_posicao === 'topo' && (
         <div className="bg-primary/5 border-b border-primary/10">
           <div className="container mx-auto px-4 py-2 flex items-center justify-center gap-2 text-sm">
             <Phone className="w-4 h-4 text-primary" />
@@ -122,8 +122,19 @@ const Index = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {config.visibilidade_noticias && <div id="noticias" className="lg:col-span-1"><NewsSection /></div>}
               {config.visibilidade_musicas && <div className="lg:col-span-1"><RecentSongs /></div>}
-              <div className="lg:col-span-1"><WorldMap /></div>
+              {config.visibilidade_mapa && <div className="lg:col-span-1"><WorldMap /></div>}
             </div>
+
+            {/* Telefone fixo - posição centro */}
+            {config.visibilidade_telefone && config.telefone_contato && config.telefone_posicao === 'centro' && (
+              <div className="flex items-center justify-center gap-3 py-4 px-6 bg-primary/5 rounded-xl border border-primary/10">
+                <Phone className="w-6 h-6 text-primary" />
+                <span className="font-medium text-lg">Contato:</span>
+                <a href={`tel:${config.telefone_contato.replace(/\D/g, '')}`} className="text-primary font-bold text-xl hover:underline">
+                  {config.telefone_contato}
+                </a>
+              </div>
+            )}
           </div>
 
           {config.visibilidade_patrocinadores && direitaSponsors.length > 0 && (

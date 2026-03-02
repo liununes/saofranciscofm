@@ -90,6 +90,9 @@ export interface RadioConfig {
   visibilidade_player: boolean;
   visibilidade_patrocinadores: boolean;
   visibilidade_slides: boolean;
+  visibilidade_mapa: boolean;
+  visibilidade_telefone: boolean;
+  telefone_posicao: 'player' | 'topo' | 'centro';
   ads_topo_codigo: string;
   ads_topo_ativo: boolean;
   ads_meio_codigo: string;
@@ -134,6 +137,9 @@ const defaultConfig: RadioConfig = {
   visibilidade_player: true,
   visibilidade_patrocinadores: true,
   visibilidade_slides: true,
+  visibilidade_mapa: true,
+  visibilidade_telefone: true,
+  telefone_posicao: 'player',
   ads_topo_codigo: '',
   ads_topo_ativo: false,
   ads_meio_codigo: '',
@@ -221,6 +227,9 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       visibilidade_player: rc?.visibilidade_player ?? true,
       visibilidade_patrocinadores: rc?.visibilidade_patrocinadores ?? true,
       visibilidade_slides: rc?.visibilidade_slides ?? true,
+      visibilidade_mapa: rc?.visibilidade_mapa ?? true,
+      visibilidade_telefone: rc?.visibilidade_telefone ?? true,
+      telefone_posicao: (rc?.telefone_posicao as any) || 'player',
       ads_topo_codigo: rc?.ads_topo_codigo || '',
       ads_topo_ativo: rc?.ads_topo_ativo ?? false,
       ads_meio_codigo: rc?.ads_meio_codigo || '',

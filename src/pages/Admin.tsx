@@ -161,6 +161,9 @@ const AdminPanel = () => {
       visibilidade_player: rc.visibilidade_player,
       visibilidade_patrocinadores: rc.visibilidade_patrocinadores,
       visibilidade_slides: rc.visibilidade_slides,
+      visibilidade_mapa: rc.visibilidade_mapa,
+      visibilidade_telefone: rc.visibilidade_telefone,
+      telefone_posicao: rc.telefone_posicao,
       ads_topo_codigo: rc.ads_topo_codigo,
       ads_topo_ativo: rc.ads_topo_ativo,
       ads_meio_codigo: rc.ads_meio_codigo,
@@ -346,6 +349,17 @@ const AdminPanel = () => {
                   </div>
                   <div><Label>Música Atual</Label><Input value={rc.musica_atual || ''} onChange={e => setRc({ ...rc, musica_atual: e.target.value })} /></div>
                   <div><Label><Phone className="w-3.5 h-3.5 inline mr-1" />Telefone de Contato</Label><Input value={rc.telefone_contato || ''} onChange={e => setRc({ ...rc, telefone_contato: e.target.value })} placeholder="3511-2000" /></div>
+                  <div>
+                    <Label>Posição do Telefone</Label>
+                    <Select value={rc.telefone_posicao || 'player'} onValueChange={v => setRc({ ...rc, telefone_posicao: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="player">Ao lado do Player</SelectItem>
+                        <SelectItem value="topo">Barra acima do Player</SelectItem>
+                        <SelectItem value="centro">Centro do conteúdo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -698,10 +712,12 @@ const AdminPanel = () => {
                   {[
                     { key: 'visibilidade_logo', label: 'Logo Principal' },
                     { key: 'visibilidade_player', label: 'Player de Áudio' },
+                    { key: 'visibilidade_telefone', label: 'Telefone de Contato' },
                     { key: 'visibilidade_noticias', label: 'Notícias' },
                     { key: 'visibilidade_musicas', label: 'Últimas Músicas' },
                     { key: 'visibilidade_patrocinadores', label: 'Patrocinadores' },
                     { key: 'visibilidade_slides', label: 'Imagens / Slides' },
+                    { key: 'visibilidade_mapa', label: 'Ouvintes pelo Mundo' },
                   ].map(item => (
                     <div key={item.key} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <span className="font-medium text-sm text-foreground">{item.label}</span>

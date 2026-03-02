@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Phone } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 
 const RadioPlayer = () => {
@@ -136,6 +136,20 @@ const RadioPlayer = () => {
               style={{ height: `${logoSize}px` }}
               className="object-contain flex-shrink-0 drop-shadow-lg"
             />
+          )}
+
+          {/* Telefone ao lado do player */}
+          {config.visibilidade_telefone && config.telefone_contato && config.telefone_posicao === 'player' && (
+            <a
+              href={`tel:${config.telefone_contato.replace(/\D/g, '')}`}
+              className="flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors flex-shrink-0"
+            >
+              <Phone className="w-5 h-5 text-secondary" />
+              <div className="text-primary-foreground">
+                <p className="text-[10px] uppercase tracking-wider opacity-70 font-semibold">Contato</p>
+                <p className="font-display font-bold text-lg leading-tight">{config.telefone_contato}</p>
+              </div>
+            </a>
           )}
         </div>
       </div>

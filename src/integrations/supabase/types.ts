@@ -245,14 +245,17 @@ export type Database = {
           player_posicao: string
           streaming_url: string
           telefone_contato: string
+          telefone_posicao: string
           tema: string
           updated_at: string
           visibilidade_logo: boolean
+          visibilidade_mapa: boolean
           visibilidade_musicas: boolean
           visibilidade_noticias: boolean
           visibilidade_patrocinadores: boolean
           visibilidade_player: boolean
           visibilidade_slides: boolean
+          visibilidade_telefone: boolean
           whatsapp_mensagem: string
           whatsapp_numero: string
         }
@@ -280,14 +283,17 @@ export type Database = {
           player_posicao?: string
           streaming_url?: string
           telefone_contato?: string
+          telefone_posicao?: string
           tema?: string
           updated_at?: string
           visibilidade_logo?: boolean
+          visibilidade_mapa?: boolean
           visibilidade_musicas?: boolean
           visibilidade_noticias?: boolean
           visibilidade_patrocinadores?: boolean
           visibilidade_player?: boolean
           visibilidade_slides?: boolean
+          visibilidade_telefone?: boolean
           whatsapp_mensagem?: string
           whatsapp_numero?: string
         }
@@ -315,14 +321,17 @@ export type Database = {
           player_posicao?: string
           streaming_url?: string
           telefone_contato?: string
+          telefone_posicao?: string
           tema?: string
           updated_at?: string
           visibilidade_logo?: boolean
+          visibilidade_mapa?: boolean
           visibilidade_musicas?: boolean
           visibilidade_noticias?: boolean
           visibilidade_patrocinadores?: boolean
           visibilidade_player?: boolean
           visibilidade_slides?: boolean
+          visibilidade_telefone?: boolean
           whatsapp_mensagem?: string
           whatsapp_numero?: string
         }
