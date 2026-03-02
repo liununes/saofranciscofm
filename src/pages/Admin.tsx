@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Instagram, Facebook, Youtube, Smartphone, Apple, Link as LinkIcon, Phone, ToggleLeft, Megaphone } from 'lucide-react';
+import AddNoticiaByUrl from '@/components/admin/AddNoticiaByUrl';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -476,9 +477,12 @@ const AdminPanel = () => {
           {hasPermission('editar_noticias') && (
             <TabsContent value="noticias">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <h2 className="font-display font-bold text-foreground">Notícias</h2>
-                  <Button onClick={addNoticia} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+                  <div className="flex gap-2">
+                    <AddNoticiaByUrl onNoticiaAdded={loadAll} existingUrls={noticias.map((n: any) => n.link_completo).filter(Boolean)} />
+                    <Button onClick={addNoticia} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar Manual</Button>
+                  </div>
                 </div>
                 <div className="space-y-4">
                   {noticias.map(n => (
@@ -671,11 +675,27 @@ const AdminPanel = () => {
           {hasPermission('editar_paginas') && (
             <TabsContent value="paginas">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-                <h2 className="font-display font-bold text-foreground">Páginas</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-foreground">Páginas</h2>
+                  <Button onClick={async () => {
+                    const slug = `pagina-${Date.now()}`;
+                    const { data, error } = await supabase.from('paginas').insert({ slug, titulo: 'Nova Página', conteudo: '' }).select().single();
+                    if (!error && data) { setPaginas(prev => [...prev, data]); toast.success('Página criada!'); }
+                    else toast.error('Erro ao criar página.');
+                  }} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Nova Página</Button>
+                </div>
                 <div className="space-y-4">
                   {paginas.map(p => (
                     <div key={p.id} className="p-4 bg-muted rounded-lg space-y-2">
-                      <p className="text-xs text-muted-foreground font-mono">/{p.slug}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground font-mono">/{p.slug}</p>
+                        <Button variant="ghost" size="icon" onClick={async () => {
+                          await supabase.from('paginas').delete().eq('id', p.id);
+                          setPaginas(prev => prev.filter(pg => pg.id !== p.id));
+                          toast.success('Página removida.');
+                        }} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                      <Input placeholder="Slug (URL)" value={p.slug} onChange={e => updatePagina(p.id, { slug: e.target.value })} />
                       <Input placeholder="Título" value={p.titulo} onChange={e => updatePagina(p.id, { titulo: e.target.value })} />
                       <Textarea placeholder="Conteúdo da página" value={p.conteudo || ''} onChange={e => updatePagina(p.id, { conteudo: e.target.value })} rows={6} />
                       <div>
@@ -733,7 +753,7 @@ const AdminPanel = () => {
                     { key: 'visibilidade_musicas', label: 'Últimas Músicas' },
                     { key: 'visibilidade_patrocinadores', label: 'Patrocinadores' },
                     { key: 'visibilidade_slides', label: 'Imagens / Slides' },
-                    { key: 'visibilidade_mapa', label: 'Ouvintes pelo Mundo' },
+                    
                   ].map(item => (
                     <div key={item.key} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <span className="font-medium text-sm text-foreground">{item.label}</span>
