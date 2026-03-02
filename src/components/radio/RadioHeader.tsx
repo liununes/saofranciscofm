@@ -14,7 +14,7 @@ const RadioHeader = () => {
     { to: '/', label: 'Início' },
     { to: '/sobre', label: 'Sobre' },
     { to: '/#noticias', label: 'Notícias' },
-    { to: '/#programacao', label: 'Programação' },
+    { to: '/programacao', label: 'Programação' },
     { to: '/#contato', label: 'Contato' },
   ];
 
