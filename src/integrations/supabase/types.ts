@@ -249,6 +249,7 @@ export type Database = {
           player_posicao: string
           streaming_url: string
           telefone_contato: string
+          telefone_link: string
           telefone_posicao: string
           tema: string
           updated_at: string
@@ -292,6 +293,7 @@ export type Database = {
           player_posicao?: string
           streaming_url?: string
           telefone_contato?: string
+          telefone_link?: string
           telefone_posicao?: string
           tema?: string
           updated_at?: string
@@ -335,6 +337,7 @@ export type Database = {
           player_posicao?: string
           streaming_url?: string
           telefone_contato?: string
+          telefone_link?: string
           telefone_posicao?: string
           tema?: string
           updated_at?: string

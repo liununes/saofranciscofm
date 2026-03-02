@@ -1,0 +1,1 @@
+ALTER TABLE public.radio_config ADD COLUMN IF NOT EXISTS telefone_link text NOT NULL DEFAULT '';
