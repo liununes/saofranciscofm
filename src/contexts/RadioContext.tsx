@@ -92,7 +92,7 @@ export interface RadioConfig {
   visibilidade_slides: boolean;
   visibilidade_mapa: boolean;
   visibilidade_telefone: boolean;
-  telefone_posicao: 'player' | 'topo' | 'centro';
+  telefone_posicao: 'player' | 'topo' | 'centro' | 'header' | 'meio-esquerda' | 'meio-direita' | 'rodape';
   ads_topo_codigo: string;
   ads_topo_ativo: boolean;
   ads_meio_codigo: string;

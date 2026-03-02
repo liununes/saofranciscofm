@@ -2,6 +2,7 @@ import { useRadio } from '@/contexts/RadioContext';
 import { Settings, Menu, X, Instagram, Facebook, Youtube, Smartphone, Apple, Link as LinkIcon, Globe } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import PhoneContact from '@/components/radio/PhoneContact';
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   instagram: Instagram,
@@ -75,6 +76,8 @@ const RadioHeader = () => {
         )}
 
         <div className="flex items-center gap-2">
+          {/* Phone in header */}
+          <PhoneContact position="header" variant="header" className="hidden md:flex" />
           {/* Social icons */}
           {activeSocialLinks.length > 0 && (
             <div className="hidden sm:flex items-center gap-1.5">

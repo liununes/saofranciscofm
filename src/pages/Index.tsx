@@ -8,8 +8,8 @@ import WhatsAppButton from '@/components/radio/WhatsAppButton';
 import RadioFooter from '@/components/radio/RadioFooter';
 import WorldMap from '@/components/radio/WorldMap';
 import GoogleAd from '@/components/radio/GoogleAd';
+import PhoneContact from '@/components/radio/PhoneContact';
 import { useMemo } from 'react';
-import { Phone } from 'lucide-react';
 
 const SponsorBlock = ({ sponsors, align = 'center', className = '' }: { sponsors: any[]; align?: string; className?: string }) => {
   if (sponsors.length === 0) return null;
@@ -75,18 +75,8 @@ const Index = () => {
       {/* Topo sponsors */}
       {config.visibilidade_patrocinadores && <SponsorBlock sponsors={topoSponsors} align={align} className="bg-muted" />}
 
-      {/* Telefone fixo - posição topo */}
-      {config.visibilidade_telefone && config.telefone_contato && config.telefone_posicao === 'topo' && (
-        <div className="bg-primary/5 border-b border-primary/10">
-          <div className="container mx-auto px-4 py-2 flex items-center justify-center gap-2 text-sm">
-            <Phone className="w-4 h-4 text-primary" />
-            <span className="font-medium">Contato:</span>
-            <a href={`tel:${config.telefone_contato.replace(/\D/g, '')}`} className="text-primary font-semibold hover:underline">
-              {config.telefone_contato}
-            </a>
-          </div>
-        </div>
-      )}
+      {/* Telefone - posição topo */}
+      <PhoneContact position="topo" variant="bar" />
 
       {config.visibilidade_player && <div id="programacao"><RadioPlayer /></div>}
 
@@ -125,16 +115,10 @@ const Index = () => {
               {config.visibilidade_mapa && <div className="lg:col-span-1"><WorldMap /></div>}
             </div>
 
-            {/* Telefone fixo - posição centro */}
-            {config.visibilidade_telefone && config.telefone_contato && config.telefone_posicao === 'centro' && (
-              <div className="flex items-center justify-center gap-3 py-4 px-6 bg-primary/5 rounded-xl border border-primary/10">
-                <Phone className="w-6 h-6 text-primary" />
-                <span className="font-medium text-lg">Contato:</span>
-                <a href={`tel:${config.telefone_contato.replace(/\D/g, '')}`} className="text-primary font-bold text-xl hover:underline">
-                  {config.telefone_contato}
-                </a>
-              </div>
-            )}
+            {/* Telefone - posições centro, meio-esquerda, meio-direita */}
+            <PhoneContact position="centro" variant="block" />
+            <PhoneContact position="meio-esquerda" variant="block" />
+            <PhoneContact position="meio-direita" variant="block" />
           </div>
 
           {config.visibilidade_patrocinadores && direitaSponsors.length > 0 && (
