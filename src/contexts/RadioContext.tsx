@@ -14,6 +14,8 @@ export interface Noticia {
   resumo: string;
   link_completo: string;
   imagem?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Patrocinador {
@@ -81,6 +83,19 @@ export interface RadioConfig {
   horario_inicio: string;
   horario_fim: string;
   locutor_imagem?: string;
+  telefone_contato: string;
+  visibilidade_logo: boolean;
+  visibilidade_noticias: boolean;
+  visibilidade_musicas: boolean;
+  visibilidade_player: boolean;
+  visibilidade_patrocinadores: boolean;
+  visibilidade_slides: boolean;
+  ads_topo_codigo: string;
+  ads_topo_ativo: boolean;
+  ads_meio_codigo: string;
+  ads_meio_ativo: boolean;
+  ads_rodape_codigo: string;
+  ads_rodape_ativo: boolean;
   musicas_recentes: Musica[];
   noticias: Noticia[];
   patrocinadores: Patrocinador[];
@@ -112,6 +127,19 @@ const defaultConfig: RadioConfig = {
   horario_inicio: '',
   horario_fim: '',
   locutor_imagem: '',
+  telefone_contato: '3511-2000',
+  visibilidade_logo: true,
+  visibilidade_noticias: true,
+  visibilidade_musicas: true,
+  visibilidade_player: true,
+  visibilidade_patrocinadores: true,
+  visibilidade_slides: true,
+  ads_topo_codigo: '',
+  ads_topo_ativo: false,
+  ads_meio_codigo: '',
+  ads_meio_ativo: false,
+  ads_rodape_codigo: '',
+  ads_rodape_ativo: false,
   musicas_recentes: [],
   noticias: [],
   patrocinadores: [],
@@ -186,8 +214,21 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       cor_fundo: rc?.cor_fundo || prev.cor_fundo,
       imagem_fundo: rc?.imagem_fundo || '',
       imagem_fundo_modo: rc?.imagem_fundo_modo || 'cover',
+      telefone_contato: rc?.telefone_contato || '3511-2000',
+      visibilidade_logo: rc?.visibilidade_logo ?? true,
+      visibilidade_noticias: rc?.visibilidade_noticias ?? true,
+      visibilidade_musicas: rc?.visibilidade_musicas ?? true,
+      visibilidade_player: rc?.visibilidade_player ?? true,
+      visibilidade_patrocinadores: rc?.visibilidade_patrocinadores ?? true,
+      visibilidade_slides: rc?.visibilidade_slides ?? true,
+      ads_topo_codigo: rc?.ads_topo_codigo || '',
+      ads_topo_ativo: rc?.ads_topo_ativo ?? false,
+      ads_meio_codigo: rc?.ads_meio_codigo || '',
+      ads_meio_ativo: rc?.ads_meio_ativo ?? false,
+      ads_rodape_codigo: rc?.ads_rodape_codigo || '',
+      ads_rodape_ativo: rc?.ads_rodape_ativo ?? false,
       musicas_recentes: (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
-      noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '' })),
+      noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '', created_at: n.created_at, updated_at: n.updated_at })),
       patrocinadores: (patrocinadores || []).map(p => ({
         id: p.id,
         nome: p.nome,
