@@ -63,6 +63,7 @@ export type Database = {
         Row: {
           conteudo: string | null
           created_at: string
+          destaque: boolean
           id: string
           imagem_url: string | null
           link_completo: string | null
@@ -73,6 +74,7 @@ export type Database = {
         Insert: {
           conteudo?: string | null
           created_at?: string
+          destaque?: boolean
           id?: string
           imagem_url?: string | null
           link_completo?: string | null
@@ -83,6 +85,7 @@ export type Database = {
         Update: {
           conteudo?: string | null
           created_at?: string
+          destaque?: boolean
           id?: string
           imagem_url?: string | null
           link_completo?: string | null
@@ -249,12 +252,16 @@ export type Database = {
           telefone_posicao: string
           tema: string
           updated_at: string
+          visibilidade_destaque: boolean
           visibilidade_logo: boolean
           visibilidade_mapa: boolean
           visibilidade_musicas: boolean
           visibilidade_noticias: boolean
+          visibilidade_participacao: boolean
           visibilidade_patrocinadores: boolean
           visibilidade_player: boolean
+          visibilidade_premium: boolean
+          visibilidade_proximo_programa: boolean
           visibilidade_slides: boolean
           visibilidade_telefone: boolean
           whatsapp_mensagem: string
@@ -288,12 +295,16 @@ export type Database = {
           telefone_posicao?: string
           tema?: string
           updated_at?: string
+          visibilidade_destaque?: boolean
           visibilidade_logo?: boolean
           visibilidade_mapa?: boolean
           visibilidade_musicas?: boolean
           visibilidade_noticias?: boolean
+          visibilidade_participacao?: boolean
           visibilidade_patrocinadores?: boolean
           visibilidade_player?: boolean
+          visibilidade_premium?: boolean
+          visibilidade_proximo_programa?: boolean
           visibilidade_slides?: boolean
           visibilidade_telefone?: boolean
           whatsapp_mensagem?: string
@@ -327,12 +338,16 @@ export type Database = {
           telefone_posicao?: string
           tema?: string
           updated_at?: string
+          visibilidade_destaque?: boolean
           visibilidade_logo?: boolean
           visibilidade_mapa?: boolean
           visibilidade_musicas?: boolean
           visibilidade_noticias?: boolean
+          visibilidade_participacao?: boolean
           visibilidade_patrocinadores?: boolean
           visibilidade_player?: boolean
+          visibilidade_premium?: boolean
+          visibilidade_proximo_programa?: boolean
           visibilidade_slides?: boolean
           visibilidade_telefone?: boolean
           whatsapp_mensagem?: string

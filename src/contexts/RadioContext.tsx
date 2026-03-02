@@ -16,6 +16,7 @@ export interface Noticia {
   imagem?: string;
   created_at?: string;
   updated_at?: string;
+  destaque?: boolean;
 }
 
 export interface Patrocinador {
@@ -93,6 +94,10 @@ export interface RadioConfig {
   visibilidade_slides: boolean;
   visibilidade_mapa: boolean;
   visibilidade_telefone: boolean;
+  visibilidade_destaque: boolean;
+  visibilidade_proximo_programa: boolean;
+  visibilidade_participacao: boolean;
+  visibilidade_premium: boolean;
   telefone_posicao: 'player' | 'topo' | 'centro' | 'header' | 'meio-esquerda' | 'meio-direita' | 'rodape';
   ads_topo_codigo: string;
   ads_topo_ativo: boolean;
@@ -141,6 +146,10 @@ const defaultConfig: RadioConfig = {
   visibilidade_slides: true,
   visibilidade_mapa: true,
   visibilidade_telefone: true,
+  visibilidade_destaque: true,
+  visibilidade_proximo_programa: true,
+  visibilidade_participacao: true,
+  visibilidade_premium: true,
   telefone_posicao: 'player',
   ads_topo_codigo: '',
   ads_topo_ativo: false,
@@ -232,6 +241,10 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       visibilidade_slides: rc?.visibilidade_slides ?? true,
       visibilidade_mapa: rc?.visibilidade_mapa ?? true,
       visibilidade_telefone: rc?.visibilidade_telefone ?? true,
+      visibilidade_destaque: rc?.visibilidade_destaque ?? true,
+      visibilidade_proximo_programa: rc?.visibilidade_proximo_programa ?? true,
+      visibilidade_participacao: rc?.visibilidade_participacao ?? true,
+      visibilidade_premium: rc?.visibilidade_premium ?? true,
       telefone_posicao: (rc?.telefone_posicao as any) || 'player',
       ads_topo_codigo: rc?.ads_topo_codigo || '',
       ads_topo_ativo: rc?.ads_topo_ativo ?? false,
@@ -240,7 +253,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       ads_rodape_codigo: rc?.ads_rodape_codigo || '',
       ads_rodape_ativo: rc?.ads_rodape_ativo ?? false,
       musicas_recentes: (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
-      noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '', created_at: n.created_at, updated_at: n.updated_at })),
+      noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '', created_at: n.created_at, updated_at: n.updated_at, destaque: (n as any).destaque || false })),
       patrocinadores: (patrocinadores || []).map(p => ({
         id: p.id,
         nome: p.nome,

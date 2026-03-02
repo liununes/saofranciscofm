@@ -165,6 +165,10 @@ const AdminPanel = () => {
       visibilidade_slides: rc.visibilidade_slides,
       visibilidade_mapa: rc.visibilidade_mapa,
       visibilidade_telefone: rc.visibilidade_telefone,
+      visibilidade_destaque: rc.visibilidade_destaque,
+      visibilidade_proximo_programa: rc.visibilidade_proximo_programa,
+      visibilidade_participacao: rc.visibilidade_participacao,
+      visibilidade_premium: rc.visibilidade_premium,
       telefone_posicao: rc.telefone_posicao,
       ads_topo_codigo: rc.ads_topo_codigo,
       ads_topo_ativo: rc.ads_topo_ativo,
@@ -489,7 +493,13 @@ const AdminPanel = () => {
                     <div key={n.id} className="p-4 bg-muted rounded-lg space-y-2">
                       <div className="flex items-start gap-2">
                         <div className="flex-1 space-y-2">
-                          <Input placeholder="Título" value={n.titulo} onChange={e => updateNoticia(n.id, { titulo: e.target.value })} />
+                          <div className="flex items-center justify-between">
+                            <Input placeholder="Título" value={n.titulo} onChange={e => updateNoticia(n.id, { titulo: e.target.value })} className="flex-1" />
+                            <label className="flex items-center gap-2 ml-3 whitespace-nowrap text-xs">
+                              <Switch checked={n.destaque || false} onCheckedChange={checked => updateNoticiaImmediate(n.id, { destaque: checked })} />
+                              ⭐ Destaque
+                            </label>
+                          </div>
                           <Textarea placeholder="Resumo (exibido no card)" value={n.resumo || ''} onChange={e => updateNoticia(n.id, { resumo: e.target.value })} rows={2} />
                           <Textarea placeholder="Conteúdo completo da notícia" value={n.conteudo || ''} onChange={e => updateNoticia(n.id, { conteudo: e.target.value })} rows={5} />
                           <Input placeholder="Link externo (opcional)" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
@@ -753,7 +763,10 @@ const AdminPanel = () => {
                     { key: 'visibilidade_musicas', label: 'Últimas Músicas' },
                     { key: 'visibilidade_patrocinadores', label: 'Patrocinadores' },
                     { key: 'visibilidade_slides', label: 'Imagens / Slides' },
-                    
+                    { key: 'visibilidade_destaque', label: '📰 Módulo: Notícia em Destaque' },
+                    { key: 'visibilidade_proximo_programa', label: '⏰ Módulo: Próximo Programa' },
+                    { key: 'visibilidade_participacao', label: '🎤 Módulo: Participação do Ouvinte' },
+                    { key: 'visibilidade_premium', label: '⭐ Módulo: Patrocinador Premium' },
                   ].map(item => (
                     <div key={item.key} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <span className="font-medium text-sm text-foreground">{item.label}</span>

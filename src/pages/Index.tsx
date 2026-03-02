@@ -9,6 +9,7 @@ import RadioFooter from '@/components/radio/RadioFooter';
 
 import GoogleAd from '@/components/radio/GoogleAd';
 import PhoneContact from '@/components/radio/PhoneContact';
+import DynamicModules from '@/components/radio/DynamicModules';
 import { useMemo } from 'react';
 
 const SponsorBlock = ({ sponsors, align = 'center', className = '' }: { sponsors: any[]; align?: string; className?: string }) => {
@@ -79,6 +80,8 @@ const Index = () => {
       <PhoneContact position="topo" variant="bar" />
 
       {config.visibilidade_player && <div id="programacao"><RadioPlayer /></div>}
+
+      <DynamicModules />
 
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Centro sponsors */}
