@@ -310,6 +310,36 @@ export type Database = {
         }
         Relationships: []
       }
+      social_links: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          icone: string
+          id: string
+          nome: string
+          ordem: number
+          url: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          icone?: string
+          id?: string
+          nome: string
+          ordem?: number
+          url?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          icone?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          url?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           id: string

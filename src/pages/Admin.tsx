@@ -3,7 +3,7 @@ import { useRadio } from '@/contexts/RadioContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText } from 'lucide-react';
+import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Instagram, Facebook, Youtube, Smartphone, Apple, Link as LinkIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { Switch } from '@/components/ui/switch';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -38,6 +39,16 @@ const POSICOES_PATROCINADOR = [
   { value: 'esquerda', label: 'Esquerda' },
   { value: 'direita', label: 'Direita' },
   { value: 'rodape', label: 'Rodapé' },
+];
+
+const SOCIAL_ICONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'smartphone', label: 'Google Play' },
+  { value: 'apple', label: 'App Store' },
+  { value: 'globe', label: 'Site' },
+  { value: 'link', label: 'Link' },
 ];
 
 const ImageHint = ({ text }: { text: string }) => (
@@ -68,6 +79,7 @@ const AdminPanel = () => {
   const [patrocinadores, setPatrocinadores] = useState<any[]>([]);
   const [slides, setSlides] = useState<any[]>([]);
   const [paginas, setPaginas] = useState<any[]>([]);
+  const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Users management
@@ -86,7 +98,7 @@ const AdminPanel = () => {
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
-    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes] = await Promise.all([
+    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes] = await Promise.all([
       supabase.from('radio_config').select('*').limit(1).single(),
       supabase.from('locutores').select('*').order('created_at'),
       supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
@@ -95,6 +107,7 @@ const AdminPanel = () => {
       supabase.from('patrocinadores').select('*').order('created_at'),
       supabase.from('slide_imagens').select('*').order('ordem'),
       supabase.from('paginas').select('*').order('slug'),
+      supabase.from('social_links').select('*').order('ordem'),
     ]);
     setRc(rcRes.data || {});
     setLocutores(locRes.data || []);
@@ -104,6 +117,7 @@ const AdminPanel = () => {
     setPatrocinadores(patRes.data || []);
     setSlides(slidRes.data || []);
     setPaginas(pagRes.data || []);
+    setSocialLinks(socialRes.data || []);
 
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
       const { data: profiles } = await supabase.from('profiles').select('*');
@@ -191,6 +205,14 @@ const AdminPanel = () => {
   const addSlide = async () => { const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single(); if (!error && data) setSlides(prev => [...prev, data]); };
   const deleteSlide = async (id: string) => { await supabase.from('slide_imagens').delete().eq('id', id); setSlides(prev => prev.filter(s => s.id !== id)); };
 
+  // Social links CRUD
+  const addSocialLink = async () => { const { data, error } = await supabase.from('social_links').insert({ nome: 'Novo Link', url: '', icone: 'link', ordem: socialLinks.length, ativo: false }).select().single(); if (!error && data) setSocialLinks(prev => [...prev, data]); };
+  const deleteSocialLink = async (id: string) => { await supabase.from('social_links').delete().eq('id', id); setSocialLinks(prev => prev.filter(s => s.id !== id)); };
+  const persistSocialLink = useCallback(async (id: string, updates: any) => { await supabase.from('social_links').update(updates).eq('id', id); }, []);
+  const debouncedSaveSocialLink = useDebouncedSave(persistSocialLink);
+  const updateSocialLink = (id: string, updates: any) => { setSocialLinks(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); debouncedSaveSocialLink(id, updates); };
+  const updateSocialLinkImmediate = async (id: string, updates: any) => { setSocialLinks(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); await supabase.from('social_links').update(updates).eq('id', id); };
+
   // User management
   const createUser = async () => {
     if (!newUserEmail || !newUserPassword) { toast.error('Preencha e-mail e senha.'); return; }
@@ -258,6 +280,7 @@ const AdminPanel = () => {
             {hasPermission('editar_whatsapp') && <TabsTrigger value="whatsapp" className="gap-1.5 text-xs"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</TabsTrigger>}
             {hasPermission('editar_cores_layout') && <TabsTrigger value="aparencia" className="gap-1.5 text-xs"><Palette className="w-3.5 h-3.5" /> Aparência</TabsTrigger>}
             {hasPermission('editar_paginas') && <TabsTrigger value="paginas" className="gap-1.5 text-xs"><FileText className="w-3.5 h-3.5" /> Páginas</TabsTrigger>}
+            {hasPermission('editar_geral') && <TabsTrigger value="redes_sociais" className="gap-1.5 text-xs"><Globe className="w-3.5 h-3.5" /> Redes Sociais</TabsTrigger>}
             {(isAdmin || hasPermission('gerenciar_usuarios')) && <TabsTrigger value="usuarios" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> Usuários</TabsTrigger>}
             <TabsTrigger value="perfil" className="gap-1.5 text-xs"><User className="w-3.5 h-3.5" /> Perfil</TabsTrigger>
           </TabsList>
@@ -612,7 +635,36 @@ const AdminPanel = () => {
             </TabsContent>
           )}
 
-          {/* Usuários */}
+          {/* Redes Sociais */}
+          {hasPermission('editar_geral') && (
+            <TabsContent value="redes_sociais">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-foreground">Redes Sociais e Aplicativos</h2>
+                  <Button onClick={addSocialLink} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+                </div>
+                <p className="text-sm text-muted-foreground">Gerencie os ícones sociais exibidos no cabeçalho do site. Ative apenas os que possuem link.</p>
+                <div className="space-y-3">
+                  {socialLinks.map(s => (
+                    <div key={s.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                      <Switch checked={s.ativo} onCheckedChange={checked => updateSocialLinkImmediate(s.id, { ativo: checked })} />
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <Input placeholder="Nome" value={s.nome} onChange={e => updateSocialLink(s.id, { nome: e.target.value })} />
+                        <Input placeholder="URL (https://...)" value={s.url || ''} onChange={e => updateSocialLink(s.id, { url: e.target.value })} />
+                        <Select value={s.icone || 'link'} onValueChange={v => updateSocialLinkImmediate(s.id, { icone: v })}>
+                          <SelectTrigger><SelectValue placeholder="Ícone" /></SelectTrigger>
+                          <SelectContent>{SOCIAL_ICONS.map(icon => <SelectItem key={icon.value} value={icon.value}>{icon.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => deleteSocialLink(s.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
+
           {(isAdmin || hasPermission('gerenciar_usuarios')) && (
             <TabsContent value="usuarios">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-6">

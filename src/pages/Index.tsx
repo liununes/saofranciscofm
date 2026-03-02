@@ -17,7 +17,7 @@ const SponsorBlock = ({ sponsors, align = 'center', className = '' }: { sponsors
       {sponsors.map(p => (
         <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
           {p.imagem ? (
-            <img src={p.imagem} alt={p.nome} className={`object-contain ${p.tipo === 'premium' ? 'h-20 max-w-[240px]' : 'h-14 max-w-[160px]'}`} />
+            <img src={p.imagem} alt={p.nome} className={`object-contain ${p.tipo === 'premium' ? 'h-16 max-w-[200px]' : 'h-12 max-w-[140px]'}`} />
           ) : (
             <span className="text-sm text-muted-foreground font-medium">{p.nome}</span>
           )}

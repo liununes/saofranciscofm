@@ -31,6 +31,15 @@ export interface SlideImagem {
   ordem: number;
 }
 
+export interface SocialLink {
+  id: string;
+  nome: string;
+  url: string;
+  icone: string;
+  ordem: number;
+  ativo: boolean;
+}
+
 export interface Locutor {
   id: string;
   nome: string;
@@ -76,6 +85,7 @@ export interface RadioConfig {
   noticias: Noticia[];
   patrocinadores: Patrocinador[];
   slide_imagens: SlideImagem[];
+  social_links: SocialLink[];
 }
 
 const defaultConfig: RadioConfig = {
@@ -106,6 +116,7 @@ const defaultConfig: RadioConfig = {
   noticias: [],
   patrocinadores: [],
   slide_imagens: [],
+  social_links: [],
 };
 
 interface RadioContextType {
@@ -125,13 +136,14 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const [programas, setProgramas] = useState<Programa[]>([]);
 
   const fetchData = async () => {
-    const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes] = await Promise.all([
+    const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes] = await Promise.all([
       supabase.from('radio_config').select('*').limit(1).single(),
       supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
       supabase.from('noticias').select('*').order('created_at', { ascending: false }),
       supabase.from('patrocinadores').select('*'),
       supabase.from('slide_imagens').select('*').order('ordem', { ascending: true }),
       supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
+      supabase.from('social_links').select('*').order('ordem', { ascending: true }),
     ]);
 
     const rc = rcRes.data;
@@ -140,6 +152,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
     const patrocinadores = patRes.data;
     const slides = slidesRes.data;
     const progs = progsRes.data;
+    const socialLinks = socialRes.data;
 
     const mappedProgramas: Programa[] = (progs || []).map((p: any) => ({
       id: p.id,
@@ -184,6 +197,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
         posicao: p.posicao || 'rodape',
       })),
       slide_imagens: (slides || []).map(s => ({ id: s.id, imagem: s.imagem_url, ordem: s.ordem })),
+      social_links: (socialLinks || []).map(s => ({ id: s.id, nome: s.nome, url: s.url, icone: s.icone, ordem: s.ordem, ativo: s.ativo })),
     }));
   };
 

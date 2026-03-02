@@ -21,7 +21,7 @@ const RadioFooter = () => {
             {footerSponsors.map(p => (
               <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
                 {p.imagem ? (
-                  <img src={p.imagem} alt={p.nome} className={`object-contain ${p.tipo === 'premium' ? 'h-14' : 'h-10'}`} />
+                  <img src={p.imagem} alt={p.nome} className={`object-contain ${p.tipo === 'premium' ? 'h-10' : 'h-7'}`} />
                 ) : (
                   <span className="text-primary-foreground/60 text-sm">{p.nome}</span>
                 )}
