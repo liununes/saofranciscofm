@@ -1,12 +1,13 @@
 import { useRadio } from '@/contexts/RadioContext';
-import { Radio, Settings, Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Settings, Menu, X } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import radioLogo from '@/assets/radio-logo.png';
 
 const RadioHeader = () => {
   const { config } = useRadio();
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const headerSponsors = config.patrocinadores.filter(p => p.posicao === 'barra_centro_em_cima');
 
@@ -18,40 +19,36 @@ const RadioHeader = () => {
     { to: '/#contato', label: 'Contato' },
   ];
 
+  const handleNavClick = (e: React.MouseEvent, link: { to: string }) => {
+    if (link.to.includes('#')) {
+      const hash = link.to.split('#')[1];
+      if (location.pathname === '/') {
+        e.preventDefault();
+        const el = document.getElementById(hash);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+    setMenuOpen(false);
+  };
+
   return (
     <header className="gradient-primary sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between py-3 px-4">
-        <div className="flex items-center gap-3">
-          <img
-            src={config.logo_principal || radioLogo}
-            alt={config.nome_radio}
-            className="h-12 w-12 rounded-full object-cover border-2 border-secondary"
-          />
-          <div>
-            <h1 className="font-display font-bold text-lg text-primary-foreground leading-tight">
-              {config.nome_radio}
-            </h1>
-          </div>
-        </div>
+        <Link to="/" className="flex items-center gap-2">
+          <span className="font-display font-bold text-lg text-primary-foreground">{config.nome_radio}</span>
+        </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-4">
+        <nav className="hidden md:flex items-center gap-5">
           {navLinks.map(link => (
-            <Link key={link.to} to={link.to} className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors font-medium"
-              onClick={(e) => {
-                if (link.to.includes('#')) {
-                  const hash = link.to.split('#')[1];
-                  const el = document.getElementById(hash);
-                  if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
-                }
-              }}>
+            <Link key={link.to} to={link.to} onClick={e => handleNavClick(e, link)} className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors font-medium">
               {link.label}
             </Link>
           ))}
         </nav>
 
         {headerSponsors.length > 0 && (
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-4">
             {headerSponsors.map(p => (
               <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer">
                 {p.imagem ? (
@@ -65,38 +62,19 @@ const RadioHeader = () => {
         )}
 
         <div className="flex items-center gap-3">
-          {config.logo_extra && (
-            <img src={config.logo_extra} alt="Logo extra" className="h-10 hidden sm:block" />
-          )}
-          <Link
-            to="/admin"
-            className="p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors text-primary-foreground"
-            title="Painel Administrativo"
-          >
+          <Link to="/admin" className="p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors text-primary-foreground" title="Painel Administrativo">
             <Settings className="w-5 h-5" />
           </Link>
-          {/* Mobile menu toggle */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
-          >
+          <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground">
             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile nav */}
       {menuOpen && (
         <nav className="md:hidden border-t border-primary-foreground/10 px-4 py-3 space-y-2">
           {navLinks.map(link => (
-            <Link key={link.to} to={link.to} onClick={(e) => {
-              setMenuOpen(false);
-              if (link.to.includes('#')) {
-                const hash = link.to.split('#')[1];
-                const el = document.getElementById(hash);
-                if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
-              }
-            }} className="block text-sm text-primary-foreground/80 hover:text-primary-foreground py-1">
+            <Link key={link.to} to={link.to} onClick={e => handleNavClick(e, link)} className="block text-sm text-primary-foreground/80 hover:text-primary-foreground py-1">
               {link.label}
             </Link>
           ))}

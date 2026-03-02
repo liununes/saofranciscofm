@@ -230,11 +230,15 @@ export type Database = {
           imagem_fundo: string | null
           imagem_fundo_modo: string
           logo_extra: string | null
+          logo_posicao: string
           logo_principal: string | null
+          logo_tamanho: number
           musica_atual: string | null
           nome_radio: string
+          patrocinador_alinhamento: string
           player_posicao: string
           streaming_url: string
+          tema: string
           updated_at: string
           whatsapp_mensagem: string
           whatsapp_numero: string
@@ -248,11 +252,15 @@ export type Database = {
           imagem_fundo?: string | null
           imagem_fundo_modo?: string
           logo_extra?: string | null
+          logo_posicao?: string
           logo_principal?: string | null
+          logo_tamanho?: number
           musica_atual?: string | null
           nome_radio?: string
+          patrocinador_alinhamento?: string
           player_posicao?: string
           streaming_url?: string
+          tema?: string
           updated_at?: string
           whatsapp_mensagem?: string
           whatsapp_numero?: string
@@ -266,11 +274,15 @@ export type Database = {
           imagem_fundo?: string | null
           imagem_fundo_modo?: string
           logo_extra?: string | null
+          logo_posicao?: string
           logo_principal?: string | null
+          logo_tamanho?: number
           musica_atual?: string | null
           nome_radio?: string
+          patrocinador_alinhamento?: string
           player_posicao?: string
           streaming_url?: string
+          tema?: string
           updated_at?: string
           whatsapp_mensagem?: string
           whatsapp_numero?: string

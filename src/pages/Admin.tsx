@@ -127,6 +127,10 @@ const AdminPanel = () => {
       logo_extra: rc.logo_extra,
       streaming_url: rc.streaming_url,
       player_posicao: rc.player_posicao,
+      logo_posicao: rc.logo_posicao,
+      logo_tamanho: rc.logo_tamanho,
+      patrocinador_alinhamento: rc.patrocinador_alinhamento,
+      tema: rc.tema,
       musica_atual: rc.musica_atual,
       whatsapp_numero: rc.whatsapp_numero,
       whatsapp_mensagem: rc.whatsapp_mensagem,
@@ -275,6 +279,21 @@ const AdminPanel = () => {
                     <Label>Logo Extra</Label>
                     <ImageHint text="Recomendado: 300×120 px (PNG/JPG)" />
                     <ImageUpload value={rc.logo_extra} onChange={url => setRc({ ...rc, logo_extra: url })} folder="logos" />
+                  </div>
+                  <div>
+                    <Label>Posição da Logo em relação ao Player</Label>
+                    <Select value={rc.logo_posicao || 'left'} onValueChange={v => setRc({ ...rc, logo_posicao: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="left">Esquerda do Player</SelectItem>
+                        <SelectItem value="right">Direita do Player</SelectItem>
+                        <SelectItem value="above">Centralizada Acima</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Tamanho da Logo (px)</Label>
+                    <Input type="number" min={40} max={200} value={rc.logo_tamanho || 80} onChange={e => setRc({ ...rc, logo_tamanho: parseInt(e.target.value) || 80 })} />
                   </div>
                   <div>
                     <Label>Posição do Player</Label>
@@ -500,6 +519,28 @@ const AdminPanel = () => {
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <h2 className="font-display font-bold text-foreground">Personalização</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tema do Site</Label>
+                    <Select value={rc.tema || 'claro'} onValueChange={v => setRc({ ...rc, tema: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="claro">Claro</SelectItem>
+                        <SelectItem value="escuro">Escuro</SelectItem>
+                        <SelectItem value="moderno">Moderno</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Alinhamento dos Patrocinadores</Label>
+                    <Select value={rc.patrocinador_alinhamento || 'center'} onValueChange={v => setRc({ ...rc, patrocinador_alinhamento: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="left">Esquerda</SelectItem>
+                        <SelectItem value="center">Centro</SelectItem>
+                        <SelectItem value="right">Direita</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <Label>Cor Primária</Label>
                     <div className="flex gap-2 items-center">

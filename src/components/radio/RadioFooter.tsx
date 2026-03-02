@@ -3,7 +3,6 @@ import { Radio } from 'lucide-react';
 
 const RadioFooter = () => {
   const { config } = useRadio();
-
   const footerSponsors = config.patrocinadores.filter(p => p.posicao === 'rodape');
 
   return (
@@ -18,12 +17,14 @@ const RadioFooter = () => {
         </p>
 
         {footerSponsors.length > 0 && (
-          <div className="flex items-center justify-center gap-6 mt-4 flex-wrap">
+          <div className="flex items-center justify-center gap-8 mt-6 flex-wrap">
             {footerSponsors.map(p => (
-              <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer" className="text-primary-foreground/50 hover:text-primary-foreground/80 text-xs transition-colors">
+              <a key={p.id} href={p.link} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
                 {p.imagem ? (
-                  <img src={p.imagem} alt={p.nome} className={`object-contain ${p.tipo === 'premium' ? 'h-10' : 'h-6'}`} />
-                ) : p.nome}
+                  <img src={p.imagem} alt={p.nome} className={`object-contain ${p.tipo === 'premium' ? 'h-14' : 'h-10'}`} />
+                ) : (
+                  <span className="text-primary-foreground/60 text-sm">{p.nome}</span>
+                )}
               </a>
             ))}
           </div>
