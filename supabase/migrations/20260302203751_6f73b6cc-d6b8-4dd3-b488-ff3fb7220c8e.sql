@@ -1,0 +1,1 @@
+ALTER TABLE public.radio_config ADD COLUMN logo_extra_posicao text NOT NULL DEFAULT 'right';

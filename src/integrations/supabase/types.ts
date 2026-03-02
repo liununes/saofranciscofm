@@ -236,6 +236,7 @@ export type Database = {
           imagem_fundo: string | null
           imagem_fundo_modo: string
           logo_extra: string | null
+          logo_extra_posicao: string
           logo_posicao: string
           logo_principal: string | null
           logo_tamanho: number
@@ -274,6 +275,7 @@ export type Database = {
           imagem_fundo?: string | null
           imagem_fundo_modo?: string
           logo_extra?: string | null
+          logo_extra_posicao?: string
           logo_posicao?: string
           logo_principal?: string | null
           logo_tamanho?: number
@@ -312,6 +314,7 @@ export type Database = {
           imagem_fundo?: string | null
           imagem_fundo_modo?: string
           logo_extra?: string | null
+          logo_extra_posicao?: string
           logo_posicao?: string
           logo_principal?: string | null
           logo_tamanho?: number

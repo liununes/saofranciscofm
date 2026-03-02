@@ -63,6 +63,7 @@ export interface RadioConfig {
   nome_radio: string;
   logo_principal: string;
   logo_extra: string;
+  logo_extra_posicao: 'left' | 'right' | 'above';
   streaming_url: string;
   player_posicao: 'left' | 'center' | 'right';
   logo_posicao: 'left' | 'right' | 'above';
@@ -110,6 +111,7 @@ const defaultConfig: RadioConfig = {
   nome_radio: 'Rádio Personalizada FM',
   logo_principal: '',
   logo_extra: '',
+  logo_extra_posicao: 'right',
   streaming_url: 'https://stm28.srvaudio.com.br:10884/',
   player_posicao: 'center',
   logo_posicao: 'left',
@@ -205,6 +207,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       nome_radio: rc?.nome_radio || prev.nome_radio,
       logo_principal: rc?.logo_principal || '',
       logo_extra: rc?.logo_extra || '',
+      logo_extra_posicao: (rc?.logo_extra_posicao as any) || 'right',
       streaming_url: rc?.streaming_url || prev.streaming_url,
       player_posicao: (rc?.player_posicao as any) || 'center',
       logo_posicao: (rc?.logo_posicao as any) || 'left',
