@@ -1,5 +1,6 @@
 import { useRadio } from '@/contexts/RadioContext';
 import { Radio } from 'lucide-react';
+import PhoneContact from '@/components/radio/PhoneContact';
 
 const RadioFooter = () => {
   const { config } = useRadio();
@@ -15,6 +16,8 @@ const RadioFooter = () => {
         <p className="text-primary-foreground/60 text-sm">
           © {new Date().getFullYear()} {config.nome_radio}. Todos os direitos reservados.
         </p>
+
+        <PhoneContact position="rodape" variant="footer" />
 
         {footerSponsors.length > 0 && (
           <div className="flex items-center justify-center gap-8 mt-6 flex-wrap">

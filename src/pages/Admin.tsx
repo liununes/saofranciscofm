@@ -355,8 +355,12 @@ const AdminPanel = () => {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="player">Ao lado do Player</SelectItem>
+                        <SelectItem value="header">Cabeçalho (Header)</SelectItem>
                         <SelectItem value="topo">Barra acima do Player</SelectItem>
                         <SelectItem value="centro">Centro do conteúdo</SelectItem>
+                        <SelectItem value="meio-esquerda">Meio - Esquerda</SelectItem>
+                        <SelectItem value="meio-direita">Meio - Direita</SelectItem>
+                        <SelectItem value="rodape">Rodapé</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
