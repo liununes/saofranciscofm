@@ -14,16 +14,290 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      locutores: {
+        Row: {
+          created_at: string
+          id: string
+          imagem_url: string | null
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          nome?: string
+        }
+        Relationships: []
+      }
+      musicas_recentes: {
+        Row: {
+          artista: string
+          created_at: string
+          hora_execucao: string
+          id: string
+          titulo: string
+        }
+        Insert: {
+          artista: string
+          created_at?: string
+          hora_execucao: string
+          id?: string
+          titulo: string
+        }
+        Update: {
+          artista?: string
+          created_at?: string
+          hora_execucao?: string
+          id?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      noticias: {
+        Row: {
+          created_at: string
+          id: string
+          imagem_url: string | null
+          link_completo: string | null
+          resumo: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          link_completo?: string | null
+          resumo?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          link_completo?: string | null
+          resumo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      patrocinadores: {
+        Row: {
+          created_at: string
+          id: string
+          imagem_url: string | null
+          link: string | null
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          link?: string | null
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          link?: string | null
+          nome?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      programas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dias_semana: number[]
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          locutor_id: string | null
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dias_semana?: number[]
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+          locutor_id?: string | null
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dias_semana?: number[]
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          locutor_id?: string | null
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programas_locutor_id_fkey"
+            columns: ["locutor_id"]
+            isOneToOne: false
+            referencedRelation: "locutores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radio_config: {
+        Row: {
+          cor_primaria: string
+          cor_secundaria: string
+          id: string
+          logo_extra: string | null
+          logo_principal: string | null
+          musica_atual: string | null
+          nome_radio: string
+          player_posicao: string
+          streaming_url: string
+          updated_at: string
+          whatsapp_mensagem: string
+          whatsapp_numero: string
+        }
+        Insert: {
+          cor_primaria?: string
+          cor_secundaria?: string
+          id?: string
+          logo_extra?: string | null
+          logo_principal?: string | null
+          musica_atual?: string | null
+          nome_radio?: string
+          player_posicao?: string
+          streaming_url?: string
+          updated_at?: string
+          whatsapp_mensagem?: string
+          whatsapp_numero?: string
+        }
+        Update: {
+          cor_primaria?: string
+          cor_secundaria?: string
+          id?: string
+          logo_extra?: string | null
+          logo_principal?: string | null
+          musica_atual?: string | null
+          nome_radio?: string
+          player_posicao?: string
+          streaming_url?: string
+          updated_at?: string
+          whatsapp_mensagem?: string
+          whatsapp_numero?: string
+        }
+        Relationships: []
+      }
+      slide_imagens: {
+        Row: {
+          created_at: string
+          id: string
+          imagem_url: string
+          ordem: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imagem_url: string
+          ordem?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imagem_url?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      user_permissions: {
+        Row: {
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          permission: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +424,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

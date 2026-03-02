@@ -1,71 +1,272 @@
-import { useState } from 'react';
-import { useRadio, Musica, Noticia, Patrocinador } from '@/contexts/RadioContext';
+import { useState, useEffect } from 'react';
+import { useRadio } from '@/contexts/RadioContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import ImageUpload from '@/components/admin/ImageUpload';
+
+const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+const PERMISSIONS = [
+  { key: 'noticias', label: 'Notícias' },
+  { key: 'locutores', label: 'Locutores' },
+  { key: 'programas', label: 'Programas' },
+  { key: 'musicas', label: 'Músicas' },
+  { key: 'patrocinadores', label: 'Patrocinadores' },
+  { key: 'slides', label: 'Slides' },
+  { key: 'streaming', label: 'Streaming' },
+  { key: 'aparencia', label: 'Aparência' },
+  { key: 'whatsapp', label: 'WhatsApp' },
+  { key: 'geral', label: 'Geral' },
+];
 
 const AdminPanel = () => {
-  const { config, updateConfig } = useRadio();
-  const [localConfig, setLocalConfig] = useState(config);
+  const { refreshData } = useRadio();
+  const { user, isAdmin, permissions, signOut, updatePassword } = useAuth();
 
-  const update = (key: string, value: any) => {
-    setLocalConfig(prev => ({ ...prev, [key]: value }));
+  // Radio config state
+  const [rc, setRc] = useState<any>({});
+  const [locutores, setLocutores] = useState<any[]>([]);
+  const [programas, setProgramas] = useState<any[]>([]);
+  const [musicas, setMusicas] = useState<any[]>([]);
+  const [noticias, setNoticias] = useState<any[]>([]);
+  const [patrocinadores, setPatrocinadores] = useState<any[]>([]);
+  const [slides, setSlides] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  // Users management
+  const [users, setUsers] = useState<any[]>([]);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+
+  // Password change
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  const hasPermission = (perm: string) => isAdmin || permissions.includes(perm);
+
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  const loadAll = async () => {
+    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes] = await Promise.all([
+      supabase.from('radio_config').select('*').limit(1).single(),
+      supabase.from('locutores').select('*').order('created_at'),
+      supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
+      supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }),
+      supabase.from('noticias').select('*').order('created_at', { ascending: false }),
+      supabase.from('patrocinadores').select('*').order('created_at'),
+      supabase.from('slide_imagens').select('*').order('ordem'),
+    ]);
+    setRc(rcRes.data || {});
+    setLocutores(locRes.data || []);
+    setProgramas(progRes.data || []);
+    setMusicas(musRes.data || []);
+    setNoticias(notRes.data || []);
+    setPatrocinadores(patRes.data || []);
+    setSlides(slidRes.data || []);
+
+    // Load users if admin
+    if (isAdmin) {
+      const { data: profiles } = await supabase.from('profiles').select('*');
+      if (profiles) {
+        const usersWithRoles = await Promise.all(profiles.map(async (p) => {
+          const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', p.user_id);
+          const { data: perms } = await supabase.from('user_permissions').select('permission').eq('user_id', p.user_id);
+          return { ...p, roles: roles || [], permissions: perms?.map(pp => pp.permission) || [] };
+        }));
+        setUsers(usersWithRoles);
+      }
+    }
   };
 
-  const save = () => {
-    updateConfig(localConfig);
-    toast.success('Configurações salvas com sucesso!');
+  // ---- SAVE FUNCTIONS ----
+  const saveConfig = async () => {
+    setSaving(true);
+    const { error } = await supabase.from('radio_config').update({
+      nome_radio: rc.nome_radio,
+      logo_principal: rc.logo_principal,
+      logo_extra: rc.logo_extra,
+      streaming_url: rc.streaming_url,
+      player_posicao: rc.player_posicao,
+      musica_atual: rc.musica_atual,
+      whatsapp_numero: rc.whatsapp_numero,
+      whatsapp_mensagem: rc.whatsapp_mensagem,
+      cor_primaria: rc.cor_primaria,
+      cor_secundaria: rc.cor_secundaria,
+    }).eq('id', rc.id);
+    setSaving(false);
+    if (error) toast.error('Erro ao salvar.');
+    else {
+      toast.success('Salvo com sucesso!');
+      refreshData();
+    }
   };
 
-  const addMusica = () => {
-    const m: Musica = { id: Date.now().toString(), titulo: '', artista: '', hora_execucao: '' };
-    update('musicas_recentes', [...localConfig.musicas_recentes, m]);
+  // Locutores CRUD
+  const addLocutor = async () => {
+    const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor' }).select().single();
+    if (!error && data) setLocutores([...locutores, data]);
   };
 
-  const removeMusica = (id: string) => {
-    update('musicas_recentes', localConfig.musicas_recentes.filter(m => m.id !== id));
+  const updateLocutor = async (id: string, updates: any) => {
+    await supabase.from('locutores').update(updates).eq('id', id);
+    setLocutores(locutores.map(l => l.id === id ? { ...l, ...updates } : l));
   };
 
-  const updateMusica = (id: string, field: keyof Musica, value: string) => {
-    update('musicas_recentes', localConfig.musicas_recentes.map(m =>
-      m.id === id ? { ...m, [field]: value } : m
-    ));
+  const deleteLocutor = async (id: string) => {
+    await supabase.from('locutores').delete().eq('id', id);
+    setLocutores(locutores.filter(l => l.id !== id));
   };
 
-  const addNoticia = () => {
-    const n: Noticia = { id: Date.now().toString(), titulo: '', resumo: '', link_completo: '' };
-    update('noticias', [...localConfig.noticias, n]);
+  // Programas CRUD
+  const addPrograma = async () => {
+    const { data, error } = await supabase.from('programas').insert({
+      nome: 'Novo Programa',
+      horario_inicio: '06:00',
+      horario_fim: '10:00',
+      dias_semana: [1, 2, 3, 4, 5],
+    }).select('*, locutores(*)').single();
+    if (!error && data) setProgramas([...programas, data]);
   };
 
-  const removeNoticia = (id: string) => {
-    update('noticias', localConfig.noticias.filter(n => n.id !== id));
+  const updatePrograma = async (id: string, updates: any) => {
+    await supabase.from('programas').update(updates).eq('id', id);
+    setProgramas(programas.map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
-  const updateNoticia = (id: string, field: keyof Noticia, value: string) => {
-    update('noticias', localConfig.noticias.map(n =>
-      n.id === id ? { ...n, [field]: value } : n
-    ));
+  const deletePrograma = async (id: string) => {
+    await supabase.from('programas').delete().eq('id', id);
+    setProgramas(programas.filter(p => p.id !== id));
   };
 
-  const addPatrocinador = () => {
-    const p: Patrocinador = { id: Date.now().toString(), nome: '', imagem: '', link: '' };
-    update('patrocinadores', [...localConfig.patrocinadores, p]);
+  // Musicas CRUD
+  const addMusica = async () => {
+    const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '' }).select().single();
+    if (!error && data) setMusicas([data, ...musicas]);
   };
 
-  const removePatrocinador = (id: string) => {
-    update('patrocinadores', localConfig.patrocinadores.filter(p => p.id !== id));
+  const updateMusica = async (id: string, updates: any) => {
+    await supabase.from('musicas_recentes').update(updates).eq('id', id);
+    setMusicas(musicas.map(m => m.id === id ? { ...m, ...updates } : m));
   };
 
-  const updatePatrocinador = (id: string, field: keyof Patrocinador, value: string) => {
-    update('patrocinadores', localConfig.patrocinadores.map(p =>
-      p.id === id ? { ...p, [field]: value } : p
-    ));
+  const deleteMusica = async (id: string) => {
+    await supabase.from('musicas_recentes').delete().eq('id', id);
+    setMusicas(musicas.filter(m => m.id !== id));
+  };
+
+  // Noticias CRUD
+  const addNoticia = async () => {
+    const { data, error } = await supabase.from('noticias').insert({ titulo: '', resumo: '', link_completo: '' }).select().single();
+    if (!error && data) setNoticias([data, ...noticias]);
+  };
+
+  const updateNoticia = async (id: string, updates: any) => {
+    await supabase.from('noticias').update(updates).eq('id', id);
+    setNoticias(noticias.map(n => n.id === id ? { ...n, ...updates } : n));
+  };
+
+  const deleteNoticia = async (id: string) => {
+    await supabase.from('noticias').delete().eq('id', id);
+    setNoticias(noticias.filter(n => n.id !== id));
+  };
+
+  // Patrocinadores CRUD
+  const addPatrocinador = async () => {
+    const { data, error } = await supabase.from('patrocinadores').insert({ nome: '' }).select().single();
+    if (!error && data) setPatrocinadores([...patrocinadores, data]);
+  };
+
+  const updatePatrocinador = async (id: string, updates: any) => {
+    await supabase.from('patrocinadores').update(updates).eq('id', id);
+    setPatrocinadores(patrocinadores.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
+  const deletePatrocinador = async (id: string) => {
+    await supabase.from('patrocinadores').delete().eq('id', id);
+    setPatrocinadores(patrocinadores.filter(p => p.id !== id));
+  };
+
+  // Slides CRUD
+  const addSlide = async () => {
+    const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single();
+    if (!error && data) setSlides([...slides, data]);
+  };
+
+  const updateSlide = async (id: string, updates: any) => {
+    await supabase.from('slide_imagens').update(updates).eq('id', id);
+    setSlides(slides.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const deleteSlide = async (id: string) => {
+    await supabase.from('slide_imagens').delete().eq('id', id);
+    setSlides(slides.filter(s => s.id !== id));
+  };
+
+  // User management
+  const createUser = async () => {
+    if (!newUserEmail || !newUserPassword) {
+      toast.error('Preencha e-mail e senha.');
+      return;
+    }
+    // We use signUp from the client - the new user will get a profile via trigger
+    const { error } = await supabase.auth.signUp({
+      email: newUserEmail,
+      password: newUserPassword,
+      options: { data: { display_name: newUserName || newUserEmail } },
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Usuário criado! (Verifique o e-mail para confirmar)');
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserName('');
+      setTimeout(loadAll, 2000);
+    }
+  };
+
+  const toggleUserRole = async (userId: string, currentIsAdmin: boolean) => {
+    if (currentIsAdmin) {
+      await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', 'admin');
+    } else {
+      await supabase.from('user_roles').insert({ user_id: userId, role: 'admin' });
+    }
+    loadAll();
+  };
+
+  const toggleUserPermission = async (userId: string, perm: string, has: boolean) => {
+    if (has) {
+      await supabase.from('user_permissions').delete().eq('user_id', userId).eq('permission', perm);
+    } else {
+      await supabase.from('user_permissions').insert({ user_id: userId, permission: perm });
+    }
+    loadAll();
+  };
+
+  const handlePasswordChange = async () => {
+    if (newPassword.length < 6) {
+      toast.error('Senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    const { error } = await updatePassword(newPassword);
+    if (error) toast.error('Erro ao alterar senha.');
+    else {
+      toast.success('Senha alterada com sucesso!');
+      setNewPassword('');
+    }
   };
 
   return (
@@ -79,197 +280,349 @@ const AdminPanel = () => {
             </Link>
             <h1 className="font-display font-bold text-lg text-primary-foreground">Painel Administrativo</h1>
           </div>
-          <Button onClick={save} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <Save className="w-4 h-4" />
-            Salvar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={saveConfig} disabled={saving} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
+              <Save className="w-4 h-4" />
+              {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+            <Button onClick={signOut} variant="ghost" size="icon" className="text-primary-foreground">
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="geral" className="space-y-6">
           <TabsList className="flex flex-wrap gap-1 h-auto bg-card p-1.5 rounded-xl shadow-card">
-            <TabsTrigger value="geral" className="gap-1.5 text-xs"><Radio className="w-3.5 h-3.5" /> Geral</TabsTrigger>
-            <TabsTrigger value="programa" className="gap-1.5 text-xs"><Radio className="w-3.5 h-3.5" /> Programa</TabsTrigger>
-            <TabsTrigger value="musicas" className="gap-1.5 text-xs"><Music className="w-3.5 h-3.5" /> Músicas</TabsTrigger>
-            <TabsTrigger value="noticias" className="gap-1.5 text-xs"><Newspaper className="w-3.5 h-3.5" /> Notícias</TabsTrigger>
-            <TabsTrigger value="patrocinadores" className="gap-1.5 text-xs"><Users className="w-3.5 h-3.5" /> Patrocinadores</TabsTrigger>
-            <TabsTrigger value="slides" className="gap-1.5 text-xs"><Image className="w-3.5 h-3.5" /> Slides</TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-1.5 text-xs"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</TabsTrigger>
-            <TabsTrigger value="aparencia" className="gap-1.5 text-xs"><Palette className="w-3.5 h-3.5" /> Aparência</TabsTrigger>
+            {hasPermission('geral') && <TabsTrigger value="geral" className="gap-1.5 text-xs"><Radio className="w-3.5 h-3.5" /> Geral</TabsTrigger>}
+            {hasPermission('locutores') && <TabsTrigger value="locutores" className="gap-1.5 text-xs"><Mic className="w-3.5 h-3.5" /> Locutores</TabsTrigger>}
+            {hasPermission('programas') && <TabsTrigger value="programas" className="gap-1.5 text-xs"><CalendarClock className="w-3.5 h-3.5" /> Programas</TabsTrigger>}
+            {hasPermission('musicas') && <TabsTrigger value="musicas" className="gap-1.5 text-xs"><Music className="w-3.5 h-3.5" /> Músicas</TabsTrigger>}
+            {hasPermission('noticias') && <TabsTrigger value="noticias" className="gap-1.5 text-xs"><Newspaper className="w-3.5 h-3.5" /> Notícias</TabsTrigger>}
+            {hasPermission('patrocinadores') && <TabsTrigger value="patrocinadores" className="gap-1.5 text-xs"><Users className="w-3.5 h-3.5" /> Patrocinadores</TabsTrigger>}
+            {hasPermission('slides') && <TabsTrigger value="slides" className="gap-1.5 text-xs"><Image className="w-3.5 h-3.5" /> Slides</TabsTrigger>}
+            {hasPermission('whatsapp') && <TabsTrigger value="whatsapp" className="gap-1.5 text-xs"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</TabsTrigger>}
+            {hasPermission('aparencia') && <TabsTrigger value="aparencia" className="gap-1.5 text-xs"><Palette className="w-3.5 h-3.5" /> Aparência</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="usuarios" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> Usuários</TabsTrigger>}
+            <TabsTrigger value="perfil" className="gap-1.5 text-xs"><User className="w-3.5 h-3.5" /> Perfil</TabsTrigger>
           </TabsList>
 
           {/* Geral */}
-          <TabsContent value="geral">
-            <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-              <h2 className="font-display font-bold text-foreground">Configurações Gerais</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label>Nome da Rádio</Label><Input value={localConfig.nome_radio} onChange={e => update('nome_radio', e.target.value)} /></div>
-                <div><Label>URL do Streaming</Label><Input value={localConfig.streaming_url} onChange={e => update('streaming_url', e.target.value)} placeholder="https://stream.example.com" /></div>
-                <div><Label>Logo Principal (URL)</Label><Input value={localConfig.logo_principal} onChange={e => update('logo_principal', e.target.value)} placeholder="URL da logo" /></div>
-                <div><Label>Logo Extra (URL)</Label><Input value={localConfig.logo_extra} onChange={e => update('logo_extra', e.target.value)} placeholder="URL da logo extra" /></div>
-                <div>
-                  <Label>Posição do Player</Label>
-                  <Select value={localConfig.player_posicao} onValueChange={v => update('player_posicao', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="left">Esquerda</SelectItem>
-                      <SelectItem value="center">Centro</SelectItem>
-                      <SelectItem value="right">Direita</SelectItem>
-                    </SelectContent>
-                  </Select>
+          {hasPermission('geral') && (
+            <TabsContent value="geral">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <h2 className="font-display font-bold text-foreground">Configurações Gerais</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><Label>Nome da Rádio</Label><Input value={rc.nome_radio || ''} onChange={e => setRc({ ...rc, nome_radio: e.target.value })} /></div>
+                  <div><Label>URL do Streaming</Label><Input value={rc.streaming_url || ''} onChange={e => setRc({ ...rc, streaming_url: e.target.value })} placeholder="https://stm28.srvaudio.com.br:10884/" /></div>
+                  <div>
+                    <Label>Logo Principal</Label>
+                    <ImageUpload value={rc.logo_principal} onChange={url => setRc({ ...rc, logo_principal: url })} folder="logos" />
+                  </div>
+                  <div>
+                    <Label>Logo Extra</Label>
+                    <ImageUpload value={rc.logo_extra} onChange={url => setRc({ ...rc, logo_extra: url })} folder="logos" />
+                  </div>
+                  <div>
+                    <Label>Posição do Player</Label>
+                    <Select value={rc.player_posicao || 'center'} onValueChange={v => setRc({ ...rc, player_posicao: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="left">Esquerda</SelectItem>
+                        <SelectItem value="center">Centro</SelectItem>
+                        <SelectItem value="right">Direita</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Música Atual</Label><Input value={rc.musica_atual || ''} onChange={e => setRc({ ...rc, musica_atual: e.target.value })} /></div>
                 </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
-          {/* Programa */}
-          <TabsContent value="programa">
-            <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-              <h2 className="font-display font-bold text-foreground">Programa Ao Vivo</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label>Locutor Ao Vivo</Label><Input value={localConfig.locutor_ao_vivo} onChange={e => update('locutor_ao_vivo', e.target.value)} /></div>
-                <div><Label>Programa Ao Vivo</Label><Input value={localConfig.programa_ao_vivo} onChange={e => update('programa_ao_vivo', e.target.value)} /></div>
-                <div><Label>Horário Início</Label><Input type="time" value={localConfig.horario_inicio} onChange={e => update('horario_inicio', e.target.value)} /></div>
-                <div><Label>Horário Fim</Label><Input type="time" value={localConfig.horario_fim} onChange={e => update('horario_fim', e.target.value)} /></div>
-                <div className="md:col-span-2"><Label>Música Atual</Label><Input value={localConfig.musica_atual} onChange={e => update('musica_atual', e.target.value)} /></div>
+          {/* Locutores */}
+          {hasPermission('locutores') && (
+            <TabsContent value="locutores">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-foreground">Locutores</h2>
+                  <Button onClick={addLocutor} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+                </div>
+                <div className="space-y-3">
+                  {locutores.map(l => (
+                    <div key={l.id} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                      <ImageUpload value={l.imagem_url} onChange={url => updateLocutor(l.id, { imagem_url: url })} folder="locutores" />
+                      <div className="flex-1">
+                        <Input placeholder="Nome do locutor" value={l.nome} onChange={e => updateLocutor(l.id, { nome: e.target.value })} />
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => deleteLocutor(l.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
+
+          {/* Programas */}
+          {hasPermission('programas') && (
+            <TabsContent value="programas">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-foreground">Programação</h2>
+                  <Button onClick={addPrograma} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+                </div>
+                <div className="space-y-4">
+                  {programas.map(p => (
+                    <div key={p.id} className="p-4 bg-muted rounded-lg space-y-3">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <Input placeholder="Nome do programa" value={p.nome} onChange={e => updatePrograma(p.id, { nome: e.target.value })} />
+                          <Select value={p.locutor_id || ''} onValueChange={v => updatePrograma(p.id, { locutor_id: v || null })}>
+                            <SelectTrigger><SelectValue placeholder="Selecionar locutor" /></SelectTrigger>
+                            <SelectContent>
+                              {locutores.map(l => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <Input type="time" value={(p.horario_inicio || '').substring(0, 5)} onChange={e => updatePrograma(p.id, { horario_inicio: e.target.value })} />
+                          <Input type="time" value={(p.horario_fim || '').substring(0, 5)} onChange={e => updatePrograma(p.id, { horario_fim: e.target.value })} />
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => deletePrograma(p.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {DIAS_SEMANA.map((dia, i) => (
+                          <label key={i} className="flex items-center gap-1 text-xs">
+                            <Checkbox
+                              checked={(p.dias_semana || []).includes(i)}
+                              onCheckedChange={checked => {
+                                const dias = checked
+                                  ? [...(p.dias_semana || []), i]
+                                  : (p.dias_semana || []).filter((d: number) => d !== i);
+                                updatePrograma(p.id, { dias_semana: dias });
+                              }}
+                            />
+                            {dia}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          )}
 
           {/* Músicas */}
-          <TabsContent value="musicas">
-            <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-foreground">Últimas Músicas Tocadas</h2>
-                <Button onClick={addMusica} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-              </div>
-              <div className="space-y-3">
-                {localConfig.musicas_recentes.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <Input placeholder="Título" value={m.titulo} onChange={e => updateMusica(m.id, 'titulo', e.target.value)} />
-                      <Input placeholder="Artista" value={m.artista} onChange={e => updateMusica(m.id, 'artista', e.target.value)} />
-                      <Input type="time" value={m.hora_execucao} onChange={e => updateMusica(m.id, 'hora_execucao', e.target.value)} />
+          {hasPermission('musicas') && (
+            <TabsContent value="musicas">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-foreground">Últimas Músicas Tocadas</h2>
+                  <Button onClick={addMusica} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+                </div>
+                <div className="space-y-3">
+                  {musicas.map(m => (
+                    <div key={m.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <Input placeholder="Título" value={m.titulo} onChange={e => updateMusica(m.id, { titulo: e.target.value })} />
+                        <Input placeholder="Artista" value={m.artista} onChange={e => updateMusica(m.id, { artista: e.target.value })} />
+                        <Input type="time" value={m.hora_execucao} onChange={e => updateMusica(m.id, { hora_execucao: e.target.value })} />
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => deleteMusica(m.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeMusica(m.id)} className="text-destructive flex-shrink-0">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* Notícias */}
-          <TabsContent value="noticias">
-            <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-foreground">Notícias</h2>
-                <Button onClick={addNoticia} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-              </div>
-              <div className="space-y-4">
-                {localConfig.noticias.map(n => (
-                  <div key={n.id} className="p-4 bg-muted rounded-lg space-y-2">
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 space-y-2">
-                        <Input placeholder="Título" value={n.titulo} onChange={e => updateNoticia(n.id, 'titulo', e.target.value)} />
-                        <Textarea placeholder="Resumo" value={n.resumo} onChange={e => updateNoticia(n.id, 'resumo', e.target.value)} rows={2} />
-                        <Input placeholder="Link completo" value={n.link_completo} onChange={e => updateNoticia(n.id, 'link_completo', e.target.value)} />
+          {hasPermission('noticias') && (
+            <TabsContent value="noticias">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-foreground">Notícias</h2>
+                  <Button onClick={addNoticia} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+                </div>
+                <div className="space-y-4">
+                  {noticias.map(n => (
+                    <div key={n.id} className="p-4 bg-muted rounded-lg space-y-2">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 space-y-2">
+                          <Input placeholder="Título" value={n.titulo} onChange={e => updateNoticia(n.id, { titulo: e.target.value })} />
+                          <Textarea placeholder="Resumo" value={n.resumo || ''} onChange={e => updateNoticia(n.id, { resumo: e.target.value })} rows={2} />
+                          <Input placeholder="Link completo" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
+                          <ImageUpload value={n.imagem_url} onChange={url => updateNoticia(n.id, { imagem_url: url })} folder="noticias" />
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => deleteNoticia(n.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => removeNoticia(n.id)} className="text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* Patrocinadores */}
-          <TabsContent value="patrocinadores">
-            <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-foreground">Patrocinadores</h2>
-                <Button onClick={addPatrocinador} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-              </div>
-              <div className="space-y-3">
-                {localConfig.patrocinadores.map(p => (
-                  <div key={p.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <Input placeholder="Nome" value={p.nome} onChange={e => updatePatrocinador(p.id, 'nome', e.target.value)} />
-                      <Input placeholder="URL da imagem" value={p.imagem} onChange={e => updatePatrocinador(p.id, 'imagem', e.target.value)} />
-                      <Input placeholder="Link" value={p.link} onChange={e => updatePatrocinador(p.id, 'link', e.target.value)} />
+          {hasPermission('patrocinadores') && (
+            <TabsContent value="patrocinadores">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-foreground">Patrocinadores</h2>
+                  <Button onClick={addPatrocinador} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+                </div>
+                <div className="space-y-3">
+                  {patrocinadores.map(p => (
+                    <div key={p.id} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                      <ImageUpload value={p.imagem_url} onChange={url => updatePatrocinador(p.id, { imagem_url: url })} folder="patrocinadores" />
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Input placeholder="Nome" value={p.nome} onChange={e => updatePatrocinador(p.id, { nome: e.target.value })} />
+                        <Input placeholder="Link" value={p.link || ''} onChange={e => updatePatrocinador(p.id, { link: e.target.value })} />
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => deletePatrocinador(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => removePatrocinador(p.id)} className="text-destructive flex-shrink-0">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* Slides */}
-          <TabsContent value="slides">
-            <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-foreground">Slides de Imagem</h2>
-                <Button onClick={() => {
-                  const s = { id: Date.now().toString(), imagem: '', ordem: localConfig.slide_imagens.length };
-                  update('slide_imagens', [...localConfig.slide_imagens, s]);
-                }} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+          {hasPermission('slides') && (
+            <TabsContent value="slides">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-bold text-foreground">Slides de Imagem</h2>
+                  <Button onClick={addSlide} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+                </div>
+                <p className="text-sm text-muted-foreground">Deixe vazio para usar as imagens padrão.</p>
+                <div className="space-y-3">
+                  {slides.map((s, i) => (
+                    <div key={s.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
+                      <ImageUpload value={s.imagem_url} onChange={url => updateSlide(s.id, { imagem_url: url })} folder="slides" />
+                      <Button variant="ghost" size="icon" onClick={() => deleteSlide(s.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">Deixe vazio para usar as imagens padrão.</p>
-              <div className="space-y-3">
-                {localConfig.slide_imagens.map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
-                    <Input placeholder="URL da imagem" value={s.imagem} onChange={e => {
-                      update('slide_imagens', localConfig.slide_imagens.map(si =>
-                        si.id === s.id ? { ...si, imagem: e.target.value } : si
-                      ));
-                    }} className="flex-1" />
-                    <Button variant="ghost" size="icon" onClick={() => {
-                      update('slide_imagens', localConfig.slide_imagens.filter(si => si.id !== s.id));
-                    }} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* WhatsApp */}
-          <TabsContent value="whatsapp">
-            <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-              <h2 className="font-display font-bold text-foreground">Pedidos via WhatsApp</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label>Número do WhatsApp</Label><Input value={localConfig.whatsapp_numero} onChange={e => update('whatsapp_numero', e.target.value)} placeholder="553335112000" /></div>
-                <div><Label>Mensagem Padrão</Label><Input value={localConfig.whatsapp_mensagem} onChange={e => update('whatsapp_mensagem', e.target.value)} /></div>
+          {hasPermission('whatsapp') && (
+            <TabsContent value="whatsapp">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <h2 className="font-display font-bold text-foreground">Pedidos via WhatsApp</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><Label>Número do WhatsApp</Label><Input value={rc.whatsapp_numero || ''} onChange={e => setRc({ ...rc, whatsapp_numero: e.target.value })} placeholder="553335112000" /></div>
+                  <div><Label>Mensagem Padrão</Label><Input value={rc.whatsapp_mensagem || ''} onChange={e => setRc({ ...rc, whatsapp_mensagem: e.target.value })} /></div>
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* Aparência */}
-          <TabsContent value="aparencia">
+          {hasPermission('aparencia') && (
+            <TabsContent value="aparencia">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <h2 className="font-display font-bold text-foreground">Personalização</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Cor Primária</Label>
+                    <div className="flex gap-2 items-center">
+                      <input type="color" value={rc.cor_primaria || '#005BBB'} onChange={e => setRc({ ...rc, cor_primaria: e.target.value })} className="w-10 h-10 rounded cursor-pointer border-0" />
+                      <Input value={rc.cor_primaria || ''} onChange={e => setRc({ ...rc, cor_primaria: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Cor Secundária</Label>
+                    <div className="flex gap-2 items-center">
+                      <input type="color" value={rc.cor_secundaria || '#FFA500'} onChange={e => setRc({ ...rc, cor_secundaria: e.target.value })} className="w-10 h-10 rounded cursor-pointer border-0" />
+                      <Input value={rc.cor_secundaria || ''} onChange={e => setRc({ ...rc, cor_secundaria: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Usuários (Admin only) */}
+          {isAdmin && (
+            <TabsContent value="usuarios">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-6">
+                <h2 className="font-display font-bold text-foreground">Gerenciar Usuários</h2>
+
+                {/* Create user */}
+                <div className="p-4 bg-muted rounded-lg space-y-3">
+                  <h3 className="font-semibold text-sm text-foreground">Criar Novo Usuário</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <Input placeholder="Nome" value={newUserName} onChange={e => setNewUserName(e.target.value)} />
+                    <Input placeholder="E-mail" type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} />
+                    <Input placeholder="Senha" type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} />
+                  </div>
+                  <Button onClick={createUser} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Criar</Button>
+                </div>
+
+                {/* User list */}
+                <div className="space-y-4">
+                  {users.map(u => {
+                    const uIsAdmin = u.roles?.some((r: any) => r.role === 'admin');
+                    return (
+                      <div key={u.id} className="p-4 bg-muted rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-sm text-foreground">{u.display_name || u.email}</p>
+                            <p className="text-xs text-muted-foreground">{u.email}</p>
+                          </div>
+                          <label className="flex items-center gap-2 text-xs">
+                            <Checkbox checked={uIsAdmin} onCheckedChange={() => toggleUserRole(u.user_id, uIsAdmin)} />
+                            Admin
+                          </label>
+                        </div>
+                        {!uIsAdmin && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {PERMISSIONS.map(perm => (
+                                <label key={perm.key} className="flex items-center gap-1 text-xs">
+                                  <Checkbox
+                                    checked={u.permissions?.includes(perm.key)}
+                                    onCheckedChange={() => toggleUserPermission(u.user_id, perm.key, u.permissions?.includes(perm.key))}
+                                  />
+                                  {perm.label}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Perfil */}
+          <TabsContent value="perfil">
             <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
-              <h2 className="font-display font-bold text-foreground">Personalização</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Cor Primária</Label>
-                  <div className="flex gap-2 items-center">
-                    <input type="color" value={localConfig.cor_primaria} onChange={e => update('cor_primaria', e.target.value)} className="w-10 h-10 rounded cursor-pointer border-0" />
-                    <Input value={localConfig.cor_primaria} onChange={e => update('cor_primaria', e.target.value)} />
-                  </div>
+              <h2 className="font-display font-bold text-foreground">Meu Perfil</h2>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <div className="max-w-sm space-y-3">
+                <Label>Alterar Senha</Label>
+                <div className="relative">
+                  <Input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Nova senha (min. 6 caracteres)"
+                  />
+                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-                <div>
-                  <Label>Cor Secundária</Label>
-                  <div className="flex gap-2 items-center">
-                    <input type="color" value={localConfig.cor_secundaria} onChange={e => update('cor_secundaria', e.target.value)} className="w-10 h-10 rounded cursor-pointer border-0" />
-                    <Input value={localConfig.cor_secundaria} onChange={e => update('cor_secundaria', e.target.value)} />
-                  </div>
-                </div>
+                <Button onClick={handlePasswordChange} size="sm">Alterar Senha</Button>
               </div>
             </div>
           </TabsContent>

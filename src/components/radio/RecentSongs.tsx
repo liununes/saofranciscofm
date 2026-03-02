@@ -4,6 +4,8 @@ import { Music, Clock } from 'lucide-react';
 const RecentSongs = () => {
   const { config } = useRadio();
 
+  if (config.musicas_recentes.length === 0) return null;
+
   return (
     <div className="bg-card rounded-xl shadow-card p-5">
       <h2 className="font-display font-bold text-lg text-foreground flex items-center gap-2 mb-4">
