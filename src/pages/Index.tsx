@@ -65,7 +65,7 @@ const Index = () => {
       {/* Topo sponsors - only premium */}
       <SponsorBlock sponsors={topoSponsors} className="bg-muted" />
 
-      <RadioPlayer />
+      <div id="programacao"><RadioPlayer /></div>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Centro sponsors */}
@@ -91,7 +91,7 @@ const Index = () => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <NewsSection />
+            <div id="noticias"><NewsSection /></div>
             <RecentSongs />
           </div>
 
@@ -112,7 +112,7 @@ const Index = () => {
       </main>
 
       <RadioFooter />
-      <WhatsAppButton />
+      <div id="contato"><WhatsAppButton /></div>
     </div>
   );
 };

@@ -603,21 +603,25 @@ const AdminPanel = () => {
                 <div className="space-y-4">
                   {users.map(u => {
                     const uIsAdmin = u.roles?.some((r: any) => r.role === 'admin');
+                    const isSelf = u.user_id === user?.id;
                     return (
                       <div key={u.id} className="p-4 bg-muted rounded-lg space-y-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-semibold text-sm text-foreground">{u.display_name || u.email}</p>
+                            <p className="font-semibold text-sm text-foreground">{u.display_name || u.email} {isSelf && <span className="text-xs text-muted-foreground">(você)</span>}</p>
                             <p className="text-xs text-muted-foreground">{u.email}</p>
                           </div>
-                          {isAdmin && (
+                          {isAdmin && !isSelf && (
                             <label className="flex items-center gap-2 text-xs">
                               <Checkbox checked={uIsAdmin} onCheckedChange={() => toggleUserRole(u.user_id, uIsAdmin)} />
                               Admin
                             </label>
                           )}
+                          {isSelf && uIsAdmin && (
+                            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">Admin</span>
+                          )}
                         </div>
-                        {!uIsAdmin && (
+                        {!uIsAdmin && !isSelf && (
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões:</p>
                             <div className="flex flex-wrap gap-2">
@@ -629,6 +633,9 @@ const AdminPanel = () => {
                               ))}
                             </div>
                           </div>
+                        )}
+                        {isSelf && uIsAdmin && (
+                          <p className="text-xs text-muted-foreground italic">Você é administrador — não é possível alterar suas próprias permissões.</p>
                         )}
                       </div>
                     );
