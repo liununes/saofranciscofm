@@ -21,6 +21,8 @@ export interface Patrocinador {
   nome: string;
   imagem: string;
   link: string;
+  tipo: 'normal' | 'premium';
+  posicao: string;
 }
 
 export interface SlideImagem {
@@ -57,7 +59,6 @@ export interface RadioConfig {
   whatsapp_mensagem: string;
   cor_primaria: string;
   cor_secundaria: string;
-  // Derived from DB
   locutor_ao_vivo: string;
   programa_ao_vivo: string;
   horario_inicio: string;
@@ -108,23 +109,21 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const [programas, setProgramas] = useState<Programa[]>([]);
 
   const fetchData = async () => {
-    // Fetch radio config
-    const { data: rc } = await supabase.from('radio_config').select('*').limit(1).single();
-    
-    // Fetch musicas
-    const { data: musicas } = await supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10);
-    
-    // Fetch noticias
-    const { data: noticias } = await supabase.from('noticias').select('*').order('created_at', { ascending: false });
-    
-    // Fetch patrocinadores
-    const { data: patrocinadores } = await supabase.from('patrocinadores').select('*');
-    
-    // Fetch slides
-    const { data: slides } = await supabase.from('slide_imagens').select('*').order('ordem', { ascending: true });
-    
-    // Fetch programas with locutores
-    const { data: progs } = await supabase.from('programas').select('*, locutores(*)').eq('ativo', true);
+    const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes] = await Promise.all([
+      supabase.from('radio_config').select('*').limit(1).single(),
+      supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
+      supabase.from('noticias').select('*').order('created_at', { ascending: false }),
+      supabase.from('patrocinadores').select('*'),
+      supabase.from('slide_imagens').select('*').order('ordem', { ascending: true }),
+      supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
+    ]);
+
+    const rc = rcRes.data;
+    const musicas = musicasRes.data;
+    const noticias = noticiasRes.data;
+    const patrocinadores = patRes.data;
+    const slides = slidesRes.data;
+    const progs = progsRes.data;
 
     const mappedProgramas: Programa[] = (progs || []).map((p: any) => ({
       id: p.id,
@@ -152,12 +151,18 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       cor_secundaria: rc?.cor_secundaria || prev.cor_secundaria,
       musicas_recentes: (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
       noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '' })),
-      patrocinadores: (patrocinadores || []).map(p => ({ id: p.id, nome: p.nome, imagem: p.imagem_url || '', link: p.link || '' })),
+      patrocinadores: (patrocinadores || []).map(p => ({
+        id: p.id,
+        nome: p.nome,
+        imagem: p.imagem_url || '',
+        link: p.link || '',
+        tipo: (p as any).tipo || 'normal',
+        posicao: (p as any).posicao || 'rodape',
+      })),
       slide_imagens: (slides || []).map(s => ({ id: s.id, imagem: s.imagem_url, ordem: s.ordem })),
     }));
   };
 
-  // Determine current program based on visitor's clock
   const checkCurrentProgram = () => {
     const now = new Date();
     const dayOfWeek = now.getDay();

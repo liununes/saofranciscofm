@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
@@ -17,17 +17,40 @@ import ImageUpload from '@/components/admin/ImageUpload';
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 const PERMISSIONS = [
-  { key: 'noticias', label: 'Notícias' },
-  { key: 'locutores', label: 'Locutores' },
-  { key: 'programas', label: 'Programas' },
-  { key: 'musicas', label: 'Músicas' },
-  { key: 'patrocinadores', label: 'Patrocinadores' },
-  { key: 'slides', label: 'Slides' },
-  { key: 'streaming', label: 'Streaming' },
-  { key: 'aparencia', label: 'Aparência' },
-  { key: 'whatsapp', label: 'WhatsApp' },
-  { key: 'geral', label: 'Geral' },
+  { key: 'editar_programacao', label: 'Programação' },
+  { key: 'editar_locutores', label: 'Locutores' },
+  { key: 'editar_noticias', label: 'Notícias' },
+  { key: 'editar_patrocinadores', label: 'Patrocinadores' },
+  { key: 'editar_slides', label: 'Slides' },
+  { key: 'editar_streaming', label: 'Streaming' },
+  { key: 'editar_cores_layout', label: 'Cores/Layout' },
+  { key: 'editar_musicas', label: 'Músicas' },
+  { key: 'editar_whatsapp', label: 'WhatsApp' },
+  { key: 'editar_geral', label: 'Geral' },
+  { key: 'gerenciar_usuarios', label: 'Gerenciar Usuários' },
 ];
+
+const POSICOES_PATROCINADOR = [
+  { value: 'topo', label: 'Topo' },
+  { value: 'barra_centro_em_cima', label: 'Barra Central (Header)' },
+  { value: 'centro', label: 'Centro' },
+  { value: 'esquerda', label: 'Esquerda' },
+  { value: 'direita', label: 'Direita' },
+  { value: 'rodape', label: 'Rodapé' },
+];
+
+// Debounce hook to persist to DB only after user stops typing
+function useDebouncedSave(saveFn: (id: string, updates: any) => Promise<void>, delay = 600) {
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  return useCallback((id: string, updates: any) => {
+    const key = `${id}-${Object.keys(updates).join(',')}`;
+    if (timers.current[key]) clearTimeout(timers.current[key]);
+    timers.current[key] = setTimeout(() => {
+      saveFn(id, updates);
+      delete timers.current[key];
+    }, delay);
+  }, [saveFn, delay]);
+}
 
 const AdminPanel = () => {
   const { refreshData } = useRadio();
@@ -78,7 +101,7 @@ const AdminPanel = () => {
     setSlides(slidRes.data || []);
 
     // Load users if admin
-    if (isAdmin) {
+    if (isAdmin || permissions.includes('gerenciar_usuarios')) {
       const { data: profiles } = await supabase.from('profiles').select('*');
       if (profiles) {
         const usersWithRoles = await Promise.all(profiles.map(async (p) => {
@@ -114,105 +137,143 @@ const AdminPanel = () => {
     }
   };
 
-  // Locutores CRUD
+  // --- Debounced DB persistence functions ---
+  const persistLocutor = useCallback(async (id: string, updates: any) => {
+    await supabase.from('locutores').update(updates).eq('id', id);
+  }, []);
+  const debouncedSaveLocutor = useDebouncedSave(persistLocutor);
+
+  const persistPrograma = useCallback(async (id: string, updates: any) => {
+    await supabase.from('programas').update(updates).eq('id', id);
+  }, []);
+  const debouncedSavePrograma = useDebouncedSave(persistPrograma);
+
+  const persistMusica = useCallback(async (id: string, updates: any) => {
+    await supabase.from('musicas_recentes').update(updates).eq('id', id);
+  }, []);
+  const debouncedSaveMusica = useDebouncedSave(persistMusica);
+
+  const persistNoticia = useCallback(async (id: string, updates: any) => {
+    await supabase.from('noticias').update(updates).eq('id', id);
+  }, []);
+  const debouncedSaveNoticia = useDebouncedSave(persistNoticia);
+
+  const persistPatrocinador = useCallback(async (id: string, updates: any) => {
+    await supabase.from('patrocinadores').update(updates).eq('id', id);
+  }, []);
+  const debouncedSavePatrocinador = useDebouncedSave(persistPatrocinador);
+
+  const persistSlide = useCallback(async (id: string, updates: any) => {
+    await supabase.from('slide_imagens').update(updates).eq('id', id);
+  }, []);
+  const debouncedSaveSlide = useDebouncedSave(persistSlide);
+
+  // --- Local state updaters (immediate) + debounced DB save ---
+  const updateLocutor = (id: string, updates: any) => {
+    setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+    debouncedSaveLocutor(id, updates);
+  };
+  const updateLocutorImmediate = async (id: string, updates: any) => {
+    setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+    await supabase.from('locutores').update(updates).eq('id', id);
+  };
+
+  const updatePrograma = (id: string, updates: any) => {
+    setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    debouncedSavePrograma(id, updates);
+  };
+  const updateProgramaImmediate = async (id: string, updates: any) => {
+    setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    await supabase.from('programas').update(updates).eq('id', id);
+  };
+
+  const updateMusica = (id: string, updates: any) => {
+    setMusicas(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+    debouncedSaveMusica(id, updates);
+  };
+
+  const updateNoticia = (id: string, updates: any) => {
+    setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+    debouncedSaveNoticia(id, updates);
+  };
+  const updateNoticiaImmediate = async (id: string, updates: any) => {
+    setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+    await supabase.from('noticias').update(updates).eq('id', id);
+  };
+
+  const updatePatrocinador = (id: string, updates: any) => {
+    setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    debouncedSavePatrocinador(id, updates);
+  };
+  const updatePatrocinadorImmediate = async (id: string, updates: any) => {
+    setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    await supabase.from('patrocinadores').update(updates).eq('id', id);
+  };
+
+  const updateSlide = (id: string, updates: any) => {
+    setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    debouncedSaveSlide(id, updates);
+  };
+  const updateSlideImmediate = async (id: string, updates: any) => {
+    setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    await supabase.from('slide_imagens').update(updates).eq('id', id);
+  };
+
+  // --- CRUD add/delete ---
   const addLocutor = async () => {
     const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor' }).select().single();
-    if (!error && data) setLocutores([...locutores, data]);
+    if (!error && data) setLocutores(prev => [...prev, data]);
   };
-
-  const updateLocutor = async (id: string, updates: any) => {
-    await supabase.from('locutores').update(updates).eq('id', id);
-    setLocutores(locutores.map(l => l.id === id ? { ...l, ...updates } : l));
-  };
-
   const deleteLocutor = async (id: string) => {
     await supabase.from('locutores').delete().eq('id', id);
-    setLocutores(locutores.filter(l => l.id !== id));
+    setLocutores(prev => prev.filter(l => l.id !== id));
   };
 
-  // Programas CRUD
   const addPrograma = async () => {
     const { data, error } = await supabase.from('programas').insert({
-      nome: 'Novo Programa',
-      horario_inicio: '06:00',
-      horario_fim: '10:00',
-      dias_semana: [1, 2, 3, 4, 5],
+      nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5],
     }).select('*, locutores(*)').single();
-    if (!error && data) setProgramas([...programas, data]);
+    if (!error && data) setProgramas(prev => [...prev, data]);
   };
-
-  const updatePrograma = async (id: string, updates: any) => {
-    await supabase.from('programas').update(updates).eq('id', id);
-    setProgramas(programas.map(p => p.id === id ? { ...p, ...updates } : p));
-  };
-
   const deletePrograma = async (id: string) => {
     await supabase.from('programas').delete().eq('id', id);
-    setProgramas(programas.filter(p => p.id !== id));
+    setProgramas(prev => prev.filter(p => p.id !== id));
   };
 
-  // Musicas CRUD
   const addMusica = async () => {
     const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '' }).select().single();
-    if (!error && data) setMusicas([data, ...musicas]);
+    if (!error && data) setMusicas(prev => [data, ...prev]);
   };
-
-  const updateMusica = async (id: string, updates: any) => {
-    await supabase.from('musicas_recentes').update(updates).eq('id', id);
-    setMusicas(musicas.map(m => m.id === id ? { ...m, ...updates } : m));
-  };
-
   const deleteMusica = async (id: string) => {
     await supabase.from('musicas_recentes').delete().eq('id', id);
-    setMusicas(musicas.filter(m => m.id !== id));
+    setMusicas(prev => prev.filter(m => m.id !== id));
   };
 
-  // Noticias CRUD
   const addNoticia = async () => {
     const { data, error } = await supabase.from('noticias').insert({ titulo: '', resumo: '', link_completo: '' }).select().single();
-    if (!error && data) setNoticias([data, ...noticias]);
+    if (!error && data) setNoticias(prev => [data, ...prev]);
   };
-
-  const updateNoticia = async (id: string, updates: any) => {
-    await supabase.from('noticias').update(updates).eq('id', id);
-    setNoticias(noticias.map(n => n.id === id ? { ...n, ...updates } : n));
-  };
-
   const deleteNoticia = async (id: string) => {
     await supabase.from('noticias').delete().eq('id', id);
-    setNoticias(noticias.filter(n => n.id !== id));
+    setNoticias(prev => prev.filter(n => n.id !== id));
   };
 
-  // Patrocinadores CRUD
   const addPatrocinador = async () => {
-    const { data, error } = await supabase.from('patrocinadores').insert({ nome: '' }).select().single();
-    if (!error && data) setPatrocinadores([...patrocinadores, data]);
+    const { data, error } = await supabase.from('patrocinadores').insert({ nome: '', tipo: 'normal', posicao: 'rodape' }).select().single();
+    if (!error && data) setPatrocinadores(prev => [...prev, data]);
   };
-
-  const updatePatrocinador = async (id: string, updates: any) => {
-    await supabase.from('patrocinadores').update(updates).eq('id', id);
-    setPatrocinadores(patrocinadores.map(p => p.id === id ? { ...p, ...updates } : p));
-  };
-
   const deletePatrocinador = async (id: string) => {
     await supabase.from('patrocinadores').delete().eq('id', id);
-    setPatrocinadores(patrocinadores.filter(p => p.id !== id));
+    setPatrocinadores(prev => prev.filter(p => p.id !== id));
   };
 
-  // Slides CRUD
   const addSlide = async () => {
     const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single();
-    if (!error && data) setSlides([...slides, data]);
+    if (!error && data) setSlides(prev => [...prev, data]);
   };
-
-  const updateSlide = async (id: string, updates: any) => {
-    await supabase.from('slide_imagens').update(updates).eq('id', id);
-    setSlides(slides.map(s => s.id === id ? { ...s, ...updates } : s));
-  };
-
   const deleteSlide = async (id: string) => {
     await supabase.from('slide_imagens').delete().eq('id', id);
-    setSlides(slides.filter(s => s.id !== id));
+    setSlides(prev => prev.filter(s => s.id !== id));
   };
 
   // User management
@@ -221,7 +282,6 @@ const AdminPanel = () => {
       toast.error('Preencha e-mail e senha.');
       return;
     }
-    // We use signUp from the client - the new user will get a profile via trigger
     const { error } = await supabase.auth.signUp({
       email: newUserEmail,
       password: newUserPassword,
@@ -295,21 +355,21 @@ const AdminPanel = () => {
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="geral" className="space-y-6">
           <TabsList className="flex flex-wrap gap-1 h-auto bg-card p-1.5 rounded-xl shadow-card">
-            {hasPermission('geral') && <TabsTrigger value="geral" className="gap-1.5 text-xs"><Radio className="w-3.5 h-3.5" /> Geral</TabsTrigger>}
-            {hasPermission('locutores') && <TabsTrigger value="locutores" className="gap-1.5 text-xs"><Mic className="w-3.5 h-3.5" /> Locutores</TabsTrigger>}
-            {hasPermission('programas') && <TabsTrigger value="programas" className="gap-1.5 text-xs"><CalendarClock className="w-3.5 h-3.5" /> Programas</TabsTrigger>}
-            {hasPermission('musicas') && <TabsTrigger value="musicas" className="gap-1.5 text-xs"><Music className="w-3.5 h-3.5" /> Músicas</TabsTrigger>}
-            {hasPermission('noticias') && <TabsTrigger value="noticias" className="gap-1.5 text-xs"><Newspaper className="w-3.5 h-3.5" /> Notícias</TabsTrigger>}
-            {hasPermission('patrocinadores') && <TabsTrigger value="patrocinadores" className="gap-1.5 text-xs"><Users className="w-3.5 h-3.5" /> Patrocinadores</TabsTrigger>}
-            {hasPermission('slides') && <TabsTrigger value="slides" className="gap-1.5 text-xs"><Image className="w-3.5 h-3.5" /> Slides</TabsTrigger>}
-            {hasPermission('whatsapp') && <TabsTrigger value="whatsapp" className="gap-1.5 text-xs"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</TabsTrigger>}
-            {hasPermission('aparencia') && <TabsTrigger value="aparencia" className="gap-1.5 text-xs"><Palette className="w-3.5 h-3.5" /> Aparência</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="usuarios" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> Usuários</TabsTrigger>}
+            {hasPermission('editar_geral') && <TabsTrigger value="geral" className="gap-1.5 text-xs"><Radio className="w-3.5 h-3.5" /> Geral</TabsTrigger>}
+            {hasPermission('editar_locutores') && <TabsTrigger value="locutores" className="gap-1.5 text-xs"><Mic className="w-3.5 h-3.5" /> Locutores</TabsTrigger>}
+            {hasPermission('editar_programacao') && <TabsTrigger value="programas" className="gap-1.5 text-xs"><CalendarClock className="w-3.5 h-3.5" /> Programas</TabsTrigger>}
+            {hasPermission('editar_musicas') && <TabsTrigger value="musicas" className="gap-1.5 text-xs"><Music className="w-3.5 h-3.5" /> Músicas</TabsTrigger>}
+            {hasPermission('editar_noticias') && <TabsTrigger value="noticias" className="gap-1.5 text-xs"><Newspaper className="w-3.5 h-3.5" /> Notícias</TabsTrigger>}
+            {hasPermission('editar_patrocinadores') && <TabsTrigger value="patrocinadores" className="gap-1.5 text-xs"><Users className="w-3.5 h-3.5" /> Patrocinadores</TabsTrigger>}
+            {hasPermission('editar_slides') && <TabsTrigger value="slides" className="gap-1.5 text-xs"><Image className="w-3.5 h-3.5" /> Slides</TabsTrigger>}
+            {hasPermission('editar_whatsapp') && <TabsTrigger value="whatsapp" className="gap-1.5 text-xs"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</TabsTrigger>}
+            {hasPermission('editar_cores_layout') && <TabsTrigger value="aparencia" className="gap-1.5 text-xs"><Palette className="w-3.5 h-3.5" /> Aparência</TabsTrigger>}
+            {(isAdmin || hasPermission('gerenciar_usuarios')) && <TabsTrigger value="usuarios" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> Usuários</TabsTrigger>}
             <TabsTrigger value="perfil" className="gap-1.5 text-xs"><User className="w-3.5 h-3.5" /> Perfil</TabsTrigger>
           </TabsList>
 
           {/* Geral */}
-          {hasPermission('geral') && (
+          {hasPermission('editar_geral') && (
             <TabsContent value="geral">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <h2 className="font-display font-bold text-foreground">Configurações Gerais</h2>
@@ -342,7 +402,7 @@ const AdminPanel = () => {
           )}
 
           {/* Locutores */}
-          {hasPermission('locutores') && (
+          {hasPermission('editar_locutores') && (
             <TabsContent value="locutores">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
@@ -352,7 +412,7 @@ const AdminPanel = () => {
                 <div className="space-y-3">
                   {locutores.map(l => (
                     <div key={l.id} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
-                      <ImageUpload value={l.imagem_url} onChange={url => updateLocutor(l.id, { imagem_url: url })} folder="locutores" />
+                      <ImageUpload value={l.imagem_url} onChange={url => updateLocutorImmediate(l.id, { imagem_url: url })} folder="locutores" />
                       <div className="flex-1">
                         <Input placeholder="Nome do locutor" value={l.nome} onChange={e => updateLocutor(l.id, { nome: e.target.value })} />
                       </div>
@@ -365,7 +425,7 @@ const AdminPanel = () => {
           )}
 
           {/* Programas */}
-          {hasPermission('programas') && (
+          {hasPermission('editar_programacao') && (
             <TabsContent value="programas">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
@@ -378,14 +438,14 @@ const AdminPanel = () => {
                       <div className="flex items-start gap-2">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <Input placeholder="Nome do programa" value={p.nome} onChange={e => updatePrograma(p.id, { nome: e.target.value })} />
-                          <Select value={p.locutor_id || ''} onValueChange={v => updatePrograma(p.id, { locutor_id: v || null })}>
+                          <Select value={p.locutor_id || ''} onValueChange={v => updateProgramaImmediate(p.id, { locutor_id: v || null })}>
                             <SelectTrigger><SelectValue placeholder="Selecionar locutor" /></SelectTrigger>
                             <SelectContent>
                               {locutores.map(l => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}
                             </SelectContent>
                           </Select>
-                          <Input type="time" value={(p.horario_inicio || '').substring(0, 5)} onChange={e => updatePrograma(p.id, { horario_inicio: e.target.value })} />
-                          <Input type="time" value={(p.horario_fim || '').substring(0, 5)} onChange={e => updatePrograma(p.id, { horario_fim: e.target.value })} />
+                          <Input type="time" value={(p.horario_inicio || '').substring(0, 5)} onChange={e => updateProgramaImmediate(p.id, { horario_inicio: e.target.value })} />
+                          <Input type="time" value={(p.horario_fim || '').substring(0, 5)} onChange={e => updateProgramaImmediate(p.id, { horario_fim: e.target.value })} />
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => deletePrograma(p.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </div>
@@ -398,7 +458,7 @@ const AdminPanel = () => {
                                 const dias = checked
                                   ? [...(p.dias_semana || []), i]
                                   : (p.dias_semana || []).filter((d: number) => d !== i);
-                                updatePrograma(p.id, { dias_semana: dias });
+                                updateProgramaImmediate(p.id, { dias_semana: dias });
                               }}
                             />
                             {dia}
@@ -413,7 +473,7 @@ const AdminPanel = () => {
           )}
 
           {/* Músicas */}
-          {hasPermission('musicas') && (
+          {hasPermission('editar_musicas') && (
             <TabsContent value="musicas">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
@@ -437,7 +497,7 @@ const AdminPanel = () => {
           )}
 
           {/* Notícias */}
-          {hasPermission('noticias') && (
+          {hasPermission('editar_noticias') && (
             <TabsContent value="noticias">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
@@ -452,7 +512,7 @@ const AdminPanel = () => {
                           <Input placeholder="Título" value={n.titulo} onChange={e => updateNoticia(n.id, { titulo: e.target.value })} />
                           <Textarea placeholder="Resumo" value={n.resumo || ''} onChange={e => updateNoticia(n.id, { resumo: e.target.value })} rows={2} />
                           <Input placeholder="Link completo" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
-                          <ImageUpload value={n.imagem_url} onChange={url => updateNoticia(n.id, { imagem_url: url })} folder="noticias" />
+                          <ImageUpload value={n.imagem_url} onChange={url => updateNoticiaImmediate(n.id, { imagem_url: url })} folder="noticias" />
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => deleteNoticia(n.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </div>
@@ -464,7 +524,7 @@ const AdminPanel = () => {
           )}
 
           {/* Patrocinadores */}
-          {hasPermission('patrocinadores') && (
+          {hasPermission('editar_patrocinadores') && (
             <TabsContent value="patrocinadores">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
@@ -474,10 +534,35 @@ const AdminPanel = () => {
                 <div className="space-y-3">
                   {patrocinadores.map(p => (
                     <div key={p.id} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
-                      <ImageUpload value={p.imagem_url} onChange={url => updatePatrocinador(p.id, { imagem_url: url })} folder="patrocinadores" />
+                      <ImageUpload value={p.imagem_url} onChange={url => updatePatrocinadorImmediate(p.id, { imagem_url: url })} folder="patrocinadores" />
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <Input placeholder="Nome" value={p.nome} onChange={e => updatePatrocinador(p.id, { nome: e.target.value })} />
                         <Input placeholder="Link" value={p.link || ''} onChange={e => updatePatrocinador(p.id, { link: e.target.value })} />
+                        <Select value={p.tipo || 'normal'} onValueChange={v => updatePatrocinadorImmediate(p.id, { tipo: v })}>
+                          <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="normal">Normal</SelectItem>
+                            <SelectItem value="premium">Premium</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={p.posicao || 'rodape'}
+                          onValueChange={v => {
+                            // Only premium can be in 'topo'
+                            if (v === 'topo' && p.tipo !== 'premium') {
+                              toast.error('Apenas patrocinadores premium podem ficar no topo.');
+                              return;
+                            }
+                            updatePatrocinadorImmediate(p.id, { posicao: v });
+                          }}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Posição" /></SelectTrigger>
+                          <SelectContent>
+                            {POSICOES_PATROCINADOR.map(pos => (
+                              <SelectItem key={pos.value} value={pos.value}>{pos.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => deletePatrocinador(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
                     </div>
@@ -488,7 +573,7 @@ const AdminPanel = () => {
           )}
 
           {/* Slides */}
-          {hasPermission('slides') && (
+          {hasPermission('editar_slides') && (
             <TabsContent value="slides">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
@@ -500,7 +585,7 @@ const AdminPanel = () => {
                   {slides.map((s, i) => (
                     <div key={s.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                       <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
-                      <ImageUpload value={s.imagem_url} onChange={url => updateSlide(s.id, { imagem_url: url })} folder="slides" />
+                      <ImageUpload value={s.imagem_url} onChange={url => updateSlideImmediate(s.id, { imagem_url: url })} folder="slides" />
                       <Button variant="ghost" size="icon" onClick={() => deleteSlide(s.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   ))}
@@ -510,7 +595,7 @@ const AdminPanel = () => {
           )}
 
           {/* WhatsApp */}
-          {hasPermission('whatsapp') && (
+          {hasPermission('editar_whatsapp') && (
             <TabsContent value="whatsapp">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <h2 className="font-display font-bold text-foreground">Pedidos via WhatsApp</h2>
@@ -523,7 +608,7 @@ const AdminPanel = () => {
           )}
 
           {/* Aparência */}
-          {hasPermission('aparencia') && (
+          {hasPermission('editar_cores_layout') && (
             <TabsContent value="aparencia">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
                 <h2 className="font-display font-bold text-foreground">Personalização</h2>
@@ -547,8 +632,8 @@ const AdminPanel = () => {
             </TabsContent>
           )}
 
-          {/* Usuários (Admin only) */}
-          {isAdmin && (
+          {/* Usuários */}
+          {(isAdmin || hasPermission('gerenciar_usuarios')) && (
             <TabsContent value="usuarios">
               <div className="bg-card rounded-xl shadow-card p-6 space-y-6">
                 <h2 className="font-display font-bold text-foreground">Gerenciar Usuários</h2>
@@ -575,16 +660,22 @@ const AdminPanel = () => {
                             <p className="font-semibold text-sm text-foreground">{u.display_name || u.email}</p>
                             <p className="text-xs text-muted-foreground">{u.email}</p>
                           </div>
-                          <label className="flex items-center gap-2 text-xs">
-                            <Checkbox checked={uIsAdmin} onCheckedChange={() => toggleUserRole(u.user_id, uIsAdmin)} />
-                            Admin
-                          </label>
+                          {isAdmin && (
+                            <label className="flex items-center gap-2 text-xs">
+                              <Checkbox checked={uIsAdmin} onCheckedChange={() => toggleUserRole(u.user_id, uIsAdmin)} />
+                              Admin
+                            </label>
+                          )}
                         </div>
                         {!uIsAdmin && (
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões:</p>
                             <div className="flex flex-wrap gap-2">
-                              {PERMISSIONS.map(perm => (
+                              {PERMISSIONS.filter(perm => {
+                                // Only admins can grant gerenciar_usuarios
+                                if (perm.key === 'gerenciar_usuarios' && !isAdmin) return false;
+                                return true;
+                              }).map(perm => (
                                 <label key={perm.key} className="flex items-center gap-1 text-xs">
                                   <Checkbox
                                     checked={u.permissions?.includes(perm.key)}
