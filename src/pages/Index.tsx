@@ -6,6 +6,7 @@ import RecentSongs from '@/components/radio/RecentSongs';
 import NewsSection from '@/components/radio/NewsSection';
 import WhatsAppButton from '@/components/radio/WhatsAppButton';
 import RadioFooter from '@/components/radio/RadioFooter';
+import { useMemo } from 'react';
 
 const SponsorBlock = ({ sponsors, className = '' }: { sponsors: any[]; className?: string }) => {
   if (sponsors.length === 0) return null;
@@ -32,8 +33,33 @@ const Index = () => {
   const esquerdaSponsors = config.patrocinadores.filter(p => p.posicao === 'esquerda');
   const direitaSponsors = config.patrocinadores.filter(p => p.posicao === 'direita');
 
+  // Dynamic background style
+  const bgStyle = useMemo(() => {
+    const style: React.CSSProperties = {};
+    if (config.cor_fundo) style.backgroundColor = config.cor_fundo;
+    if (config.cor_texto) style.color = config.cor_texto;
+    if (config.imagem_fundo) {
+      style.backgroundImage = `url(${config.imagem_fundo})`;
+      style.backgroundRepeat = 'no-repeat';
+      if (config.imagem_fundo_modo === 'cover') {
+        style.backgroundSize = 'cover';
+        style.backgroundPosition = 'center';
+      } else if (config.imagem_fundo_modo === 'contain') {
+        style.backgroundSize = 'contain';
+        style.backgroundPosition = 'center';
+      } else if (config.imagem_fundo_modo === 'left') {
+        style.backgroundSize = 'cover';
+        style.backgroundPosition = 'left';
+      } else if (config.imagem_fundo_modo === 'right') {
+        style.backgroundSize = 'cover';
+        style.backgroundPosition = 'right';
+      }
+    }
+    return style;
+  }, [config.cor_fundo, config.cor_texto, config.imagem_fundo, config.imagem_fundo_modo]);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={bgStyle}>
       <RadioHeader />
 
       {/* Topo sponsors - only premium */}

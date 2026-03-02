@@ -3,7 +3,7 @@ import { useRadio } from '@/contexts/RadioContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User } from 'lucide-react';
+import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,6 +27,7 @@ const PERMISSIONS = [
   { key: 'editar_musicas', label: 'Músicas' },
   { key: 'editar_whatsapp', label: 'WhatsApp' },
   { key: 'editar_geral', label: 'Geral' },
+  { key: 'editar_paginas', label: 'Páginas' },
   { key: 'gerenciar_usuarios', label: 'Gerenciar Usuários' },
 ];
 
@@ -39,7 +40,10 @@ const POSICOES_PATROCINADOR = [
   { value: 'rodape', label: 'Rodapé' },
 ];
 
-// Debounce hook to persist to DB only after user stops typing
+const ImageHint = ({ text }: { text: string }) => (
+  <p className="text-[10px] text-muted-foreground mt-1">📐 {text}</p>
+);
+
 function useDebouncedSave(saveFn: (id: string, updates: any) => Promise<void>, delay = 600) {
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   return useCallback((id: string, updates: any) => {
@@ -56,7 +60,6 @@ const AdminPanel = () => {
   const { refreshData } = useRadio();
   const { user, isAdmin, permissions, signOut, updatePassword } = useAuth();
 
-  // Radio config state
   const [rc, setRc] = useState<any>({});
   const [locutores, setLocutores] = useState<any[]>([]);
   const [programas, setProgramas] = useState<any[]>([]);
@@ -64,6 +67,7 @@ const AdminPanel = () => {
   const [noticias, setNoticias] = useState<any[]>([]);
   const [patrocinadores, setPatrocinadores] = useState<any[]>([]);
   const [slides, setSlides] = useState<any[]>([]);
+  const [paginas, setPaginas] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Users management
@@ -71,6 +75,7 @@ const AdminPanel = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [newUserPerms, setNewUserPerms] = useState<string[]>([]);
 
   // Password change
   const [newPassword, setNewPassword] = useState('');
@@ -78,12 +83,10 @@ const AdminPanel = () => {
 
   const hasPermission = (perm: string) => isAdmin || permissions.includes(perm);
 
-  useEffect(() => {
-    loadAll();
-  }, []);
+  useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
-    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes] = await Promise.all([
+    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes] = await Promise.all([
       supabase.from('radio_config').select('*').limit(1).single(),
       supabase.from('locutores').select('*').order('created_at'),
       supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
@@ -91,6 +94,7 @@ const AdminPanel = () => {
       supabase.from('noticias').select('*').order('created_at', { ascending: false }),
       supabase.from('patrocinadores').select('*').order('created_at'),
       supabase.from('slide_imagens').select('*').order('ordem'),
+      supabase.from('paginas').select('*').order('slug'),
     ]);
     setRc(rcRes.data || {});
     setLocutores(locRes.data || []);
@@ -99,8 +103,8 @@ const AdminPanel = () => {
     setNoticias(notRes.data || []);
     setPatrocinadores(patRes.data || []);
     setSlides(slidRes.data || []);
+    setPaginas(pagRes.data || []);
 
-    // Load users if admin
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
       const { data: profiles } = await supabase.from('profiles').select('*');
       if (profiles) {
@@ -128,226 +132,111 @@ const AdminPanel = () => {
       whatsapp_mensagem: rc.whatsapp_mensagem,
       cor_primaria: rc.cor_primaria,
       cor_secundaria: rc.cor_secundaria,
+      cor_texto: rc.cor_texto,
+      cor_fundo: rc.cor_fundo,
+      imagem_fundo: rc.imagem_fundo,
+      imagem_fundo_modo: rc.imagem_fundo_modo,
     }).eq('id', rc.id);
     setSaving(false);
     if (error) toast.error('Erro ao salvar.');
-    else {
-      toast.success('Salvo com sucesso!');
-      refreshData();
-    }
+    else { toast.success('Salvo com sucesso!'); refreshData(); }
   };
 
-  // --- Debounced DB persistence functions ---
-  const persistLocutor = useCallback(async (id: string, updates: any) => {
-    await supabase.from('locutores').update(updates).eq('id', id);
-  }, []);
+  // --- Debounced DB persistence ---
+  const persistLocutor = useCallback(async (id: string, updates: any) => { await supabase.from('locutores').update(updates).eq('id', id); }, []);
   const debouncedSaveLocutor = useDebouncedSave(persistLocutor);
-
-  const persistPrograma = useCallback(async (id: string, updates: any) => {
-    await supabase.from('programas').update(updates).eq('id', id);
-  }, []);
+  const persistPrograma = useCallback(async (id: string, updates: any) => { await supabase.from('programas').update(updates).eq('id', id); }, []);
   const debouncedSavePrograma = useDebouncedSave(persistPrograma);
-
-  const persistMusica = useCallback(async (id: string, updates: any) => {
-    await supabase.from('musicas_recentes').update(updates).eq('id', id);
-  }, []);
+  const persistMusica = useCallback(async (id: string, updates: any) => { await supabase.from('musicas_recentes').update(updates).eq('id', id); }, []);
   const debouncedSaveMusica = useDebouncedSave(persistMusica);
-
-  const persistNoticia = useCallback(async (id: string, updates: any) => {
-    await supabase.from('noticias').update(updates).eq('id', id);
-  }, []);
+  const persistNoticia = useCallback(async (id: string, updates: any) => { await supabase.from('noticias').update(updates).eq('id', id); }, []);
   const debouncedSaveNoticia = useDebouncedSave(persistNoticia);
-
-  const persistPatrocinador = useCallback(async (id: string, updates: any) => {
-    await supabase.from('patrocinadores').update(updates).eq('id', id);
-  }, []);
+  const persistPatrocinador = useCallback(async (id: string, updates: any) => { await supabase.from('patrocinadores').update(updates).eq('id', id); }, []);
   const debouncedSavePatrocinador = useDebouncedSave(persistPatrocinador);
-
-  const persistSlide = useCallback(async (id: string, updates: any) => {
-    await supabase.from('slide_imagens').update(updates).eq('id', id);
-  }, []);
+  const persistSlide = useCallback(async (id: string, updates: any) => { await supabase.from('slide_imagens').update(updates).eq('id', id); }, []);
   const debouncedSaveSlide = useDebouncedSave(persistSlide);
+  const persistPagina = useCallback(async (id: string, updates: any) => { await supabase.from('paginas').update(updates).eq('id', id); }, []);
+  const debouncedSavePagina = useDebouncedSave(persistPagina);
 
-  // --- Local state updaters (immediate) + debounced DB save ---
-  const updateLocutor = (id: string, updates: any) => {
-    setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
-    debouncedSaveLocutor(id, updates);
-  };
-  const updateLocutorImmediate = async (id: string, updates: any) => {
-    setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
-    await supabase.from('locutores').update(updates).eq('id', id);
-  };
+  // Local state updaters
+  const updateLocutor = (id: string, updates: any) => { setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l)); debouncedSaveLocutor(id, updates); };
+  const updateLocutorImmediate = async (id: string, updates: any) => { setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l)); await supabase.from('locutores').update(updates).eq('id', id); };
+  const updatePrograma = (id: string, updates: any) => { setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePrograma(id, updates); };
+  const updateProgramaImmediate = async (id: string, updates: any) => { setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('programas').update(updates).eq('id', id); };
+  const updateMusica = (id: string, updates: any) => { setMusicas(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m)); debouncedSaveMusica(id, updates); };
+  const updateNoticia = (id: string, updates: any) => { setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n)); debouncedSaveNoticia(id, updates); };
+  const updateNoticiaImmediate = async (id: string, updates: any) => { setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n)); await supabase.from('noticias').update(updates).eq('id', id); };
+  const updatePatrocinador = (id: string, updates: any) => { setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePatrocinador(id, updates); };
+  const updatePatrocinadorImmediate = async (id: string, updates: any) => { setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('patrocinadores').update(updates).eq('id', id); };
+  const updateSlide = (id: string, updates: any) => { setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); debouncedSaveSlide(id, updates); };
+  const updateSlideImmediate = async (id: string, updates: any) => { setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); await supabase.from('slide_imagens').update(updates).eq('id', id); };
+  const updatePagina = (id: string, updates: any) => { setPaginas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePagina(id, updates); };
+  const updatePaginaImmediate = async (id: string, updates: any) => { setPaginas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('paginas').update(updates).eq('id', id); };
 
-  const updatePrograma = (id: string, updates: any) => {
-    setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    debouncedSavePrograma(id, updates);
-  };
-  const updateProgramaImmediate = async (id: string, updates: any) => {
-    setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    await supabase.from('programas').update(updates).eq('id', id);
-  };
-
-  const updateMusica = (id: string, updates: any) => {
-    setMusicas(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
-    debouncedSaveMusica(id, updates);
-  };
-
-  const updateNoticia = (id: string, updates: any) => {
-    setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
-    debouncedSaveNoticia(id, updates);
-  };
-  const updateNoticiaImmediate = async (id: string, updates: any) => {
-    setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
-    await supabase.from('noticias').update(updates).eq('id', id);
-  };
-
-  const updatePatrocinador = (id: string, updates: any) => {
-    setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    debouncedSavePatrocinador(id, updates);
-  };
-  const updatePatrocinadorImmediate = async (id: string, updates: any) => {
-    setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    await supabase.from('patrocinadores').update(updates).eq('id', id);
-  };
-
-  const updateSlide = (id: string, updates: any) => {
-    setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-    debouncedSaveSlide(id, updates);
-  };
-  const updateSlideImmediate = async (id: string, updates: any) => {
-    setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-    await supabase.from('slide_imagens').update(updates).eq('id', id);
-  };
-
-  // --- CRUD add/delete ---
-  const addLocutor = async () => {
-    const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor' }).select().single();
-    if (!error && data) setLocutores(prev => [...prev, data]);
-  };
-  const deleteLocutor = async (id: string) => {
-    await supabase.from('locutores').delete().eq('id', id);
-    setLocutores(prev => prev.filter(l => l.id !== id));
-  };
-
-  const addPrograma = async () => {
-    const { data, error } = await supabase.from('programas').insert({
-      nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5],
-    }).select('*, locutores(*)').single();
-    if (!error && data) setProgramas(prev => [...prev, data]);
-  };
-  const deletePrograma = async (id: string) => {
-    await supabase.from('programas').delete().eq('id', id);
-    setProgramas(prev => prev.filter(p => p.id !== id));
-  };
-
-  const addMusica = async () => {
-    const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '' }).select().single();
-    if (!error && data) setMusicas(prev => [data, ...prev]);
-  };
-  const deleteMusica = async (id: string) => {
-    await supabase.from('musicas_recentes').delete().eq('id', id);
-    setMusicas(prev => prev.filter(m => m.id !== id));
-  };
-
-  const addNoticia = async () => {
-    const { data, error } = await supabase.from('noticias').insert({ titulo: '', resumo: '', link_completo: '' }).select().single();
-    if (!error && data) setNoticias(prev => [data, ...prev]);
-  };
-  const deleteNoticia = async (id: string) => {
-    await supabase.from('noticias').delete().eq('id', id);
-    setNoticias(prev => prev.filter(n => n.id !== id));
-  };
-
-  const addPatrocinador = async () => {
-    const { data, error } = await supabase.from('patrocinadores').insert({ nome: '', tipo: 'normal', posicao: 'rodape' }).select().single();
-    if (!error && data) setPatrocinadores(prev => [...prev, data]);
-  };
-  const deletePatrocinador = async (id: string) => {
-    await supabase.from('patrocinadores').delete().eq('id', id);
-    setPatrocinadores(prev => prev.filter(p => p.id !== id));
-  };
-
-  const addSlide = async () => {
-    const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single();
-    if (!error && data) setSlides(prev => [...prev, data]);
-  };
-  const deleteSlide = async (id: string) => {
-    await supabase.from('slide_imagens').delete().eq('id', id);
-    setSlides(prev => prev.filter(s => s.id !== id));
-  };
+  // CRUD
+  const addLocutor = async () => { const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor' }).select().single(); if (!error && data) setLocutores(prev => [...prev, data]); };
+  const deleteLocutor = async (id: string) => { await supabase.from('locutores').delete().eq('id', id); setLocutores(prev => prev.filter(l => l.id !== id)); };
+  const addPrograma = async () => { const { data, error } = await supabase.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1,2,3,4,5] }).select('*, locutores(*)').single(); if (!error && data) setProgramas(prev => [...prev, data]); };
+  const deletePrograma = async (id: string) => { await supabase.from('programas').delete().eq('id', id); setProgramas(prev => prev.filter(p => p.id !== id)); };
+  const addMusica = async () => { const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '' }).select().single(); if (!error && data) setMusicas(prev => [data, ...prev]); };
+  const deleteMusica = async (id: string) => { await supabase.from('musicas_recentes').delete().eq('id', id); setMusicas(prev => prev.filter(m => m.id !== id)); };
+  const addNoticia = async () => { const { data, error } = await supabase.from('noticias').insert({ titulo: '', resumo: '', link_completo: '' }).select().single(); if (!error && data) setNoticias(prev => [data, ...prev]); };
+  const deleteNoticia = async (id: string) => { await supabase.from('noticias').delete().eq('id', id); setNoticias(prev => prev.filter(n => n.id !== id)); };
+  const addPatrocinador = async () => { const { data, error } = await supabase.from('patrocinadores').insert({ nome: '', tipo: 'normal', posicao: 'rodape' }).select().single(); if (!error && data) setPatrocinadores(prev => [...prev, data]); };
+  const deletePatrocinador = async (id: string) => { await supabase.from('patrocinadores').delete().eq('id', id); setPatrocinadores(prev => prev.filter(p => p.id !== id)); };
+  const addSlide = async () => { const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single(); if (!error && data) setSlides(prev => [...prev, data]); };
+  const deleteSlide = async (id: string) => { await supabase.from('slide_imagens').delete().eq('id', id); setSlides(prev => prev.filter(s => s.id !== id)); };
 
   // User management
   const createUser = async () => {
-    if (!newUserEmail || !newUserPassword) {
-      toast.error('Preencha e-mail e senha.');
-      return;
-    }
-    const { error } = await supabase.auth.signUp({
-      email: newUserEmail,
-      password: newUserPassword,
+    if (!newUserEmail || !newUserPassword) { toast.error('Preencha e-mail e senha.'); return; }
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email: newUserEmail, password: newUserPassword,
       options: { data: { display_name: newUserName || newUserEmail } },
     });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Usuário criado! (Verifique o e-mail para confirmar)');
-      setNewUserEmail('');
-      setNewUserPassword('');
-      setNewUserName('');
-      setTimeout(loadAll, 2000);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Usuário criado! (Verifique o e-mail para confirmar)');
+    // Set permissions for new user if any selected
+    if (signUpData?.user && newUserPerms.length > 0) {
+      const permsToInsert = newUserPerms.map(p => ({ user_id: signUpData.user!.id, permission: p }));
+      await supabase.from('user_permissions').insert(permsToInsert);
     }
+    setNewUserEmail(''); setNewUserPassword(''); setNewUserName(''); setNewUserPerms([]);
+    setTimeout(loadAll, 2000);
   };
 
   const toggleUserRole = async (userId: string, currentIsAdmin: boolean) => {
-    if (currentIsAdmin) {
-      await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', 'admin');
-    } else {
-      await supabase.from('user_roles').insert({ user_id: userId, role: 'admin' });
-    }
+    if (currentIsAdmin) { await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', 'admin'); }
+    else { await supabase.from('user_roles').insert({ user_id: userId, role: 'admin' }); }
     loadAll();
   };
 
   const toggleUserPermission = async (userId: string, perm: string, has: boolean) => {
-    if (has) {
-      await supabase.from('user_permissions').delete().eq('user_id', userId).eq('permission', perm);
-    } else {
-      await supabase.from('user_permissions').insert({ user_id: userId, permission: perm });
-    }
+    if (has) { await supabase.from('user_permissions').delete().eq('user_id', userId).eq('permission', perm); }
+    else { await supabase.from('user_permissions').insert({ user_id: userId, permission: perm }); }
     loadAll();
   };
 
   const handlePasswordChange = async () => {
-    if (newPassword.length < 6) {
-      toast.error('Senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
+    if (newPassword.length < 6) { toast.error('Senha deve ter pelo menos 6 caracteres.'); return; }
     const { error } = await updatePassword(newPassword);
     if (error) toast.error('Erro ao alterar senha.');
-    else {
-      toast.success('Senha alterada com sucesso!');
-      setNewPassword('');
-    }
+    else { toast.success('Senha alterada com sucesso!'); setNewPassword(''); }
   };
 
   return (
     <div className="min-h-screen bg-muted">
-      {/* Admin Header */}
       <header className="gradient-primary sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between py-3 px-4">
           <div className="flex items-center gap-3">
-            <Link to="/" className="p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
+            <Link to="/" className="p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"><ArrowLeft className="w-5 h-5" /></Link>
             <h1 className="font-display font-bold text-lg text-primary-foreground">Painel Administrativo</h1>
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={saveConfig} disabled={saving} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
-              <Save className="w-4 h-4" />
-              {saving ? 'Salvando...' : 'Salvar'}
+              <Save className="w-4 h-4" />{saving ? 'Salvando...' : 'Salvar'}
             </Button>
-            <Button onClick={signOut} variant="ghost" size="icon" className="text-primary-foreground">
-              <LogOut className="w-5 h-5" />
-            </Button>
+            <Button onClick={signOut} variant="ghost" size="icon" className="text-primary-foreground"><LogOut className="w-5 h-5" /></Button>
           </div>
         </div>
       </header>
@@ -364,6 +253,7 @@ const AdminPanel = () => {
             {hasPermission('editar_slides') && <TabsTrigger value="slides" className="gap-1.5 text-xs"><Image className="w-3.5 h-3.5" /> Slides</TabsTrigger>}
             {hasPermission('editar_whatsapp') && <TabsTrigger value="whatsapp" className="gap-1.5 text-xs"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</TabsTrigger>}
             {hasPermission('editar_cores_layout') && <TabsTrigger value="aparencia" className="gap-1.5 text-xs"><Palette className="w-3.5 h-3.5" /> Aparência</TabsTrigger>}
+            {hasPermission('editar_paginas') && <TabsTrigger value="paginas" className="gap-1.5 text-xs"><FileText className="w-3.5 h-3.5" /> Páginas</TabsTrigger>}
             {(isAdmin || hasPermission('gerenciar_usuarios')) && <TabsTrigger value="usuarios" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> Usuários</TabsTrigger>}
             <TabsTrigger value="perfil" className="gap-1.5 text-xs"><User className="w-3.5 h-3.5" /> Perfil</TabsTrigger>
           </TabsList>
@@ -378,10 +268,12 @@ const AdminPanel = () => {
                   <div><Label>URL do Streaming</Label><Input value={rc.streaming_url || ''} onChange={e => setRc({ ...rc, streaming_url: e.target.value })} placeholder="https://stm28.srvaudio.com.br:10884/" /></div>
                   <div>
                     <Label>Logo Principal</Label>
+                    <ImageHint text="Recomendado: 300×120 px (PNG/JPG)" />
                     <ImageUpload value={rc.logo_principal} onChange={url => setRc({ ...rc, logo_principal: url })} folder="logos" />
                   </div>
                   <div>
                     <Label>Logo Extra</Label>
+                    <ImageHint text="Recomendado: 300×120 px (PNG/JPG)" />
                     <ImageUpload value={rc.logo_extra} onChange={url => setRc({ ...rc, logo_extra: url })} folder="logos" />
                   </div>
                   <div>
@@ -412,7 +304,10 @@ const AdminPanel = () => {
                 <div className="space-y-3">
                   {locutores.map(l => (
                     <div key={l.id} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
-                      <ImageUpload value={l.imagem_url} onChange={url => updateLocutorImmediate(l.id, { imagem_url: url })} folder="locutores" />
+                      <div>
+                        <ImageUpload value={l.imagem_url} onChange={url => updateLocutorImmediate(l.id, { imagem_url: url })} folder="locutores" />
+                        <ImageHint text="400×400 px (quadrada)" />
+                      </div>
                       <div className="flex-1">
                         <Input placeholder="Nome do locutor" value={l.nome} onChange={e => updateLocutor(l.id, { nome: e.target.value })} />
                       </div>
@@ -440,9 +335,7 @@ const AdminPanel = () => {
                           <Input placeholder="Nome do programa" value={p.nome} onChange={e => updatePrograma(p.id, { nome: e.target.value })} />
                           <Select value={p.locutor_id || ''} onValueChange={v => updateProgramaImmediate(p.id, { locutor_id: v || null })}>
                             <SelectTrigger><SelectValue placeholder="Selecionar locutor" /></SelectTrigger>
-                            <SelectContent>
-                              {locutores.map(l => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}
-                            </SelectContent>
+                            <SelectContent>{locutores.map(l => <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>)}</SelectContent>
                           </Select>
                           <Input type="time" value={(p.horario_inicio || '').substring(0, 5)} onChange={e => updateProgramaImmediate(p.id, { horario_inicio: e.target.value })} />
                           <Input type="time" value={(p.horario_fim || '').substring(0, 5)} onChange={e => updateProgramaImmediate(p.id, { horario_fim: e.target.value })} />
@@ -452,15 +345,10 @@ const AdminPanel = () => {
                       <div className="flex flex-wrap gap-2">
                         {DIAS_SEMANA.map((dia, i) => (
                           <label key={i} className="flex items-center gap-1 text-xs">
-                            <Checkbox
-                              checked={(p.dias_semana || []).includes(i)}
-                              onCheckedChange={checked => {
-                                const dias = checked
-                                  ? [...(p.dias_semana || []), i]
-                                  : (p.dias_semana || []).filter((d: number) => d !== i);
-                                updateProgramaImmediate(p.id, { dias_semana: dias });
-                              }}
-                            />
+                            <Checkbox checked={(p.dias_semana || []).includes(i)} onCheckedChange={checked => {
+                              const dias = checked ? [...(p.dias_semana || []), i] : (p.dias_semana || []).filter((d: number) => d !== i);
+                              updateProgramaImmediate(p.id, { dias_semana: dias });
+                            }} />
                             {dia}
                           </label>
                         ))}
@@ -510,9 +398,13 @@ const AdminPanel = () => {
                       <div className="flex items-start gap-2">
                         <div className="flex-1 space-y-2">
                           <Input placeholder="Título" value={n.titulo} onChange={e => updateNoticia(n.id, { titulo: e.target.value })} />
-                          <Textarea placeholder="Resumo" value={n.resumo || ''} onChange={e => updateNoticia(n.id, { resumo: e.target.value })} rows={2} />
-                          <Input placeholder="Link completo" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
-                          <ImageUpload value={n.imagem_url} onChange={url => updateNoticiaImmediate(n.id, { imagem_url: url })} folder="noticias" />
+                          <Textarea placeholder="Resumo (exibido no card)" value={n.resumo || ''} onChange={e => updateNoticia(n.id, { resumo: e.target.value })} rows={2} />
+                          <Textarea placeholder="Conteúdo completo da notícia" value={n.conteudo || ''} onChange={e => updateNoticia(n.id, { conteudo: e.target.value })} rows={5} />
+                          <Input placeholder="Link externo (opcional)" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
+                          <div>
+                            <ImageUpload value={n.imagem_url} onChange={url => updateNoticiaImmediate(n.id, { imagem_url: url })} folder="noticias" />
+                            <ImageHint text="1200×630 px (paisagem)" />
+                          </div>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => deleteNoticia(n.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </div>
@@ -534,7 +426,10 @@ const AdminPanel = () => {
                 <div className="space-y-3">
                   {patrocinadores.map(p => (
                     <div key={p.id} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
-                      <ImageUpload value={p.imagem_url} onChange={url => updatePatrocinadorImmediate(p.id, { imagem_url: url })} folder="patrocinadores" />
+                      <div>
+                        <ImageUpload value={p.imagem_url} onChange={url => updatePatrocinadorImmediate(p.id, { imagem_url: url })} folder="patrocinadores" />
+                        <ImageHint text={p.tipo === 'premium' ? '400×200 px (premium)' : '200×120 px (normal)'} />
+                      </div>
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <Input placeholder="Nome" value={p.nome} onChange={e => updatePatrocinador(p.id, { nome: e.target.value })} />
                         <Input placeholder="Link" value={p.link || ''} onChange={e => updatePatrocinador(p.id, { link: e.target.value })} />
@@ -545,23 +440,12 @@ const AdminPanel = () => {
                             <SelectItem value="premium">Premium</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Select
-                          value={p.posicao || 'rodape'}
-                          onValueChange={v => {
-                            // Only premium can be in 'topo'
-                            if (v === 'topo' && p.tipo !== 'premium') {
-                              toast.error('Apenas patrocinadores premium podem ficar no topo.');
-                              return;
-                            }
-                            updatePatrocinadorImmediate(p.id, { posicao: v });
-                          }}
-                        >
+                        <Select value={p.posicao || 'rodape'} onValueChange={v => {
+                          if (v === 'topo' && p.tipo !== 'premium') { toast.error('Apenas patrocinadores premium podem ficar no topo.'); return; }
+                          updatePatrocinadorImmediate(p.id, { posicao: v });
+                        }}>
                           <SelectTrigger><SelectValue placeholder="Posição" /></SelectTrigger>
-                          <SelectContent>
-                            {POSICOES_PATROCINADOR.map(pos => (
-                              <SelectItem key={pos.value} value={pos.value}>{pos.label}</SelectItem>
-                            ))}
-                          </SelectContent>
+                          <SelectContent>{POSICOES_PATROCINADOR.map(pos => <SelectItem key={pos.value} value={pos.value}>{pos.label}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => deletePatrocinador(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
@@ -585,7 +469,10 @@ const AdminPanel = () => {
                   {slides.map((s, i) => (
                     <div key={s.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                       <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
-                      <ImageUpload value={s.imagem_url} onChange={url => updateSlideImmediate(s.id, { imagem_url: url })} folder="slides" />
+                      <div>
+                        <ImageUpload value={s.imagem_url} onChange={url => updateSlideImmediate(s.id, { imagem_url: url })} folder="slides" />
+                        <ImageHint text="1280×720 px (paisagem, 16:9)" />
+                      </div>
                       <Button variant="ghost" size="icon" onClick={() => deleteSlide(s.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   ))}
@@ -627,6 +514,58 @@ const AdminPanel = () => {
                       <Input value={rc.cor_secundaria || ''} onChange={e => setRc({ ...rc, cor_secundaria: e.target.value })} />
                     </div>
                   </div>
+                  <div>
+                    <Label>Cor do Texto</Label>
+                    <div className="flex gap-2 items-center">
+                      <input type="color" value={rc.cor_texto || '#1a1a2e'} onChange={e => setRc({ ...rc, cor_texto: e.target.value })} className="w-10 h-10 rounded cursor-pointer border-0" />
+                      <Input value={rc.cor_texto || ''} onChange={e => setRc({ ...rc, cor_texto: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Cor de Fundo</Label>
+                    <div className="flex gap-2 items-center">
+                      <input type="color" value={rc.cor_fundo || '#f5f7fa'} onChange={e => setRc({ ...rc, cor_fundo: e.target.value })} className="w-10 h-10 rounded cursor-pointer border-0" />
+                      <Input value={rc.cor_fundo || ''} onChange={e => setRc({ ...rc, cor_fundo: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Imagem de Fundo</Label>
+                    <ImageUpload value={rc.imagem_fundo} onChange={url => setRc({ ...rc, imagem_fundo: url })} folder="backgrounds" />
+                  </div>
+                  <div>
+                    <Label>Modo da Imagem de Fundo</Label>
+                    <Select value={rc.imagem_fundo_modo || 'cover'} onValueChange={v => setRc({ ...rc, imagem_fundo_modo: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cover">Preencher (cover)</SelectItem>
+                        <SelectItem value="contain">Conter/ajustar ao centro</SelectItem>
+                        <SelectItem value="left">Alinhar à esquerda</SelectItem>
+                        <SelectItem value="right">Alinhar à direita</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Páginas */}
+          {hasPermission('editar_paginas') && (
+            <TabsContent value="paginas">
+              <div className="bg-card rounded-xl shadow-card p-6 space-y-4">
+                <h2 className="font-display font-bold text-foreground">Páginas</h2>
+                <div className="space-y-4">
+                  {paginas.map(p => (
+                    <div key={p.id} className="p-4 bg-muted rounded-lg space-y-2">
+                      <p className="text-xs text-muted-foreground font-mono">/{p.slug}</p>
+                      <Input placeholder="Título" value={p.titulo} onChange={e => updatePagina(p.id, { titulo: e.target.value })} />
+                      <Textarea placeholder="Conteúdo da página" value={p.conteudo || ''} onChange={e => updatePagina(p.id, { conteudo: e.target.value })} rows={6} />
+                      <div>
+                        <ImageUpload value={p.imagem_url} onChange={url => updatePaginaImmediate(p.id, { imagem_url: url })} folder="paginas" />
+                        <ImageHint text="1200×630 px (paisagem)" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </TabsContent>
@@ -638,7 +577,6 @@ const AdminPanel = () => {
               <div className="bg-card rounded-xl shadow-card p-6 space-y-6">
                 <h2 className="font-display font-bold text-foreground">Gerenciar Usuários</h2>
 
-                {/* Create user */}
                 <div className="p-4 bg-muted rounded-lg space-y-3">
                   <h3 className="font-semibold text-sm text-foreground">Criar Novo Usuário</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -646,10 +584,22 @@ const AdminPanel = () => {
                     <Input placeholder="E-mail" type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} />
                     <Input placeholder="Senha" type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} />
                   </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões iniciais:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {PERMISSIONS.filter(p => p.key !== 'gerenciar_usuarios' || isAdmin).map(perm => (
+                        <label key={perm.key} className="flex items-center gap-1 text-xs">
+                          <Checkbox checked={newUserPerms.includes(perm.key)} onCheckedChange={checked => {
+                            setNewUserPerms(prev => checked ? [...prev, perm.key] : prev.filter(k => k !== perm.key));
+                          }} />
+                          {perm.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                   <Button onClick={createUser} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Criar</Button>
                 </div>
 
-                {/* User list */}
                 <div className="space-y-4">
                   {users.map(u => {
                     const uIsAdmin = u.roles?.some((r: any) => r.role === 'admin');
@@ -671,16 +621,9 @@ const AdminPanel = () => {
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões:</p>
                             <div className="flex flex-wrap gap-2">
-                              {PERMISSIONS.filter(perm => {
-                                // Only admins can grant gerenciar_usuarios
-                                if (perm.key === 'gerenciar_usuarios' && !isAdmin) return false;
-                                return true;
-                              }).map(perm => (
+                              {PERMISSIONS.filter(perm => perm.key !== 'gerenciar_usuarios' || isAdmin).map(perm => (
                                 <label key={perm.key} className="flex items-center gap-1 text-xs">
-                                  <Checkbox
-                                    checked={u.permissions?.includes(perm.key)}
-                                    onCheckedChange={() => toggleUserPermission(u.user_id, perm.key, u.permissions?.includes(perm.key))}
-                                  />
+                                  <Checkbox checked={u.permissions?.includes(perm.key)} onCheckedChange={() => toggleUserPermission(u.user_id, perm.key, u.permissions?.includes(perm.key))} />
                                   {perm.label}
                                 </label>
                               ))}
@@ -703,12 +646,7 @@ const AdminPanel = () => {
               <div className="max-w-sm space-y-3">
                 <Label>Alterar Senha</Label>
                 <div className="relative">
-                  <Input
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Nova senha (min. 6 caracteres)"
-                  />
+                  <Input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nova senha (min. 6 caracteres)" />
                   <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

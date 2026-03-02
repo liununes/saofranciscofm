@@ -1,13 +1,19 @@
 import { useRadio } from '@/contexts/RadioContext';
-import { Radio, Settings } from 'lucide-react';
+import { Radio, Settings, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import radioLogo from '@/assets/radio-logo.png';
 
 const RadioHeader = () => {
   const { config } = useRadio();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Patrocinadores for the header bar position
   const headerSponsors = config.patrocinadores.filter(p => p.posicao === 'barra_centro_em_cima');
+
+  const navLinks = [
+    { to: '/', label: 'Início' },
+    { to: '/sobre', label: 'Sobre' },
+  ];
 
   return (
     <header className="gradient-primary sticky top-0 z-50">
@@ -24,6 +30,15 @@ const RadioHeader = () => {
             </h1>
           </div>
         </div>
+
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-4">
+          {navLinks.map(link => (
+            <Link key={link.to} to={link.to} className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors font-medium">
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
         {headerSponsors.length > 0 && (
           <div className="hidden md:flex items-center gap-4">
@@ -50,8 +65,26 @@ const RadioHeader = () => {
           >
             <Settings className="w-5 h-5" />
           </Link>
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
+          >
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile nav */}
+      {menuOpen && (
+        <nav className="md:hidden border-t border-primary-foreground/10 px-4 py-3 space-y-2">
+          {navLinks.map(link => (
+            <Link key={link.to} to={link.to} onClick={() => setMenuOpen(false)} className="block text-sm text-primary-foreground/80 hover:text-primary-foreground py-1">
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 };
