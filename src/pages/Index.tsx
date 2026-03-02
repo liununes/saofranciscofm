@@ -6,7 +6,7 @@ import RecentSongs from '@/components/radio/RecentSongs';
 import NewsSection from '@/components/radio/NewsSection';
 import WhatsAppButton from '@/components/radio/WhatsAppButton';
 import RadioFooter from '@/components/radio/RadioFooter';
-import WorldMap from '@/components/radio/WorldMap';
+
 import GoogleAd from '@/components/radio/GoogleAd';
 import PhoneContact from '@/components/radio/PhoneContact';
 import { useMemo } from 'react';
@@ -112,7 +112,7 @@ const Index = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {config.visibilidade_noticias && <div id="noticias" className="lg:col-span-1"><NewsSection /></div>}
               {config.visibilidade_musicas && <div className="lg:col-span-1"><RecentSongs /></div>}
-              {config.visibilidade_mapa && <div className="lg:col-span-1"><WorldMap /></div>}
+              
             </div>
 
             {/* Telefone - posições centro, meio-esquerda, meio-direita */}
