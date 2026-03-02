@@ -13,6 +13,9 @@ const RadioHeader = () => {
   const navLinks = [
     { to: '/', label: 'Início' },
     { to: '/sobre', label: 'Sobre' },
+    { to: '/#noticias', label: 'Notícias' },
+    { to: '/#programacao', label: 'Programação' },
+    { to: '/#contato', label: 'Contato' },
   ];
 
   return (
@@ -34,7 +37,14 @@ const RadioHeader = () => {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-4">
           {navLinks.map(link => (
-            <Link key={link.to} to={link.to} className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors font-medium">
+            <Link key={link.to} to={link.to} className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors font-medium"
+              onClick={(e) => {
+                if (link.to.includes('#')) {
+                  const hash = link.to.split('#')[1];
+                  const el = document.getElementById(hash);
+                  if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+                }
+              }}>
               {link.label}
             </Link>
           ))}
@@ -79,7 +89,14 @@ const RadioHeader = () => {
       {menuOpen && (
         <nav className="md:hidden border-t border-primary-foreground/10 px-4 py-3 space-y-2">
           {navLinks.map(link => (
-            <Link key={link.to} to={link.to} onClick={() => setMenuOpen(false)} className="block text-sm text-primary-foreground/80 hover:text-primary-foreground py-1">
+            <Link key={link.to} to={link.to} onClick={(e) => {
+              setMenuOpen(false);
+              if (link.to.includes('#')) {
+                const hash = link.to.split('#')[1];
+                const el = document.getElementById(hash);
+                if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+              }
+            }} className="block text-sm text-primary-foreground/80 hover:text-primary-foreground py-1">
               {link.label}
             </Link>
           ))}
