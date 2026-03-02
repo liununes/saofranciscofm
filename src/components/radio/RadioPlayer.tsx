@@ -47,22 +47,33 @@ const RadioPlayer = () => {
 
   const logoSize = config.logo_tamanho || 80;
   const logoPos = config.logo_posicao || 'left';
+  const extraPos = config.logo_extra_posicao || 'right';
 
-  const isAbove = logoPos === 'above';
+  const anyAbove = logoPos === 'above' || (config.logo_extra && extraPos === 'above');
 
   return (
     <section className="gradient-hero py-8">
       <audio ref={audioRef} preload="none" />
       <div className="container mx-auto px-4">
-        <div className={`flex ${isAbove ? 'flex-col items-center gap-4' : 'flex-row items-center justify-center gap-6'} max-w-3xl mx-auto`}>
-          {/* Logo - left or above */}
-          {config.logo_principal && (logoPos === 'left' || isAbove) && (
-            <img
-              src={config.logo_principal}
-              alt={config.nome_radio}
-              style={{ height: `${logoSize}px` }}
-              className="object-contain flex-shrink-0 drop-shadow-lg"
-            />
+        {/* Logos acima */}
+        {anyAbove && (
+          <div className="flex items-center justify-center gap-6 mb-4">
+            {config.logo_principal && logoPos === 'above' && (
+              <img src={config.logo_principal} alt={config.nome_radio} style={{ height: `${logoSize}px` }} className="object-contain drop-shadow-lg" />
+            )}
+            {config.logo_extra && extraPos === 'above' && (
+              <img src={config.logo_extra} alt="Logo Extra" style={{ height: `${logoSize}px` }} className="object-contain drop-shadow-lg" />
+            )}
+          </div>
+        )}
+        <div className="flex flex-row items-center justify-center gap-6 max-w-4xl mx-auto">
+          {/* Logo principal - left */}
+          {config.logo_principal && logoPos === 'left' && (
+            <img src={config.logo_principal} alt={config.nome_radio} style={{ height: `${logoSize}px` }} className="object-contain flex-shrink-0 drop-shadow-lg" />
+          )}
+          {/* Logo extra - left */}
+          {config.logo_extra && extraPos === 'left' && (
+            <img src={config.logo_extra} alt="Logo Extra" style={{ height: `${logoSize}px` }} className="object-contain flex-shrink-0 drop-shadow-lg" />
           )}
 
           {/* Player Card */}
@@ -128,14 +139,13 @@ const RadioPlayer = () => {
             </div>
           </div>
 
-          {/* Logo - right */}
+          {/* Logo principal - right */}
           {config.logo_principal && logoPos === 'right' && (
-            <img
-              src={config.logo_principal}
-              alt={config.nome_radio}
-              style={{ height: `${logoSize}px` }}
-              className="object-contain flex-shrink-0 drop-shadow-lg"
-            />
+            <img src={config.logo_principal} alt={config.nome_radio} style={{ height: `${logoSize}px` }} className="object-contain flex-shrink-0 drop-shadow-lg" />
+          )}
+          {/* Logo extra - right */}
+          {config.logo_extra && extraPos === 'right' && (
+            <img src={config.logo_extra} alt="Logo Extra" style={{ height: `${logoSize}px` }} className="object-contain flex-shrink-0 drop-shadow-lg" />
           )}
 
           {/* Telefone ao lado do player */}

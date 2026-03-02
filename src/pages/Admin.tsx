@@ -139,6 +139,7 @@ const AdminPanel = () => {
       nome_radio: rc.nome_radio,
       logo_principal: rc.logo_principal,
       logo_extra: rc.logo_extra,
+      logo_extra_posicao: rc.logo_extra_posicao,
       streaming_url: rc.streaming_url,
       player_posicao: rc.player_posicao,
       logo_posicao: rc.logo_posicao,
@@ -320,6 +321,17 @@ const AdminPanel = () => {
                     <Label>Logo Extra</Label>
                     <ImageHint text="Recomendado: 300×120 px (PNG/JPG)" />
                     <ImageUpload value={rc.logo_extra} onChange={url => setRc({ ...rc, logo_extra: url })} folder="logos" />
+                  </div>
+                  <div>
+                    <Label>Posição da Logo Extra em relação ao Player</Label>
+                    <Select value={rc.logo_extra_posicao || 'right'} onValueChange={v => setRc({ ...rc, logo_extra_posicao: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="left">Esquerda do Player</SelectItem>
+                        <SelectItem value="right">Direita do Player</SelectItem>
+                        <SelectItem value="above">Centralizada Acima</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label>Posição da Logo em relação ao Player</Label>
