@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Musica {
   id: string;
@@ -28,21 +29,40 @@ export interface SlideImagem {
   ordem: number;
 }
 
+export interface Locutor {
+  id: string;
+  nome: string;
+  imagem_url?: string;
+}
+
+export interface Programa {
+  id: string;
+  nome: string;
+  locutor_id?: string;
+  locutor?: Locutor;
+  horario_inicio: string;
+  horario_fim: string;
+  dias_semana: number[];
+  ativo: boolean;
+}
+
 export interface RadioConfig {
   nome_radio: string;
   logo_principal: string;
   logo_extra: string;
   streaming_url: string;
   player_posicao: 'left' | 'center' | 'right';
-  locutor_ao_vivo: string;
-  programa_ao_vivo: string;
-  horario_inicio: string;
-  horario_fim: string;
   musica_atual: string;
   whatsapp_numero: string;
   whatsapp_mensagem: string;
   cor_primaria: string;
   cor_secundaria: string;
+  // Derived from DB
+  locutor_ao_vivo: string;
+  programa_ao_vivo: string;
+  horario_inicio: string;
+  horario_fim: string;
+  locutor_imagem?: string;
   musicas_recentes: Musica[];
   noticias: Noticia[];
   patrocinadores: Patrocinador[];
@@ -53,33 +73,21 @@ const defaultConfig: RadioConfig = {
   nome_radio: 'Rádio Personalizada FM',
   logo_principal: '',
   logo_extra: '',
-  streaming_url: 'https://stream.zeno.fm/example',
+  streaming_url: 'https://stm28.srvaudio.com.br:10884/',
   player_posicao: 'center',
-  locutor_ao_vivo: 'DJ Marco Aurélio',
-  programa_ao_vivo: 'Manhã Total',
-  horario_inicio: '06:00',
-  horario_fim: '10:00',
-  musica_atual: 'Jorge & Mateus - Enquanto Houver Razões',
+  musica_atual: '',
   whatsapp_numero: '553335112000',
   whatsapp_mensagem: 'Olá! Quero fazer um pedido musical! 🎵',
   cor_primaria: '#005BBB',
   cor_secundaria: '#FFA500',
-  musicas_recentes: [
-    { id: '1', titulo: 'Enquanto Houver Razões', artista: 'Jorge & Mateus', hora_execucao: '08:45' },
-    { id: '2', titulo: 'Atrasadinha', artista: 'Felipe Araújo', hora_execucao: '08:40' },
-    { id: '3', titulo: 'Milu', artista: 'Gusttavo Lima', hora_execucao: '08:35' },
-    { id: '4', titulo: 'Coração Cachorro', artista: 'Ávine e Matheus Fernandes', hora_execucao: '08:30' },
-    { id: '5', titulo: 'Deixa Eu Te Amar', artista: 'Sorriso Maroto', hora_execucao: '08:25' },
-  ],
-  noticias: [
-    { id: '1', titulo: 'Festival de Música chega à cidade neste fim de semana', resumo: 'O maior festival de música da região acontece neste sábado e domingo com mais de 20 atrações.', link_completo: '#' },
-    { id: '2', titulo: 'Prefeitura anuncia obras de revitalização do centro', resumo: 'Projeto prevê melhorias na iluminação, calçadas e paisagismo das principais ruas.', link_completo: '#' },
-    { id: '3', titulo: 'Campeonato regional de futebol define semifinalistas', resumo: 'Quatro equipes garantiram vaga na semifinal após rodada emocionante.', link_completo: '#' },
-  ],
-  patrocinadores: [
-    { id: '1', nome: 'Patrocinador 1', imagem: '', link: '#' },
-    { id: '2', nome: 'Patrocinador 2', imagem: '', link: '#' },
-  ],
+  locutor_ao_vivo: '',
+  programa_ao_vivo: '',
+  horario_inicio: '',
+  horario_fim: '',
+  locutor_imagem: '',
+  musicas_recentes: [],
+  noticias: [],
+  patrocinadores: [],
   slide_imagens: [],
 };
 
@@ -87,47 +95,120 @@ interface RadioContextType {
   config: RadioConfig;
   updateConfig: (updates: Partial<RadioConfig>) => void;
   isLive: boolean;
+  currentPrograma: Programa | null;
+  refreshData: () => Promise<void>;
 }
 
 const RadioContext = createContext<RadioContextType | undefined>(undefined);
 
 export const RadioProvider = ({ children }: { children: ReactNode }) => {
-  const [config, setConfig] = useState<RadioConfig>(() => {
-    try {
-      const saved = localStorage.getItem('radioConfig');
-      return saved ? { ...defaultConfig, ...JSON.parse(saved) } : defaultConfig;
-    } catch {
-      return defaultConfig;
-    }
-  });
-
+  const [config, setConfig] = useState<RadioConfig>(defaultConfig);
   const [isLive, setIsLive] = useState(false);
+  const [currentPrograma, setCurrentPrograma] = useState<Programa | null>(null);
+  const [programas, setProgramas] = useState<Programa[]>([]);
+
+  const fetchData = async () => {
+    // Fetch radio config
+    const { data: rc } = await supabase.from('radio_config').select('*').limit(1).single();
+    
+    // Fetch musicas
+    const { data: musicas } = await supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10);
+    
+    // Fetch noticias
+    const { data: noticias } = await supabase.from('noticias').select('*').order('created_at', { ascending: false });
+    
+    // Fetch patrocinadores
+    const { data: patrocinadores } = await supabase.from('patrocinadores').select('*');
+    
+    // Fetch slides
+    const { data: slides } = await supabase.from('slide_imagens').select('*').order('ordem', { ascending: true });
+    
+    // Fetch programas with locutores
+    const { data: progs } = await supabase.from('programas').select('*, locutores(*)').eq('ativo', true);
+
+    const mappedProgramas: Programa[] = (progs || []).map((p: any) => ({
+      id: p.id,
+      nome: p.nome,
+      locutor_id: p.locutor_id,
+      locutor: p.locutores ? { id: p.locutores.id, nome: p.locutores.nome, imagem_url: p.locutores.imagem_url } : undefined,
+      horario_inicio: p.horario_inicio,
+      horario_fim: p.horario_fim,
+      dias_semana: p.dias_semana,
+      ativo: p.ativo,
+    }));
+    setProgramas(mappedProgramas);
+
+    setConfig(prev => ({
+      ...prev,
+      nome_radio: rc?.nome_radio || prev.nome_radio,
+      logo_principal: rc?.logo_principal || '',
+      logo_extra: rc?.logo_extra || '',
+      streaming_url: rc?.streaming_url || prev.streaming_url,
+      player_posicao: (rc?.player_posicao as any) || 'center',
+      musica_atual: rc?.musica_atual || '',
+      whatsapp_numero: rc?.whatsapp_numero || prev.whatsapp_numero,
+      whatsapp_mensagem: rc?.whatsapp_mensagem || prev.whatsapp_mensagem,
+      cor_primaria: rc?.cor_primaria || prev.cor_primaria,
+      cor_secundaria: rc?.cor_secundaria || prev.cor_secundaria,
+      musicas_recentes: (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
+      noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '' })),
+      patrocinadores: (patrocinadores || []).map(p => ({ id: p.id, nome: p.nome, imagem: p.imagem_url || '', link: p.link || '' })),
+      slide_imagens: (slides || []).map(s => ({ id: s.id, imagem: s.imagem_url, ordem: s.ordem })),
+    }));
+  };
+
+  // Determine current program based on visitor's clock
+  const checkCurrentProgram = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+
+    const active = programas.find(p => {
+      if (!p.dias_semana.includes(dayOfWeek)) return false;
+      return currentTime >= p.horario_inicio && currentTime < p.horario_fim;
+    });
+
+    if (active) {
+      setCurrentPrograma(active);
+      setIsLive(true);
+      setConfig(prev => ({
+        ...prev,
+        programa_ao_vivo: active.nome,
+        locutor_ao_vivo: active.locutor?.nome || '',
+        locutor_imagem: active.locutor?.imagem_url || '',
+        horario_inicio: active.horario_inicio.substring(0, 5),
+        horario_fim: active.horario_fim.substring(0, 5),
+      }));
+    } else {
+      setCurrentPrograma(null);
+      setIsLive(false);
+      setConfig(prev => ({
+        ...prev,
+        programa_ao_vivo: '',
+        locutor_ao_vivo: '',
+        locutor_imagem: '',
+        horario_inicio: '',
+        horario_fim: '',
+      }));
+    }
+  };
 
   useEffect(() => {
-    localStorage.setItem('radioConfig', JSON.stringify(config));
-  }, [config]);
+    fetchData();
+  }, []);
 
   useEffect(() => {
-    const checkLive = () => {
-      const now = new Date();
-      const [startH, startM] = config.horario_inicio.split(':').map(Number);
-      const [endH, endM] = config.horario_fim.split(':').map(Number);
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const startMinutes = startH * 60 + startM;
-      const endMinutes = endH * 60 + endM;
-      setIsLive(currentMinutes >= startMinutes && currentMinutes <= endMinutes);
-    };
-    checkLive();
-    const interval = setInterval(checkLive, 30000);
+    checkCurrentProgram();
+    const interval = setInterval(checkCurrentProgram, 30000);
     return () => clearInterval(interval);
-  }, [config.horario_inicio, config.horario_fim]);
+  }, [programas]);
 
   const updateConfig = (updates: Partial<RadioConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }));
   };
 
   return (
-    <RadioContext.Provider value={{ config, updateConfig, isLive }}>
+    <RadioContext.Provider value={{ config, updateConfig, isLive, currentPrograma, refreshData: fetchData }}>
       {children}
     </RadioContext.Provider>
   );

@@ -14,13 +14,20 @@ const NewsSection = () => {
         {config.noticias.map(n => (
           <article key={n.id} className="group">
             <a href={n.link_completo} className="block p-3 rounded-lg hover:bg-muted transition-colors">
-              <h3 className="font-display font-semibold text-sm text-foreground group-hover:text-primary transition-colors mb-1">
-                {n.titulo}
-              </h3>
-              <p className="text-xs text-muted-foreground line-clamp-2">{n.resumo}</p>
-              <span className="inline-flex items-center gap-1 text-xs text-primary font-medium mt-2">
-                Ler mais <ArrowRight className="w-3 h-3" />
-              </span>
+              <div className="flex gap-3">
+                {n.imagem && (
+                  <img src={n.imagem} alt={n.titulo} className="w-20 h-16 rounded-lg object-cover flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display font-semibold text-sm text-foreground group-hover:text-primary transition-colors mb-1">
+                    {n.titulo}
+                  </h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{n.resumo}</p>
+                  <span className="inline-flex items-center gap-1 text-xs text-primary font-medium mt-2">
+                    Ler mais <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </div>
             </a>
           </article>
         ))}

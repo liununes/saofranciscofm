@@ -23,6 +23,8 @@ const ImageSlider = () => {
   const prev = () => setCurrentIndex(i => (i - 1 + images.length) % images.length);
   const next = () => setCurrentIndex(i => (i + 1) % images.length);
 
+  if (images.length === 0) return null;
+
   return (
     <div className="relative w-full aspect-[21/9] sm:aspect-[3/1] overflow-hidden rounded-xl shadow-card group">
       {images.map((img, i) => (
@@ -35,7 +37,6 @@ const ImageSlider = () => {
           }`}
         />
       ))}
-      {/* Overlay gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 to-transparent" />
 
       {images.length > 1 && (

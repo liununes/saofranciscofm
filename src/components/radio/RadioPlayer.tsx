@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
-import { Play, Pause, Volume2, VolumeX, Radio } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 
 const RadioPlayer = () => {
-  const { config, isLive } = useRadio();
+  const { config, isLive, currentPrograma } = useRadio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
@@ -47,6 +47,11 @@ const RadioPlayer = () => {
       <audio ref={audioRef} preload="none" />
       <div className={`container mx-auto px-4 flex ${positionClass}`}>
         <div className="flex items-center gap-4 sm:gap-6 bg-primary-foreground/5 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-primary-foreground/10 w-full max-w-2xl">
+          {/* Locutor image */}
+          {isLive && config.locutor_imagem && (
+            <img src={config.locutor_imagem} alt={config.locutor_ao_vivo} className="w-12 h-12 rounded-full object-cover border-2 border-secondary flex-shrink-0 hidden sm:block" />
+          )}
+
           {/* Play Button */}
           <button
             onClick={togglePlay}
@@ -76,15 +81,25 @@ const RadioPlayer = () => {
                 </div>
               )}
             </div>
-            <p className="text-primary-foreground font-display font-semibold text-sm truncate">
-              {config.programa_ao_vivo}
-            </p>
-            <p className="text-primary-foreground/70 text-xs truncate">
-              {config.locutor_ao_vivo} • {config.horario_inicio} - {config.horario_fim}
-            </p>
-            <p className="text-secondary text-xs font-medium truncate mt-0.5">
-              ♪ {config.musica_atual}
-            </p>
+            {isLive ? (
+              <>
+                <p className="text-primary-foreground font-display font-semibold text-sm truncate">
+                  {config.programa_ao_vivo}
+                </p>
+                <p className="text-primary-foreground/70 text-xs truncate">
+                  {config.locutor_ao_vivo} • {config.horario_inicio} - {config.horario_fim}
+                </p>
+              </>
+            ) : (
+              <p className="text-primary-foreground font-display font-semibold text-sm truncate">
+                {config.nome_radio}
+              </p>
+            )}
+            {config.musica_atual && (
+              <p className="text-secondary text-xs font-medium truncate mt-0.5">
+                ♪ {config.musica_atual}
+              </p>
+            )}
           </div>
 
           {/* Volume */}
