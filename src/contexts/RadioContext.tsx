@@ -54,6 +54,10 @@ export interface RadioConfig {
   logo_extra: string;
   streaming_url: string;
   player_posicao: 'left' | 'center' | 'right';
+  logo_posicao: 'left' | 'right' | 'above';
+  logo_tamanho: number;
+  patrocinador_alinhamento: 'left' | 'center' | 'right';
+  tema: 'claro' | 'escuro' | 'moderno';
   musica_atual: string;
   whatsapp_numero: string;
   whatsapp_mensagem: string;
@@ -80,6 +84,10 @@ const defaultConfig: RadioConfig = {
   logo_extra: '',
   streaming_url: 'https://stm28.srvaudio.com.br:10884/',
   player_posicao: 'center',
+  logo_posicao: 'left',
+  logo_tamanho: 80,
+  patrocinador_alinhamento: 'center',
+  tema: 'claro',
   musica_atual: '',
   whatsapp_numero: '553335112000',
   whatsapp_mensagem: 'Olá! Quero fazer um pedido musical! 🎵',
@@ -152,6 +160,10 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       logo_extra: rc?.logo_extra || '',
       streaming_url: rc?.streaming_url || prev.streaming_url,
       player_posicao: (rc?.player_posicao as any) || 'center',
+      logo_posicao: (rc?.logo_posicao as any) || 'left',
+      logo_tamanho: rc?.logo_tamanho || 80,
+      patrocinador_alinhamento: (rc?.patrocinador_alinhamento as any) || 'center',
+      tema: (rc?.tema as any) || 'claro',
       musica_atual: rc?.musica_atual || '',
       whatsapp_numero: rc?.whatsapp_numero || prev.whatsapp_numero,
       whatsapp_mensagem: rc?.whatsapp_mensagem || prev.whatsapp_mensagem,
@@ -210,9 +222,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
     checkCurrentProgram();
