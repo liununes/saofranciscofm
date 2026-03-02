@@ -86,6 +86,7 @@ export interface RadioConfig {
   horario_fim: string;
   locutor_imagem?: string;
   telefone_contato: string;
+  telefone_link: string;
   visibilidade_logo: boolean;
   visibilidade_noticias: boolean;
   visibilidade_musicas: boolean;
@@ -138,6 +139,7 @@ const defaultConfig: RadioConfig = {
   horario_fim: '',
   locutor_imagem: '',
   telefone_contato: '3511-2000',
+  telefone_link: '',
   visibilidade_logo: true,
   visibilidade_noticias: true,
   visibilidade_musicas: true,
@@ -233,6 +235,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       imagem_fundo: rc?.imagem_fundo || '',
       imagem_fundo_modo: rc?.imagem_fundo_modo || 'cover',
       telefone_contato: rc?.telefone_contato || '3511-2000',
+      telefone_link: rc?.telefone_link || '',
       visibilidade_logo: rc?.visibilidade_logo ?? true,
       visibilidade_noticias: rc?.visibilidade_noticias ?? true,
       visibilidade_musicas: rc?.visibilidade_musicas ?? true,
