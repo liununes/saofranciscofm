@@ -250,6 +250,51 @@ export type Database = {
           },
         ]
       }
+      promocoes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          data_inicio: string | null
+          data_validade: string | null
+          descricao: string | null
+          id: string
+          imagem_url: string | null
+          link: string | null
+          nome: string
+          prorrogada_ate: string | null
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          data_inicio?: string | null
+          data_validade?: string | null
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          link?: string | null
+          nome?: string
+          prorrogada_ate?: string | null
+          texto?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          data_inicio?: string | null
+          data_validade?: string | null
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          link?: string | null
+          nome?: string
+          prorrogada_ate?: string | null
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       publicidade_noticias: {
         Row: {
           ativo: boolean
