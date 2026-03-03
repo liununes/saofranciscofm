@@ -139,7 +139,7 @@ const AdminPanel = () => {
       supabase.from('slide_imagens').select('*').order('ordem'),
       supabase.from('paginas').select('*').order('slug'),
       supabase.from('social_links').select('*').order('ordem'),
-      supabase.from('publicidade_noticias').select('*').order('created_at', { ascending: false }),
+      supabase.from('publicidade_noticias' as any).select('*').order('created_at', { ascending: false }),
     ]);
     setRc(rcRes.data || {});
     setLocutores(locRes.data || []);
@@ -619,8 +619,14 @@ const AdminPanel = () => {
                         <Select value={n.publicidade_id || ''} onValueChange={v => updateNoticiaImmediate(n.id, { publicidade_id: v || null })}>
                           <SelectTrigger><SelectValue placeholder="Selecionar publicidade..." /></SelectTrigger>
                           <SelectContent>
-                            {publicidades.filter(p => p.ativo).map(p => (
-                              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                            {publicidades.filter(p => {
+                              if (!p.ativo) return false;
+                              const hoje = new Date().toISOString().slice(0, 10);
+                              if (p.data_inicio && p.data_inicio > hoje) return false;
+                              if (p.data_fim && p.data_fim < hoje) return false;
+                              return true;
+                            }).map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.nome}{p.data_fim ? ` (até ${new Date(p.data_fim).toLocaleDateString('pt-BR')})` : ''}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -653,58 +659,102 @@ const AdminPanel = () => {
 
   // Publicidade CRUD helpers
   const addPublicidade = async () => {
-    const { data, error } = await supabase.from('publicidade_noticias').insert({ nome: 'Nova Publicidade', texto: '', ativo: true }).select().single();
-    if (!error && data) setPublicidades(prev => [data, ...prev]);
+    const { data, error } = await (supabase.from as any)('publicidade_noticias').insert({ nome: 'Nova Publicidade', texto: '', ativo: true }).select().single();
+    if (!error && data) { setPublicidades(prev => [data, ...prev]); toast.success('Publicidade criada!'); }
+    else toast.error('Erro ao criar publicidade.');
   };
   const deletePublicidade = async (id: string) => {
-    await supabase.from('publicidade_noticias').delete().eq('id', id);
+    await (supabase.from as any)('publicidade_noticias').delete().eq('id', id);
     setPublicidades(prev => prev.filter(p => p.id !== id));
+    toast.success('Publicidade removida.');
   };
-  const persistPublicidade = useCallback(async (id: string, updates: any) => { await supabase.from('publicidade_noticias').update(updates).eq('id', id); }, []);
+  const persistPublicidade = useCallback(async (id: string, updates: any) => { await (supabase.from as any)('publicidade_noticias').update(updates).eq('id', id); }, []);
   const debouncedSavePublicidade = useDebouncedSave(persistPublicidade);
   const updatePublicidade = (id: string, updates: any) => { setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePublicidade(id, updates); };
-  const updatePublicidadeImmediate = async (id: string, updates: any) => { setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('publicidade_noticias').update(updates).eq('id', id); };
+  const updatePublicidadeImmediate = async (id: string, updates: any) => { setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await (supabase.from as any)('publicidade_noticias').update(updates).eq('id', id); };
 
-  const renderPublicidadeNoticias = () => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display font-bold text-xl text-foreground">Publicidade em Notícias</h2>
-        <Button onClick={addPublicidade} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Cadastre publicidades aqui. Depois, vá na seção Notícias e ative a publicidade escolhendo qual exibir em cada matéria.
-      </p>
+  const renderPublicidadeNoticias = () => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    return (
       <div className="space-y-4">
-        {publicidades.map(p => (
-          <Card key={p.id}>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Input placeholder="Nome da publicidade" value={p.nome} onChange={e => updatePublicidade(p.id, { nome: e.target.value })} className="flex-1" />
-                    <label className="flex items-center gap-2 ml-3 whitespace-nowrap text-xs">
-                      <Switch checked={p.ativo ?? true} onCheckedChange={checked => updatePublicidadeImmediate(p.id, { ativo: checked })} />
-                      Ativo
-                    </label>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-bold text-xl text-foreground">Publicidade em Notícias</h2>
+          <Button onClick={addPublicidade} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Cadastre publicidades aqui. Depois, vá na seção <strong>Notícias</strong> e ative a publicidade escolhendo qual exibir em cada matéria.
+        </p>
+        <div className="space-y-4">
+          {publicidades.map(p => {
+            const expirada = p.data_fim && p.data_fim < hoje;
+            const naoIniciada = p.data_inicio && p.data_inicio > hoje;
+            const statusLabel = expirada ? '⛔ Expirada' : naoIniciada ? '⏳ Agendada' : p.ativo ? '✅ Ativa' : '❌ Inativa';
+            return (
+              <Card key={p.id} className={expirada ? 'opacity-60' : ''}>
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <Input placeholder="Nome da publicidade" value={p.nome || ''} onChange={e => updatePublicidade(p.id, { nome: e.target.value })} className="flex-1 min-w-[200px]" />
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-medium">{statusLabel}</span>
+                          <label className="flex items-center gap-2 whitespace-nowrap text-xs">
+                            <Switch checked={p.ativo ?? true} onCheckedChange={checked => updatePublicidadeImmediate(p.id, { ativo: checked })} />
+                            {p.ativo ? 'Ativo' : 'Inativo'}
+                          </label>
+                        </div>
+                      </div>
+
+                      <Textarea placeholder="Texto da publicidade (ex: Promoção especial! Clique e confira)" value={p.texto || ''} onChange={e => updatePublicidade(p.id, { texto: e.target.value })} rows={3} />
+                      <Input placeholder="Link (URL destino ao clicar)" value={p.link || ''} onChange={e => updatePublicidade(p.id, { link: e.target.value })} />
+
+                      <div>
+                        <Label className="text-xs">Imagem</Label>
+                        {p.imagem_url && (
+                          <div className="relative inline-block mb-2">
+                            <img src={p.imagem_url} alt="Preview" className="h-20 object-contain rounded border" />
+                            <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => updatePublicidadeImmediate(p.id, { imagem_url: null })}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                        <ImageUpload value={p.imagem_url} onChange={url => updatePublicidadeImmediate(p.id, { imagem_url: url })} folder="publicidade" />
+                        <ImageHint text="728×90 px (banner) ou 300×250 px (retângulo)" />
+                      </div>
+
+                      {/* Período de veiculação */}
+                      <div className="p-3 bg-muted rounded-lg space-y-2">
+                        <span className="text-xs font-semibold text-muted-foreground">📅 Período de Veiculação (opcional)</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Data Início</Label>
+                            <Input type="date" value={p.data_inicio || ''} onChange={e => updatePublicidadeImmediate(p.id, { data_inicio: e.target.value || null })} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Data Fim</Label>
+                            <Input type="date" value={p.data_fim || ''} onChange={e => updatePublicidadeImmediate(p.id, { data_fim: e.target.value || null })} />
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Deixe vazio para veiculação sem prazo.</p>
+                      </div>
+
+                      {p.created_at && (
+                        <p className="text-xs text-muted-foreground">Criada em: {new Date(p.created_at).toLocaleDateString('pt-BR')}</p>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => deletePublicidade(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
                   </div>
-                  <Textarea placeholder="Texto da publicidade (ex: Promoção especial! Clique e confira)" value={p.texto || ''} onChange={e => updatePublicidade(p.id, { texto: e.target.value })} rows={3} />
-                  <Input placeholder="Link (URL destino ao clicar)" value={p.link || ''} onChange={e => updatePublicidade(p.id, { link: e.target.value })} />
-                  <div>
-                    <ImageUpload value={p.imagem_url} onChange={url => updatePublicidadeImmediate(p.id, { imagem_url: url })} folder="publicidade" />
-                    <ImageHint text="728×90 px (banner) ou 300×250 px (retângulo)" />
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => deletePublicidade(p.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {publicidades.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma publicidade cadastrada. Clique em "Adicionar" para criar.</p>
-        )}
+                </CardContent>
+              </Card>
+            );
+          })}
+          {publicidades.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma publicidade cadastrada. Clique em "Adicionar" para criar.</p>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPatrocinadores = () => (
     <div className="space-y-4">
