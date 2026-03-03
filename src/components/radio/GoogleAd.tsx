@@ -25,7 +25,7 @@ const GoogleAd = ({ codigo, className = '' }: GoogleAdProps) => {
   if (!codigo) return null;
 
   return (
-    <div ref={containerRef} className={`flex justify-center ${className}`} />
+    <div ref={containerRef} className={className} />
   );
 };
 

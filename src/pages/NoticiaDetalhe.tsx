@@ -6,6 +6,7 @@ import RadioHeader from '@/components/radio/RadioHeader';
 import RadioFooter from '@/components/radio/RadioFooter';
 import WhatsAppButton from '@/components/radio/WhatsAppButton';
 import ShareButtons from '@/components/radio/ShareButtons';
+import GoogleAd from '@/components/radio/GoogleAd';
 
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return '';
@@ -97,16 +98,22 @@ const NoticiaDetalhe = () => {
       <div className="space-y-4">
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{before}</div>
         
-        {/* Sponsor block */}
-        <div className="my-6 p-4 bg-muted rounded-xl border border-border text-center">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Publicidade</p>
-          <a href={patrocinador.link || '#'} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
-            {patrocinador.imagem_url ? (
-              <img src={patrocinador.imagem_url} alt={patrocinador.nome} className="max-h-24 mx-auto object-contain" />
-            ) : null}
-            {patrocinador.texto && <p className="text-sm font-medium text-foreground mt-2">{patrocinador.texto}</p>}
-            {!patrocinador.imagem_url && !patrocinador.texto && <span className="text-sm font-medium text-foreground">{patrocinador.nome}</span>}
-          </a>
+        {/* Sponsor block (full-width, similar to design screenshot) */}
+        <div className="my-6 p-6 bg-muted/60 rounded-xl border border-border text-center w-full">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Publicidade</p>
+          {patrocinador.codigo ? (
+            <div className="w-full">
+              <GoogleAd codigo={patrocinador.codigo} className="w-full max-w-full" />
+            </div>
+          ) : (
+            <a href={patrocinador.link || '#'} target="_blank" rel="noopener noreferrer" className="block hover:opacity-90 transition-opacity">
+              {patrocinador.imagem_url ? (
+                <img src={patrocinador.imagem_url} alt={patrocinador.nome} className="w-full max-h-72 object-cover rounded-md mx-auto" />
+              ) : null}
+              {patrocinador.texto && <p className="text-sm font-medium text-foreground mt-3">{patrocinador.texto}</p>}
+              {!patrocinador.imagem_url && !patrocinador.texto && <span className="text-sm font-medium text-foreground">{patrocinador.nome}</span>}
+            </a>
+          )}
         </div>
 
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{after}</div>
