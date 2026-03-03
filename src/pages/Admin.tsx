@@ -822,6 +822,11 @@ const AdminPanel = () => {
 
                       <Textarea placeholder="Texto da publicidade (ex: Promoção especial! Clique e confira)" value={p.texto || ''} onChange={e => updatePublicidade(p.id, { texto: e.target.value })} rows={3} />
                       <Input placeholder="Link (URL destino ao clicar)" value={p.link || ''} onChange={e => updatePublicidade(p.id, { link: e.target.value })} />
+                      <div>
+                        <Label className="text-xs">Código HTML/JS (opcional)</Label>
+                        <Textarea placeholder="Cole aqui o código do anúncio (ex: AdSense)" value={p.codigo || ''} onChange={e => updatePublicidade(p.id, { codigo: e.target.value })} rows={4} />
+                        <p className="text-[10px] text-muted-foreground">Opcional: insira HTML/JS do anúncio. Use com cautela.</p>
+                      </div>
 
                       <div>
                         <Label className="text-xs">Imagem</Label>

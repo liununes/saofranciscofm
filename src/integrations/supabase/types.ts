@@ -302,6 +302,7 @@ export type Database = {
           data_fim: string | null
           data_inicio: string | null
           id: string
+          codigo: string | null
           imagem_url: string | null
           link: string | null
           nome: string
@@ -313,6 +314,7 @@ export type Database = {
           data_fim?: string | null
           data_inicio?: string | null
           id?: string
+          codigo?: string | null
           imagem_url?: string | null
           link?: string | null
           nome?: string
@@ -324,6 +326,7 @@ export type Database = {
           data_fim?: string | null
           data_inicio?: string | null
           id?: string
+          codigo?: string | null
           imagem_url?: string | null
           link?: string | null
           nome?: string
