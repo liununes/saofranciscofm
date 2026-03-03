@@ -99,6 +99,7 @@ export interface RadioConfig {
   visibilidade_proximo_programa: boolean;
   visibilidade_participacao: boolean;
   visibilidade_premium: boolean;
+  noticias_posicao: 'centro' | 'esquerda' | 'direita';
   telefone_posicao: 'player' | 'topo' | 'centro' | 'header' | 'meio-esquerda' | 'meio-direita' | 'rodape';
   ads_topo_codigo: string;
   ads_topo_ativo: boolean;
@@ -152,6 +153,7 @@ const defaultConfig: RadioConfig = {
   visibilidade_proximo_programa: true,
   visibilidade_participacao: true,
   visibilidade_premium: true,
+  noticias_posicao: 'centro',
   telefone_posicao: 'player',
   ads_topo_codigo: '',
   ads_topo_ativo: false,
@@ -248,6 +250,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       visibilidade_proximo_programa: rc?.visibilidade_proximo_programa ?? true,
       visibilidade_participacao: rc?.visibilidade_participacao ?? true,
       visibilidade_premium: rc?.visibilidade_premium ?? true,
+      noticias_posicao: ((rc as any)?.noticias_posicao as any) || 'centro',
       telefone_posicao: (rc?.telefone_posicao as any) || 'player',
       ads_topo_codigo: rc?.ads_topo_codigo || '',
       ads_topo_ativo: rc?.ads_topo_ativo ?? false,
