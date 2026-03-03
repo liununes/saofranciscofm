@@ -254,6 +254,8 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          data_fim: string | null
+          data_inicio: string | null
           id: string
           imagem_url: string | null
           link: string | null
@@ -263,6 +265,8 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
           id?: string
           imagem_url?: string | null
           link?: string | null
@@ -272,6 +276,8 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
           id?: string
           imagem_url?: string | null
           link?: string | null
