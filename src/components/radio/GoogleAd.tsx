@@ -3,9 +3,10 @@ import { useEffect, useRef } from 'react';
 interface GoogleAdProps {
   codigo: string;
   className?: string;
+  centered?: boolean;
 }
 
-const GoogleAd = ({ codigo, className = '' }: GoogleAdProps) => {
+const GoogleAd = ({ codigo, className = '', centered = true }: GoogleAdProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,8 +25,10 @@ const GoogleAd = ({ codigo, className = '' }: GoogleAdProps) => {
 
   if (!codigo) return null;
 
+  const classes = `${centered ? 'flex justify-center' : ''} ${className}`.trim();
+
   return (
-    <div ref={containerRef} className={className} />
+    <div ref={containerRef} className={classes} />
   );
 };
 

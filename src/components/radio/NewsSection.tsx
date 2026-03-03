@@ -4,6 +4,7 @@ import { Newspaper, ArrowRight, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import ShareButtons from '@/components/radio/ShareButtons';
+import InlineAd from '@/components/radio/InlineAd';
 
 interface NoticiaModal {
   id: string;
@@ -73,15 +74,12 @@ const NewsSection = () => {
     return (
       <div className="space-y-4">
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{before}</div>
-        <div className="my-6 p-4 bg-muted rounded-xl border border-border text-center">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Publicidade</p>
-          <a href={pat.link || '#'} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
-            {pat.imagem_url ? (
-              <img src={pat.imagem_url} alt={pat.nome} className="max-h-24 mx-auto object-contain" />
-            ) : null}
-            {pat.texto && <p className="text-sm font-medium text-foreground mt-2">{pat.texto}</p>}
-            {!pat.imagem_url && !pat.texto && <span className="text-sm font-medium text-foreground">{pat.nome}</span>}
-          </a>
+        <div className="my-6 p-6 bg-muted/60 rounded-xl border border-border text-center w-full">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Publicidade</p>
+          {/* InlineAd will center snippets and render internal ads */}
+          {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+          {/* @ts-ignore */}
+          <InlineAd patrocinador={pat} />
         </div>
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{after}</div>
       </div>
