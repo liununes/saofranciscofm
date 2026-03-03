@@ -23,9 +23,13 @@ const NoticiaDetalhe = () => {
       if (!id) return;
       const { data } = await supabase.from('noticias').select('*').eq('id', id).single();
       setNoticia(data);
-      
+
+      // Debug logs to help identify why an assigned ad might not appear
+      console.debug('Noticia fetch:', { id, publicidade_id: data?.publicidade_id, publicidade_ativa: data?.publicidade_ativa });
+
       if (data?.publicidade_id && data?.publicidade_ativa) {
         const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).single();
+        console.debug('Publicidade fetch for noticia:', { pub });
         if (pub?.ativo) {
           const hoje = new Date().toISOString().slice(0, 10);
           const dentroDoPerido = (!pub.data_inicio || pub.data_inicio <= hoje) && (!pub.data_fim || pub.data_fim >= hoje);
@@ -49,8 +53,17 @@ const NoticiaDetalhe = () => {
     
     if (!patrocinador || paragraphs.length < 3) {
       return (
-        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
-          {text}
+        <div className="space-y-3">
+          {/* If the article expects an ad but none was loaded, show a small diagnostic placeholder */}
+          {noticia?.publicidade_ativa && noticia?.publicidade_id && !patrocinador ? (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded text-sm">
+              Publicidade ativa nesta matéria, mas nenhum anúncio disponível no momento. Verifique em Administração → Publicidade Notícias se a publicidade selecionada está ativa e dentro do período configurado.
+            </div>
+          ) : null}
+
+          <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+            {text}
+          </div>
         </div>
       );
     }
