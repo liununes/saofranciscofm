@@ -24,10 +24,9 @@ const NoticiaDetalhe = () => {
       const { data } = await supabase.from('noticias').select('*').eq('id', id).single();
       setNoticia(data);
       
-      // Load sponsor if linked and active
-      if (data?.patrocinador_id && data?.patrocinador_ativo) {
-        const { data: pat } = await supabase.from('patrocinadores').select('*').eq('id', data.patrocinador_id).single();
-        setPatrocinador(pat);
+      if (data?.publicidade_id && data?.publicidade_ativa) {
+        const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).single();
+        setPatrocinador(pub);
       }
       setLoading(false);
     };
@@ -66,10 +65,10 @@ const NoticiaDetalhe = () => {
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Publicidade</p>
           <a href={patrocinador.link || '#'} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
             {patrocinador.imagem_url ? (
-              <img src={patrocinador.imagem_url} alt={patrocinador.nome} className="max-h-20 mx-auto object-contain" />
-            ) : (
-              <span className="text-sm font-medium text-foreground">{patrocinador.nome}</span>
-            )}
+              <img src={patrocinador.imagem_url} alt={patrocinador.nome} className="max-h-24 mx-auto object-contain" />
+            ) : null}
+            {patrocinador.texto && <p className="text-sm font-medium text-foreground mt-2">{patrocinador.texto}</p>}
+            {!patrocinador.imagem_url && !patrocinador.texto && <span className="text-sm font-medium text-foreground">{patrocinador.nome}</span>}
           </a>
         </div>
 

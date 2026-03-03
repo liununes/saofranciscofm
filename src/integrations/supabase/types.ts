@@ -69,6 +69,8 @@ export type Database = {
           link_completo: string | null
           patrocinador_ativo: boolean
           patrocinador_id: string | null
+          publicidade_ativa: boolean
+          publicidade_id: string | null
           resumo: string | null
           titulo: string
           updated_at: string
@@ -82,6 +84,8 @@ export type Database = {
           link_completo?: string | null
           patrocinador_ativo?: boolean
           patrocinador_id?: string | null
+          publicidade_ativa?: boolean
+          publicidade_id?: string | null
           resumo?: string | null
           titulo: string
           updated_at?: string
@@ -95,6 +99,8 @@ export type Database = {
           link_completo?: string | null
           patrocinador_ativo?: boolean
           patrocinador_id?: string | null
+          publicidade_ativa?: boolean
+          publicidade_id?: string | null
           resumo?: string | null
           titulo?: string
           updated_at?: string
@@ -105,6 +111,13 @@ export type Database = {
             columns: ["patrocinador_id"]
             isOneToOne: false
             referencedRelation: "patrocinadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "noticias_publicidade_id_fkey"
+            columns: ["publicidade_id"]
+            isOneToOne: false
+            referencedRelation: "publicidade_noticias"
             referencedColumns: ["id"]
           },
         ]
@@ -236,6 +249,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      publicidade_noticias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          imagem_url: string | null
+          link: string | null
+          nome: string
+          texto: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          link?: string | null
+          nome?: string
+          texto?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          link?: string | null
+          nome?: string
+          texto?: string | null
+        }
+        Relationships: []
       }
       radio_config: {
         Row: {
