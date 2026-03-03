@@ -43,6 +43,19 @@ export interface SocialLink {
   ativo: boolean;
 }
 
+export interface Promocao {
+  id: string;
+  nome: string;
+  texto: string;
+  descricao?: string;
+  imagem_url?: string;
+  link?: string;
+  ativo: boolean;
+  data_inicio?: string;
+  data_validade?: string;
+  prorrogada_ate?: string;
+}
+
 export interface Locutor {
   id: string;
   nome: string;
@@ -112,6 +125,7 @@ export interface RadioConfig {
   patrocinadores: Patrocinador[];
   slide_imagens: SlideImagem[];
   social_links: SocialLink[];
+  promocoes: Promocao[];
 }
 
 const defaultConfig: RadioConfig = {
@@ -166,6 +180,7 @@ const defaultConfig: RadioConfig = {
   patrocinadores: [],
   slide_imagens: [],
   social_links: [],
+  promocoes: [],
 };
 
 interface RadioContextType {
@@ -185,7 +200,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const [programas, setProgramas] = useState<Programa[]>([]);
 
   const fetchData = async () => {
-    const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes] = await Promise.all([
+    const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes] = await Promise.all([
       supabase.from('radio_config').select('*').limit(1).single(),
       supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
       supabase.from('noticias').select('*').order('created_at', { ascending: false }),
@@ -193,6 +208,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       supabase.from('slide_imagens').select('*').order('ordem', { ascending: true }),
       supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
       supabase.from('social_links').select('*').order('ordem', { ascending: true }),
+      supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
     ]);
 
     const rc = rcRes.data;
@@ -202,6 +218,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
     const slides = slidesRes.data;
     const progs = progsRes.data;
     const socialLinks = socialRes.data;
+    const promocoes = promoRes.data;
 
     const mappedProgramas: Programa[] = (progs || []).map((p: any) => ({
       id: p.id,
@@ -270,6 +287,18 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       })),
       slide_imagens: (slides || []).map(s => ({ id: s.id, imagem: s.imagem_url, ordem: s.ordem })),
       social_links: (socialLinks || []).map(s => ({ id: s.id, nome: s.nome, url: s.url, icone: s.icone, ordem: s.ordem, ativo: s.ativo })),
+      promocoes: (promocoes || []).map((p: any) => ({
+        id: p.id,
+        nome: p.nome || '',
+        texto: p.texto || '',
+        descricao: p.descricao || '',
+        imagem_url: p.imagem_url || '',
+        link: p.link || '',
+        ativo: p.ativo ?? true,
+        data_inicio: p.data_inicio || '',
+        data_validade: p.data_validade || '',
+        prorrogada_ate: p.prorrogada_ate || '',
+      })),
     }));
   };
 

@@ -11,6 +11,7 @@ import GoogleAd from '@/components/radio/GoogleAd';
 import PhoneContact from '@/components/radio/PhoneContact';
 import DynamicModules from '@/components/radio/DynamicModules';
 import { useMemo } from 'react';
+import PromocoesSection from '@/components/radio/PromocoesSection';
 
 const SponsorBlock = ({ sponsors, align = 'center', className = '' }: { sponsors: any[]; align?: string; className?: string }) => {
   if (sponsors.length === 0) return null;
@@ -94,6 +95,9 @@ const Index = () => {
         {config.ads_meio_ativo && config.ads_meio_codigo && (
           <GoogleAd codigo={config.ads_meio_codigo} className="py-4" />
         )}
+
+        {/* Promoções ativas */}
+        <PromocoesSection />
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-8">

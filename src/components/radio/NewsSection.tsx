@@ -41,7 +41,7 @@ const NewsSection = () => {
     const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
     let patrocinador = null;
     if (data?.publicidade_id && data?.publicidade_ativa) {
-      const { data: pub } = await (supabase.from as any)('publicidade_noticias').select('*').eq('id', data.publicidade_id).single();
+      const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).single();
       if (pub?.ativo) {
         const hoje = new Date().toISOString().slice(0, 10);
         const dentroDoPerido = (!pub.data_inicio || pub.data_inicio <= hoje) && (!pub.data_fim || pub.data_fim >= hoje);

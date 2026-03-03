@@ -3,7 +3,7 @@ import { useRadio } from '@/contexts/RadioContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Phone, ToggleLeft, Megaphone, LayoutDashboard, Menu } from 'lucide-react';
+import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Phone, ToggleLeft, Megaphone, LayoutDashboard, Menu, Ticket, CalendarDays } from 'lucide-react';
 import AddNoticiaByUrl from '@/components/admin/AddNoticiaByUrl';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -84,6 +84,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'musicas', label: 'Músicas', icon: Music, permission: 'editar_musicas' },
   { id: 'noticias', label: 'Notícias', icon: Newspaper, permission: 'editar_noticias' },
   { id: 'publicidade_noticias', label: 'Publicidade Notícias', icon: Megaphone, permission: 'editar_noticias' },
+  { id: 'promocoes', label: 'Promoções', icon: Ticket, permission: 'editar_noticias' },
   { id: 'patrocinadores', label: 'Patrocinadores', icon: Users, permission: 'editar_patrocinadores' },
   { id: 'slides', label: 'Slides', icon: Image, permission: 'editar_slides' },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, permission: 'editar_whatsapp' },
@@ -113,6 +114,8 @@ const AdminPanel = () => {
   const [paginas, setPaginas] = useState<any[]>([]);
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [publicidades, setPublicidades] = useState<any[]>([]);
+  const [promocoes, setPromocoes] = useState<any[]>([]);
+  const [prorrogacoes, setProrrogacoes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const [users, setUsers] = useState<any[]>([]);
@@ -129,7 +132,7 @@ const AdminPanel = () => {
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
-    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, pubRes] = await Promise.all([
+    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, pubRes, promoRes] = await Promise.all([
       supabase.from('radio_config').select('*').limit(1).single(),
       supabase.from('locutores').select('*').order('created_at'),
       supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
@@ -139,7 +142,8 @@ const AdminPanel = () => {
       supabase.from('slide_imagens').select('*').order('ordem'),
       supabase.from('paginas').select('*').order('slug'),
       supabase.from('social_links').select('*').order('ordem'),
-      supabase.from('publicidade_noticias' as any).select('*').order('created_at', { ascending: false }),
+      supabase.from('publicidade_noticias').select('*').order('created_at', { ascending: false }),
+      supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
     ]);
     setRc(rcRes.data || {});
     setLocutores(locRes.data || []);
@@ -151,6 +155,7 @@ const AdminPanel = () => {
     setPaginas(pagRes.data || []);
     setSocialLinks(socialRes.data || []);
     setPublicidades(pubRes.data || []);
+    setPromocoes(promoRes.data || []);
 
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
       const { data: profiles } = await supabase.from('profiles').select('*');
@@ -316,6 +321,7 @@ const AdminPanel = () => {
       case 'musicas': return renderMusicas();
       case 'noticias': return renderNoticias();
       case 'publicidade_noticias': return renderPublicidadeNoticias();
+      case 'promocoes': return renderPromocoes();
       case 'patrocinadores': return renderPatrocinadores();
       case 'slides': return renderSlides();
       case 'whatsapp': return renderWhatsApp();
@@ -659,19 +665,119 @@ const AdminPanel = () => {
 
   // Publicidade CRUD helpers
   const addPublicidade = async () => {
-    const { data, error } = await (supabase.from as any)('publicidade_noticias').insert({ nome: 'Nova Publicidade', texto: '', ativo: true }).select().single();
-    if (!error && data) { setPublicidades(prev => [data, ...prev]); toast.success('Publicidade criada!'); }
-    else toast.error('Erro ao criar publicidade.');
+    const { data, error } = await supabase
+      .from('publicidade_noticias')
+      .insert({ nome: 'Nova Publicidade', texto: '', ativo: true })
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      toast.error(`Erro ao criar publicidade: ${error.message}`);
+      return;
+    }
+
+    if (data) setPublicidades(prev => [data, ...prev]);
+    toast.success('Publicidade criada!');
   };
+
   const deletePublicidade = async (id: string) => {
-    await (supabase.from as any)('publicidade_noticias').delete().eq('id', id);
+    const { error } = await supabase.from('publicidade_noticias').delete().eq('id', id);
+    if (error) {
+      toast.error(`Erro ao remover publicidade: ${error.message}`);
+      return;
+    }
     setPublicidades(prev => prev.filter(p => p.id !== id));
     toast.success('Publicidade removida.');
   };
-  const persistPublicidade = useCallback(async (id: string, updates: any) => { await (supabase.from as any)('publicidade_noticias').update(updates).eq('id', id); }, []);
+
+  const persistPublicidade = useCallback(async (id: string, updates: any) => {
+    const { error } = await supabase.from('publicidade_noticias').update(updates).eq('id', id);
+    if (error) toast.error(`Erro ao atualizar publicidade: ${error.message}`);
+  }, []);
+
   const debouncedSavePublicidade = useDebouncedSave(persistPublicidade);
-  const updatePublicidade = (id: string, updates: any) => { setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePublicidade(id, updates); };
-  const updatePublicidadeImmediate = async (id: string, updates: any) => { setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await (supabase.from as any)('publicidade_noticias').update(updates).eq('id', id); };
+
+  const updatePublicidade = (id: string, updates: any) => {
+    setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    debouncedSavePublicidade(id, updates);
+  };
+
+  const updatePublicidadeImmediate = async (id: string, updates: any) => {
+    setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    const { error } = await supabase.from('publicidade_noticias').update(updates).eq('id', id);
+    if (error) toast.error(`Erro ao salvar publicidade: ${error.message}`);
+  };
+
+  // Promoções CRUD helpers
+  const addPromocao = async () => {
+    const { data, error } = await supabase
+      .from('promocoes')
+      .insert({ nome: 'Nova Promoção', texto: '', ativo: true })
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      toast.error(`Erro ao criar promoção: ${error.message}`);
+      return;
+    }
+
+    if (data) setPromocoes(prev => [data, ...prev]);
+    toast.success('Promoção criada!');
+  };
+
+  const deletePromocao = async (id: string) => {
+    const { error } = await supabase.from('promocoes').delete().eq('id', id);
+    if (error) {
+      toast.error(`Erro ao remover promoção: ${error.message}`);
+      return;
+    }
+    setPromocoes(prev => prev.filter(p => p.id !== id));
+    toast.success('Promoção removida.');
+  };
+
+  const persistPromocao = useCallback(async (id: string, updates: any) => {
+    const { error } = await supabase.from('promocoes').update(updates).eq('id', id);
+    if (error) toast.error(`Erro ao atualizar promoção: ${error.message}`);
+  }, []);
+
+  const debouncedSavePromocao = useDebouncedSave(persistPromocao);
+
+  const updatePromocao = (id: string, updates: any) => {
+    setPromocoes(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    debouncedSavePromocao(id, updates);
+  };
+
+  const updatePromocaoImmediate = async (id: string, updates: any) => {
+    setPromocoes(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    const { error } = await supabase.from('promocoes').update(updates).eq('id', id);
+    if (error) toast.error(`Erro ao salvar promoção: ${error.message}`);
+  };
+
+  const prorrogarPromocao = async (promocao: any) => {
+    const novaData = prorrogacoes[promocao.id];
+    if (!novaData) {
+      toast.error('Informe a nova data para prorrogar.');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('promocoes')
+      .update({
+        ativo: true,
+        prorrogada_ate: novaData,
+        data_validade: novaData,
+      })
+      .eq('id', promocao.id);
+
+    if (error) {
+      toast.error(`Erro ao prorrogar promoção: ${error.message}`);
+      return;
+    }
+
+    setPromocoes(prev => prev.map(p => p.id === promocao.id ? { ...p, ativo: true, prorrogada_ate: novaData, data_validade: novaData } : p));
+    setProrrogacoes(prev => ({ ...prev, [promocao.id]: '' }));
+    toast.success(`Promoção prorrogada até ${new Date(novaData).toLocaleDateString('pt-BR')}.`);
+  };
 
   const renderPublicidadeNoticias = () => {
     const hoje = new Date().toISOString().slice(0, 10);
@@ -722,7 +828,6 @@ const AdminPanel = () => {
                         <ImageHint text="728×90 px (banner) ou 300×250 px (retângulo)" />
                       </div>
 
-                      {/* Período de veiculação */}
                       <div className="p-3 bg-muted rounded-lg space-y-2">
                         <span className="text-xs font-semibold text-muted-foreground">📅 Período de Veiculação (opcional)</span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -750,6 +855,113 @@ const AdminPanel = () => {
           })}
           {publicidades.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">Nenhuma publicidade cadastrada. Clique em "Adicionar" para criar.</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderPromocoes = () => {
+    const hoje = new Date().toISOString().slice(0, 10);
+
+    const getStatus = (p: any) => {
+      const fim = p.prorrogada_ate || p.data_validade;
+      if (!p.ativo) return '❌ Inativa';
+      if (p.data_inicio && p.data_inicio > hoje) return '⏳ Agendada';
+      if (fim && fim < hoje) return '⛔ Expirada';
+      if (p.prorrogada_ate) return `🔁 Prorrogada até ${new Date(p.prorrogada_ate).toLocaleDateString('pt-BR')}`;
+      return '✅ Ativa';
+    };
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-bold text-xl text-foreground flex items-center gap-2"><Ticket className="w-5 h-5 text-primary" /> Promoções</h2>
+          <Button onClick={addPromocao} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+        </div>
+        <p className="text-sm text-muted-foreground">Gestão completa de promoções com imagem, texto, validade automática e prorrogação.</p>
+
+        <div className="space-y-4">
+          {promocoes.map((p) => {
+            const expirada = (p.prorrogada_ate || p.data_validade) && (p.prorrogada_ate || p.data_validade) < hoje;
+            const statusLabel = getStatus(p);
+
+            return (
+              <Card key={p.id} className={expirada ? 'opacity-60' : ''}>
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <Input placeholder="Nome da promoção" value={p.nome || ''} onChange={(e) => updatePromocao(p.id, { nome: e.target.value })} className="flex-1 min-w-[220px]" />
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-medium">{statusLabel}</span>
+                          <label className="flex items-center gap-2 whitespace-nowrap text-xs">
+                            <Switch checked={p.ativo ?? true} onCheckedChange={(checked) => updatePromocaoImmediate(p.id, { ativo: checked })} />
+                            {p.ativo ? 'Ativa' : 'Inativa'}
+                          </label>
+                        </div>
+                      </div>
+
+                      <Textarea placeholder="Texto curto da promoção" value={p.texto || ''} onChange={(e) => updatePromocao(p.id, { texto: e.target.value })} rows={2} />
+                      <Textarea placeholder="Descrição detalhada (opcional)" value={p.descricao || ''} onChange={(e) => updatePromocao(p.id, { descricao: e.target.value })} rows={3} />
+                      <Input placeholder="Link da promoção (opcional)" value={p.link || ''} onChange={(e) => updatePromocao(p.id, { link: e.target.value })} />
+
+                      <div>
+                        <Label className="text-xs">Imagem</Label>
+                        {p.imagem_url && (
+                          <div className="relative inline-block mb-2">
+                            <img src={p.imagem_url} alt={p.nome || 'Promoção'} className="h-20 object-contain rounded border" />
+                            <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => updatePromocaoImmediate(p.id, { imagem_url: null })}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                        <ImageUpload value={p.imagem_url} onChange={(url) => updatePromocaoImmediate(p.id, { imagem_url: url })} folder="promocoes" />
+                        <ImageHint text="1080×1080 px (card) ou 1200×630 px (destaque)" />
+                      </div>
+
+                      <div className="p-3 bg-muted rounded-lg space-y-3">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                          <CalendarDays className="w-4 h-4" /> Validade e Prorrogação
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Data de início</Label>
+                            <Input type="date" value={p.data_inicio || ''} onChange={(e) => updatePromocaoImmediate(p.id, { data_inicio: e.target.value || null })} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Validade</Label>
+                            <Input type="date" value={p.data_validade || ''} onChange={(e) => updatePromocaoImmediate(p.id, { data_validade: e.target.value || null, prorrogada_ate: null })} />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+                          <div>
+                            <Label className="text-xs">Prorrogar até</Label>
+                            <Input
+                              type="date"
+                              value={prorrogacoes[p.id] || ''}
+                              onChange={(e) => setProrrogacoes(prev => ({ ...prev, [p.id]: e.target.value }))}
+                            />
+                          </div>
+                          <Button type="button" variant="outline" onClick={() => prorrogarPromocao(p)}>
+                            Prorrogar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button variant="ghost" size="icon" onClick={() => deletePromocao(p.id)} className="text-destructive flex-shrink-0">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {promocoes.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma promoção cadastrada. Clique em "Adicionar" para criar.</p>
           )}
         </div>
       </div>
