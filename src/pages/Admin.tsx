@@ -83,6 +83,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'programas', label: 'Programas', icon: CalendarClock, permission: 'editar_programacao' },
   { id: 'musicas', label: 'Músicas', icon: Music, permission: 'editar_musicas' },
   { id: 'noticias', label: 'Notícias', icon: Newspaper, permission: 'editar_noticias' },
+  { id: 'publicidade_noticias', label: 'Publicidade Notícias', icon: Megaphone, permission: 'editar_noticias' },
   { id: 'patrocinadores', label: 'Patrocinadores', icon: Users, permission: 'editar_patrocinadores' },
   { id: 'slides', label: 'Slides', icon: Image, permission: 'editar_slides' },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, permission: 'editar_whatsapp' },
@@ -111,6 +112,7 @@ const AdminPanel = () => {
   const [slides, setSlides] = useState<any[]>([]);
   const [paginas, setPaginas] = useState<any[]>([]);
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
+  const [publicidades, setPublicidades] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   const [users, setUsers] = useState<any[]>([]);
@@ -127,7 +129,7 @@ const AdminPanel = () => {
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
-    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes] = await Promise.all([
+    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, pubRes] = await Promise.all([
       supabase.from('radio_config').select('*').limit(1).single(),
       supabase.from('locutores').select('*').order('created_at'),
       supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
@@ -137,6 +139,7 @@ const AdminPanel = () => {
       supabase.from('slide_imagens').select('*').order('ordem'),
       supabase.from('paginas').select('*').order('slug'),
       supabase.from('social_links').select('*').order('ordem'),
+      supabase.from('publicidade_noticias').select('*').order('created_at', { ascending: false }),
     ]);
     setRc(rcRes.data || {});
     setLocutores(locRes.data || []);
@@ -147,6 +150,7 @@ const AdminPanel = () => {
     setSlides(slidRes.data || []);
     setPaginas(pagRes.data || []);
     setSocialLinks(socialRes.data || []);
+    setPublicidades(pubRes.data || []);
 
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
       const { data: profiles } = await supabase.from('profiles').select('*');
@@ -311,6 +315,7 @@ const AdminPanel = () => {
       case 'programas': return renderProgramas();
       case 'musicas': return renderMusicas();
       case 'noticias': return renderNoticias();
+      case 'publicidade_noticias': return renderPublicidadeNoticias();
       case 'patrocinadores': return renderPatrocinadores();
       case 'slides': return renderSlides();
       case 'whatsapp': return renderWhatsApp();
@@ -603,21 +608,24 @@ const AdminPanel = () => {
                   <Textarea placeholder="Conteúdo completo da matéria (separe parágrafos com linhas em branco)" value={n.conteudo || ''} onChange={e => updateNoticia(n.id, { conteudo: e.target.value })} rows={8} />
                   <Input placeholder="Link externo (opcional - ex: Acesse a matéria completa)" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
                   
-                  {/* Patrocinador na matéria */}
+                  {/* Publicidade na matéria */}
                   <div className="p-3 bg-muted rounded-lg space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-muted-foreground">📢 Publicidade no texto</span>
-                      <Switch checked={n.patrocinador_ativo || false} onCheckedChange={checked => updateNoticiaImmediate(n.id, { patrocinador_ativo: checked })} />
+                      <Switch checked={n.publicidade_ativa || false} onCheckedChange={checked => updateNoticiaImmediate(n.id, { publicidade_ativa: checked })} />
                     </div>
-                    {n.patrocinador_ativo && (
-                      <Select value={n.patrocinador_id || ''} onValueChange={v => updateNoticiaImmediate(n.id, { patrocinador_id: v || null })}>
-                        <SelectTrigger><SelectValue placeholder="Selecionar patrocinador..." /></SelectTrigger>
-                        <SelectContent>
-                          {patrocinadores.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    {n.publicidade_ativa && (
+                      <>
+                        <Select value={n.publicidade_id || ''} onValueChange={v => updateNoticiaImmediate(n.id, { publicidade_id: v || null })}>
+                          <SelectTrigger><SelectValue placeholder="Selecionar publicidade..." /></SelectTrigger>
+                          <SelectContent>
+                            {publicidades.filter(p => p.ativo).map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-muted-foreground">Cadastre publicidades na seção "Publicidade Notícias"</p>
+                      </>
                     )}
                   </div>
 
@@ -639,6 +647,61 @@ const AdminPanel = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+    </div>
+  );
+
+  // Publicidade CRUD helpers
+  const addPublicidade = async () => {
+    const { data, error } = await supabase.from('publicidade_noticias').insert({ nome: 'Nova Publicidade', texto: '', ativo: true }).select().single();
+    if (!error && data) setPublicidades(prev => [data, ...prev]);
+  };
+  const deletePublicidade = async (id: string) => {
+    await supabase.from('publicidade_noticias').delete().eq('id', id);
+    setPublicidades(prev => prev.filter(p => p.id !== id));
+  };
+  const persistPublicidade = useCallback(async (id: string, updates: any) => { await supabase.from('publicidade_noticias').update(updates).eq('id', id); }, []);
+  const debouncedSavePublicidade = useDebouncedSave(persistPublicidade);
+  const updatePublicidade = (id: string, updates: any) => { setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePublicidade(id, updates); };
+  const updatePublicidadeImmediate = async (id: string, updates: any) => { setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('publicidade_noticias').update(updates).eq('id', id); };
+
+  const renderPublicidadeNoticias = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display font-bold text-xl text-foreground">Publicidade em Notícias</h2>
+        <Button onClick={addPublicidade} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Cadastre publicidades aqui. Depois, vá na seção Notícias e ative a publicidade escolhendo qual exibir em cada matéria.
+      </p>
+      <div className="space-y-4">
+        {publicidades.map(p => (
+          <Card key={p.id}>
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Input placeholder="Nome da publicidade" value={p.nome} onChange={e => updatePublicidade(p.id, { nome: e.target.value })} className="flex-1" />
+                    <label className="flex items-center gap-2 ml-3 whitespace-nowrap text-xs">
+                      <Switch checked={p.ativo ?? true} onCheckedChange={checked => updatePublicidadeImmediate(p.id, { ativo: checked })} />
+                      Ativo
+                    </label>
+                  </div>
+                  <Textarea placeholder="Texto da publicidade (ex: Promoção especial! Clique e confira)" value={p.texto || ''} onChange={e => updatePublicidade(p.id, { texto: e.target.value })} rows={3} />
+                  <Input placeholder="Link (URL destino ao clicar)" value={p.link || ''} onChange={e => updatePublicidade(p.id, { link: e.target.value })} />
+                  <div>
+                    <ImageUpload value={p.imagem_url} onChange={url => updatePublicidadeImmediate(p.id, { imagem_url: url })} folder="publicidade" />
+                    <ImageHint text="728×90 px (banner) ou 300×250 px (retângulo)" />
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => deletePublicidade(p.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {publicidades.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma publicidade cadastrada. Clique em "Adicionar" para criar.</p>
+        )}
       </div>
     </div>
   );

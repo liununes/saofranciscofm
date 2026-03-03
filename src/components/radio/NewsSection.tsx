@@ -40,16 +40,14 @@ const NewsSection = () => {
   const openNoticia = async (n: any) => {
     const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
     let patrocinador = null;
-    if (data?.patrocinador_id && data?.patrocinador_ativo) {
-      const { data: pat } = await supabase.from('patrocinadores').select('*').eq('id', data.patrocinador_id).single();
-      patrocinador = pat;
+    if (data?.publicidade_id && data?.publicidade_ativa) {
+      const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).single();
+      patrocinador = pub;
     }
     setSelected({
       ...n,
       conteudo: data?.conteudo || n.resumo,
       link_completo: data?.link_completo || n.link_completo,
-      patrocinador_id: data?.patrocinador_id,
-      patrocinador_ativo: data?.patrocinador_ativo,
       patrocinador,
     });
   };
@@ -75,10 +73,10 @@ const NewsSection = () => {
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Publicidade</p>
           <a href={pat.link || '#'} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
             {pat.imagem_url ? (
-              <img src={pat.imagem_url} alt={pat.nome} className="max-h-20 mx-auto object-contain" />
-            ) : (
-              <span className="text-sm font-medium text-foreground">{pat.nome}</span>
-            )}
+              <img src={pat.imagem_url} alt={pat.nome} className="max-h-24 mx-auto object-contain" />
+            ) : null}
+            {pat.texto && <p className="text-sm font-medium text-foreground mt-2">{pat.texto}</p>}
+            {!pat.imagem_url && !pat.texto && <span className="text-sm font-medium text-foreground">{pat.nome}</span>}
           </a>
         </div>
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{after}</div>
