@@ -46,11 +46,12 @@ const NoticiaDetalhe = () => {
 
   const shareUrl = window.location.href;
 
-  // Split content into paragraphs and inject sponsor in the middle
+  // Prepare and split content, then inject sponsor block in the middle
   const renderContent = () => {
     const text = noticia.conteudo || noticia.resumo || '';
-    const paragraphs = text.split('\n\n').filter((p: string) => p.trim());
-    
+    // try split by blank line first, fallback to single-line split later
+    let paragraphs = text.split(/\n\s*\n/).filter((p: string) => p.trim());
+
     if (!patrocinador) {
       return (
         <div className="space-y-3">
@@ -68,10 +69,29 @@ const NoticiaDetalhe = () => {
       );
     }
 
-    // Insert sponsor ad in the middle
-    const midpoint = Math.floor(paragraphs.length / 2);
-    const before = paragraphs.slice(0, midpoint).join('\n\n');
-    const after = paragraphs.slice(midpoint).join('\n\n');
+    // If there are multiple paragraphs, insert between them.
+    // For single-paragraph articles, split the text in the middle (by nearest space) to ensure the ad divides the content.
+    let before = '';
+    let after = '';
+
+    if (paragraphs.length >= 2) {
+      const midpoint = Math.floor(paragraphs.length / 2);
+      before = paragraphs.slice(0, midpoint).join('\n\n');
+      after = paragraphs.slice(midpoint).join('\n\n');
+    } else {
+      const full = paragraphs[0] || text || '';
+      const mid = Math.floor(full.length / 2);
+      // find nearest space around midpoint
+      const leftSpace = full.lastIndexOf(' ', mid);
+      const rightSpace = full.indexOf(' ', mid + 1);
+      let splitAt = -1;
+      if (leftSpace > 50) splitAt = leftSpace; // prefer a reasonable left break
+      else if (rightSpace !== -1) splitAt = rightSpace;
+      else splitAt = mid;
+
+      before = full.slice(0, splitAt).trim();
+      after = full.slice(splitAt).trim();
+    }
 
     return (
       <div className="space-y-4">
