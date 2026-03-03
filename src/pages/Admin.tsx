@@ -142,7 +142,7 @@ const AdminPanel = () => {
       supabase.from('slide_imagens').select('*').order('ordem'),
       supabase.from('paginas').select('*').order('slug'),
       supabase.from('social_links').select('*').order('ordem'),
-      (supabase.from('publicidade_noticias') as any).select('*').order('created_at', { ascending: false }),
+      supabase.functions.invoke('news-ads-admin', { body: { action: 'list' } }),
       supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
     ]);
     setRc(rcRes.data || {});
@@ -154,7 +154,7 @@ const AdminPanel = () => {
     setSlides(slidRes.data || []);
     setPaginas(pagRes.data || []);
     setSocialLinks(socialRes.data || []);
-    setPublicidades(pubRes.data || []);
+    setPublicidades(pubRes.error ? [] : (pubRes.data?.items || []));
     setPromocoes(promoRes.data || []);
 
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
@@ -663,39 +663,41 @@ const AdminPanel = () => {
     </div>
   );
 
-  // Publicidade CRUD helpers
+  // Publicidade CRUD helpers (via backend function para evitar bloqueio de navegador)
   const addPublicidade = async () => {
-    try {
-    const { data, error } = await (supabase.from('publicidade_noticias') as any)
-      .insert({ nome: 'Nova Publicidade', texto: '', ativo: true })
-      .select()
-      .maybeSingle();
+    const { data, error } = await supabase.functions.invoke('news-ads-admin', {
+      body: { action: 'create', payload: { nome: 'Nova Publicidade', texto: '', ativo: true } },
+    });
 
-    if (error) {
-      toast.error(`Erro ao criar publicidade: ${error.message}`);
+    if (error || data?.error) {
+      toast.error(`Erro ao criar publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
       return;
     }
 
-    if (data) setPublicidades(prev => [data, ...prev]);
+    if (data?.item) setPublicidades(prev => [data.item, ...prev]);
     toast.success('Publicidade criada!');
-    } catch (e: any) {
-      toast.error(`Erro ao criar publicidade: ${e.message}`);
-    }
   };
 
   const deletePublicidade = async (id: string) => {
-    const { error } = await (supabase.from('publicidade_noticias') as any).delete().eq('id', id);
-    if (error) {
-      toast.error(`Erro ao remover publicidade: ${error.message}`);
+    const { data, error } = await supabase.functions.invoke('news-ads-admin', {
+      body: { action: 'delete', id },
+    });
+
+    if (error || data?.error) {
+      toast.error(`Erro ao remover publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
       return;
     }
+
     setPublicidades(prev => prev.filter(p => p.id !== id));
     toast.success('Publicidade removida.');
   };
 
   const persistPublicidade = useCallback(async (id: string, updates: any) => {
-    const { error } = await (supabase.from('publicidade_noticias') as any).update(updates).eq('id', id);
-    if (error) toast.error(`Erro ao atualizar publicidade: ${error.message}`);
+    const { data, error } = await supabase.functions.invoke('news-ads-admin', {
+      body: { action: 'update', id, payload: updates },
+    });
+
+    if (error || data?.error) toast.error(`Erro ao atualizar publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
   }, []);
 
   const debouncedSavePublicidade = useDebouncedSave(persistPublicidade);
@@ -707,8 +709,12 @@ const AdminPanel = () => {
 
   const updatePublicidadeImmediate = async (id: string, updates: any) => {
     setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    const { error } = await (supabase.from('publicidade_noticias') as any).update(updates).eq('id', id);
-    if (error) toast.error(`Erro ao salvar publicidade: ${error.message}`);
+
+    const { data, error } = await supabase.functions.invoke('news-ads-admin', {
+      body: { action: 'update', id, payload: updates },
+    });
+
+    if (error || data?.error) toast.error(`Erro ao salvar publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
   };
 
   // Promoções CRUD helpers
@@ -911,14 +917,6 @@ const AdminPanel = () => {
 
                       <div>
                         <Label className="text-xs">Imagem</Label>
-                        {p.imagem_url && (
-                          <div className="relative inline-block mb-2">
-                            <img src={p.imagem_url} alt={p.nome || 'Promoção'} className="h-20 object-contain rounded border" />
-                            <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => updatePromocaoImmediate(p.id, { imagem_url: null })}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        )}
                         <ImageUpload value={p.imagem_url} onChange={(url) => updatePromocaoImmediate(p.id, { imagem_url: url })} folder="promocoes" />
                         <ImageHint text="1080×1080 px (card) ou 1200×630 px (destaque)" />
                       </div>
