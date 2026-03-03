@@ -12,6 +12,7 @@ import ImageUpload from '@/components/admin/ImageUpload';
 interface ExtractedData {
   titulo: string;
   resumo: string;
+  conteudo: string;
   imagem: string;
   fonte: string;
   data_publicacao: string;
@@ -28,12 +29,11 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedData | null>(null);
-  const [editData, setEditData] = useState({ titulo: '', resumo: '', imagem: '', fonte: '', link: '' });
+  const [editData, setEditData] = useState({ titulo: '', resumo: '', conteudo: '', imagem: '', fonte: '', link: '' });
 
   const handleExtract = async () => {
     if (!url.trim()) { toast.error('Cole uma URL válida.'); return; }
 
-    // Check duplicate
     if (existingUrls.includes(url.trim())) {
       toast.error('Essa URL já foi adicionada anteriormente.');
       return;
@@ -54,6 +54,7 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
       setEditData({
         titulo: data.titulo || '',
         resumo: data.resumo || '',
+        conteudo: data.conteudo || '',
         imagem: data.imagem || '',
         fonte: data.fonte || '',
         link: data.url || url.trim(),
@@ -61,9 +62,8 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
     } catch (e) {
       console.error('Extraction error:', e);
       toast.error('Falha ao extrair dados da URL. Tente novamente ou preencha manualmente.');
-      // Allow manual fill
-      setExtracted({ titulo: '', resumo: '', imagem: '', fonte: '', data_publicacao: '', url: url.trim() });
-      setEditData({ titulo: '', resumo: '', imagem: '', fonte: '', link: url.trim() });
+      setExtracted({ titulo: '', resumo: '', conteudo: '', imagem: '', fonte: '', data_publicacao: '', url: url.trim() });
+      setEditData({ titulo: '', resumo: '', conteudo: '', imagem: '', fonte: '', link: url.trim() });
     } finally {
       setLoading(false);
     }
@@ -72,9 +72,10 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
   const handleSave = async () => {
     if (!editData.titulo.trim()) { toast.error('O título é obrigatório.'); return; }
 
-    const conteudo = editData.fonte
-      ? `${editData.resumo}\n\n— Fonte: ${editData.fonte}\nLeia a matéria completa: ${editData.link}`
-      : editData.resumo;
+    let conteudo = editData.conteudo || editData.resumo;
+    if (editData.fonte) {
+      conteudo += `\n\n— Fonte: ${editData.fonte}`;
+    }
 
     const { error } = await supabase.from('noticias').insert({
       titulo: editData.titulo.trim(),
@@ -90,7 +91,7 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
     setOpen(false);
     setUrl('');
     setExtracted(null);
-    setEditData({ titulo: '', resumo: '', imagem: '', fonte: '', link: '' });
+    setEditData({ titulo: '', resumo: '', conteudo: '', imagem: '', fonte: '', link: '' });
     onNoticiaAdded();
   };
 
@@ -124,7 +125,7 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
 
           {extracted && (
             <div className="space-y-3 border-t pt-4">
-              <p className="text-xs text-muted-foreground">Revise e edite os campos antes de publicar:</p>
+              <p className="text-xs text-muted-foreground">Revise e edite os campos antes de publicar. O texto completo foi extraído — delete o que não quiser.</p>
 
               <div>
                 <Label>Título</Label>
@@ -134,6 +135,12 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
               <div>
                 <Label>Resumo (exibido no card)</Label>
                 <Textarea value={editData.resumo} onChange={e => setEditData(d => ({ ...d, resumo: e.target.value }))} rows={3} />
+              </div>
+
+              <div>
+                <Label>Conteúdo completo da matéria</Label>
+                <Textarea value={editData.conteudo} onChange={e => setEditData(d => ({ ...d, conteudo: e.target.value }))} rows={12} />
+                <p className="text-[10px] text-muted-foreground mt-1">Edite livremente: remova trechos indesejados, corrija formatação. Separe parágrafos com linhas em branco.</p>
               </div>
 
               <div>
@@ -151,7 +158,7 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
               </div>
 
               <div>
-                <Label>Link Original</Label>
+                <Label>Link Original (aparece como "Acesse a matéria completa")</Label>
                 <div className="flex items-center gap-2">
                   <Input value={editData.link} onChange={e => setEditData(d => ({ ...d, link: e.target.value }))} />
                   {editData.link && (

@@ -67,6 +67,8 @@ export type Database = {
           id: string
           imagem_url: string | null
           link_completo: string | null
+          patrocinador_ativo: boolean
+          patrocinador_id: string | null
           resumo: string | null
           titulo: string
           updated_at: string
@@ -78,6 +80,8 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           link_completo?: string | null
+          patrocinador_ativo?: boolean
+          patrocinador_id?: string | null
           resumo?: string | null
           titulo: string
           updated_at?: string
@@ -89,11 +93,21 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           link_completo?: string | null
+          patrocinador_ativo?: boolean
+          patrocinador_id?: string | null
           resumo?: string | null
           titulo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "noticias_patrocinador_id_fkey"
+            columns: ["patrocinador_id"]
+            isOneToOne: false
+            referencedRelation: "patrocinadores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       paginas: {
         Row: {
@@ -245,6 +259,7 @@ export type Database = {
           logo_tamanho: number
           musica_atual: string | null
           nome_radio: string
+          noticias_posicao: string
           patrocinador_alinhamento: string
           player_posicao: string
           streaming_url: string
@@ -289,6 +304,7 @@ export type Database = {
           logo_tamanho?: number
           musica_atual?: string | null
           nome_radio?: string
+          noticias_posicao?: string
           patrocinador_alinhamento?: string
           player_posicao?: string
           streaming_url?: string
@@ -333,6 +349,7 @@ export type Database = {
           logo_tamanho?: number
           musica_atual?: string | null
           nome_radio?: string
+          noticias_posicao?: string
           patrocinador_alinhamento?: string
           player_posicao?: string
           streaming_url?: string

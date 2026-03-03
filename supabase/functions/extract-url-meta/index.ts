@@ -16,7 +16,6 @@ serve(async (req) => {
       });
     }
 
-    // Fetch the page HTML with timeout
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
 
@@ -37,9 +36,7 @@ serve(async (req) => {
     }
     clearTimeout(timeout);
 
-    // Extract meta tags with regex (no DOM parser in Deno)
     const getMeta = (property: string): string => {
-      // Try og: tags
       const ogMatch = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["']`, "i"))
         || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${property}["']`, "i"));
       return ogMatch?.[1] || "";
@@ -52,11 +49,8 @@ serve(async (req) => {
     }
 
     let imagem = getMeta("og:image") || getMeta("twitter:image");
-    // Make relative URLs absolute
     if (imagem && !imagem.startsWith("http")) {
-      try {
-        imagem = new URL(imagem, url).href;
-      } catch { /* ignore */ }
+      try { imagem = new URL(imagem, url).href; } catch { /* ignore */ }
     }
 
     let resumo = getMeta("og:description") || getMeta("description") || getMeta("twitter:description");
@@ -68,17 +62,47 @@ serve(async (req) => {
 
     let dataPublicacao = getMeta("article:published_time") || getMeta("datePublished") || getMeta("date");
 
-    // If missing title/resumo, use AI to extract from first chunk of HTML
-    if (!titulo || !resumo) {
+    // Extract full article body text
+    let conteudo = "";
+    // Try to get article/main content
+    const articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i)
+      || html.match(/<main[^>]*>([\s\S]*?)<\/main>/i)
+      || html.match(/<div[^>]*class="[^"]*(?:article|content|post|entry|materia|noticia)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+
+    if (articleMatch) {
+      conteudo = articleMatch[1]
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+        .replace(/<header[\s\S]*?<\/header>/gi, "")
+        .replace(/<footer[\s\S]*?<\/footer>/gi, "")
+        .replace(/<aside[\s\S]*?<\/aside>/gi, "")
+        .replace(/<figure[\s\S]*?<\/figure>/gi, "")
+        .replace(/<img[^>]*>/gi, "")
+        .replace(/<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, "$2")
+        .replace(/<\/?(?:div|span|section|p|br|h[1-6]|ul|ol|li|blockquote|em|strong|b|i)[^>]*>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/[ \t]+/g, " ")
+        .trim();
+    }
+
+    // If missing title/resumo/conteudo, use AI
+    if (!titulo || !resumo || !conteudo) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (LOVABLE_API_KEY) {
-        // Get text content (strip tags, limit size)
         const textOnly = html.replace(/<script[\s\S]*?<\/script>/gi, "")
           .replace(/<style[\s\S]*?<\/style>/gi, "")
           .replace(/<[^>]+>/g, " ")
           .replace(/\s+/g, " ")
           .trim()
-          .substring(0, 3000);
+          .substring(0, 6000);
 
         try {
           const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -90,21 +114,22 @@ serve(async (req) => {
             body: JSON.stringify({
               model: "google/gemini-3-flash-preview",
               messages: [
-                { role: "system", content: "Extract news metadata from the given text. Return ONLY valid JSON with keys: titulo, resumo (max 200 chars). No markdown." },
+                { role: "system", content: "Extract news article metadata from the given text. Return ONLY valid JSON with keys: titulo (title), resumo (summary max 200 chars), conteudo (full article body text, preserving paragraphs with \\n\\n). No markdown formatting." },
                 { role: "user", content: textOnly },
               ],
               tools: [{
                 type: "function",
                 function: {
                   name: "extract_metadata",
-                  description: "Extract article title and summary",
+                  description: "Extract article title, summary and full content",
                   parameters: {
                     type: "object",
                     properties: {
                       titulo: { type: "string", description: "Article title" },
                       resumo: { type: "string", description: "Short summary, max 200 chars" },
+                      conteudo: { type: "string", description: "Full article body text with paragraphs" },
                     },
-                    required: ["titulo", "resumo"],
+                    required: ["titulo", "resumo", "conteudo"],
                     additionalProperties: false,
                   },
                 },
@@ -120,6 +145,7 @@ serve(async (req) => {
               const parsed = JSON.parse(toolCall.function.arguments);
               if (!titulo && parsed.titulo) titulo = parsed.titulo;
               if (!resumo && parsed.resumo) resumo = parsed.resumo;
+              if (!conteudo && parsed.conteudo) conteudo = parsed.conteudo;
             }
           }
         } catch (e) {
@@ -131,6 +157,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       titulo: titulo.substring(0, 300),
       resumo: resumo.substring(0, 500),
+      conteudo: conteudo.substring(0, 10000),
       imagem,
       fonte,
       data_publicacao: dataPublicacao,

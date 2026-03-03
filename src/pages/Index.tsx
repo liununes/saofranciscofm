@@ -112,12 +112,38 @@ const Index = () => {
           )}
 
           <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {config.visibilidade_noticias && <div id="noticias" className="lg:col-span-1"><NewsSection /></div>}
-              {config.visibilidade_musicas && <div className="lg:col-span-1"><RecentSongs /></div>}
-              
-            </div>
+            {(() => {
+              const pos = config.noticias_posicao || 'centro';
+              const showNews = config.visibilidade_noticias;
+              const showMusic = config.visibilidade_musicas;
 
+              // News on left side
+              if (pos === 'esquerda' && showNews) {
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div id="noticias" className="lg:col-span-1"><NewsSection /></div>
+                    {showMusic && <div className="lg:col-span-2"><RecentSongs /></div>}
+                  </div>
+                );
+              }
+              // News on right side
+              if (pos === 'direita' && showNews) {
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {showMusic && <div className="lg:col-span-2"><RecentSongs /></div>}
+                    <div id="noticias" className="lg:col-span-1"><NewsSection /></div>
+                  </div>
+                );
+              }
+              // News centered (default)
+              return (
+                <div className={showNews && showMusic ? "grid grid-cols-1 lg:grid-cols-3 gap-8" : "space-y-8"}>
+                  {showNews && <div id="noticias" className={showMusic ? "lg:col-span-2" : ""}><NewsSection /></div>}
+                  {showMusic && <div className="lg:col-span-1"><RecentSongs /></div>}
+                </div>
+              );
+            })()}
+            
             {/* Telefone - posições centro, meio-esquerda, meio-direita */}
             <PhoneContact position="centro" variant="block" />
             <PhoneContact position="meio-esquerda" variant="block" />

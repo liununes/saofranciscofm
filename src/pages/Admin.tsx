@@ -204,6 +204,7 @@ const AdminPanel = () => {
       ads_meio_ativo: rc.ads_meio_ativo,
       ads_rodape_codigo: rc.ads_rodape_codigo,
       ads_rodape_ativo: rc.ads_rodape_ativo,
+      noticias_posicao: rc.noticias_posicao || 'centro',
     }).eq('id', rc.id);
     setSaving(false);
     if (error) toast.error('Erro ao salvar.');
@@ -568,6 +569,23 @@ const AdminPanel = () => {
           <Button onClick={addNoticia} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Manual</Button>
         </div>
       </div>
+
+      {/* Posição das notícias */}
+      <Card>
+        <CardContent className="pt-4">
+          <Label>Posição das Notícias no Site</Label>
+          <Select value={rc.noticias_posicao || 'centro'} onValueChange={v => setRc({ ...rc, noticias_posicao: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="centro">Centro (principal)</SelectItem>
+              <SelectItem value="esquerda">Lateral Esquerda</SelectItem>
+              <SelectItem value="direita">Lateral Direita</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground mt-1">Quando centralizada e sem outros blocos, as notícias aparecem lado a lado.</p>
+        </CardContent>
+      </Card>
+
       <div className="space-y-4">
         {noticias.map(n => (
           <Card key={n.id}>
@@ -581,9 +599,28 @@ const AdminPanel = () => {
                       ⭐ Destaque
                     </label>
                   </div>
-                  <Textarea placeholder="Resumo" value={n.resumo || ''} onChange={e => updateNoticia(n.id, { resumo: e.target.value })} rows={2} />
-                  <Textarea placeholder="Conteúdo completo" value={n.conteudo || ''} onChange={e => updateNoticia(n.id, { conteudo: e.target.value })} rows={5} />
-                  <Input placeholder="Link externo (opcional)" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
+                  <Textarea placeholder="Resumo (exibido no card)" value={n.resumo || ''} onChange={e => updateNoticia(n.id, { resumo: e.target.value })} rows={2} />
+                  <Textarea placeholder="Conteúdo completo da matéria (separe parágrafos com linhas em branco)" value={n.conteudo || ''} onChange={e => updateNoticia(n.id, { conteudo: e.target.value })} rows={8} />
+                  <Input placeholder="Link externo (opcional - ex: Acesse a matéria completa)" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
+                  
+                  {/* Patrocinador na matéria */}
+                  <div className="p-3 bg-muted rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">📢 Publicidade no texto</span>
+                      <Switch checked={n.patrocinador_ativo || false} onCheckedChange={checked => updateNoticiaImmediate(n.id, { patrocinador_ativo: checked })} />
+                    </div>
+                    {n.patrocinador_ativo && (
+                      <Select value={n.patrocinador_id || ''} onValueChange={v => updateNoticiaImmediate(n.id, { patrocinador_id: v || null })}>
+                        <SelectTrigger><SelectValue placeholder="Selecionar patrocinador..." /></SelectTrigger>
+                        <SelectContent>
+                          {patrocinadores.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
                   <div>
                     <ImageUpload value={n.imagem_url} onChange={url => updateNoticiaImmediate(n.id, { imagem_url: url })} folder="noticias" />
                     <ImageHint text="1200×630 px (paisagem)" />
