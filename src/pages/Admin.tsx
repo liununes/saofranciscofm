@@ -142,7 +142,7 @@ const AdminPanel = () => {
       supabase.from('slide_imagens').select('*').order('ordem'),
       supabase.from('paginas').select('*').order('slug'),
       supabase.from('social_links').select('*').order('ordem'),
-      supabase.from('publicidade_noticias').select('*').order('created_at', { ascending: false }),
+      (supabase.from('publicidade_noticias') as any).select('*').order('created_at', { ascending: false }),
       supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
     ]);
     setRc(rcRes.data || {});
@@ -665,8 +665,8 @@ const AdminPanel = () => {
 
   // Publicidade CRUD helpers
   const addPublicidade = async () => {
-    const { data, error } = await supabase
-      .from('publicidade_noticias')
+    try {
+    const { data, error } = await (supabase.from('publicidade_noticias') as any)
       .insert({ nome: 'Nova Publicidade', texto: '', ativo: true })
       .select()
       .maybeSingle();
@@ -678,10 +678,13 @@ const AdminPanel = () => {
 
     if (data) setPublicidades(prev => [data, ...prev]);
     toast.success('Publicidade criada!');
+    } catch (e: any) {
+      toast.error(`Erro ao criar publicidade: ${e.message}`);
+    }
   };
 
   const deletePublicidade = async (id: string) => {
-    const { error } = await supabase.from('publicidade_noticias').delete().eq('id', id);
+    const { error } = await (supabase.from('publicidade_noticias') as any).delete().eq('id', id);
     if (error) {
       toast.error(`Erro ao remover publicidade: ${error.message}`);
       return;
@@ -691,7 +694,7 @@ const AdminPanel = () => {
   };
 
   const persistPublicidade = useCallback(async (id: string, updates: any) => {
-    const { error } = await supabase.from('publicidade_noticias').update(updates).eq('id', id);
+    const { error } = await (supabase.from('publicidade_noticias') as any).update(updates).eq('id', id);
     if (error) toast.error(`Erro ao atualizar publicidade: ${error.message}`);
   }, []);
 
@@ -704,7 +707,7 @@ const AdminPanel = () => {
 
   const updatePublicidadeImmediate = async (id: string, updates: any) => {
     setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    const { error } = await supabase.from('publicidade_noticias').update(updates).eq('id', id);
+    const { error } = await (supabase.from('publicidade_noticias') as any).update(updates).eq('id', id);
     if (error) toast.error(`Erro ao salvar publicidade: ${error.message}`);
   };
 
