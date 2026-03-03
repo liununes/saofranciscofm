@@ -51,7 +51,7 @@ const NoticiaDetalhe = () => {
     const text = noticia.conteudo || noticia.resumo || '';
     const paragraphs = text.split('\n\n').filter((p: string) => p.trim());
     
-    if (!patrocinador || paragraphs.length < 3) {
+    if (!patrocinador) {
       return (
         <div className="space-y-3">
           {/* If the article expects an ad but none was loaded, show a small diagnostic placeholder */}
