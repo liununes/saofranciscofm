@@ -142,7 +142,7 @@ const AdminPanel = () => {
       supabase.from('slide_imagens').select('*').order('ordem'),
       supabase.from('paginas').select('*').order('slug'),
       supabase.from('social_links').select('*').order('ordem'),
-      supabase.functions.invoke('news-ads-admin', { body: { action: 'list' } }),
+      supabase.from('publicidade_noticias').select('*').order('created_at', { ascending: false }),
       supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
     ]);
     setRc(rcRes.data || {});
@@ -154,7 +154,7 @@ const AdminPanel = () => {
     setSlides(slidRes.data || []);
     setPaginas(pagRes.data || []);
     setSocialLinks(socialRes.data || []);
-    setPublicidades(pubRes.error ? [] : (pubRes.data?.items || []));
+    setPublicidades(pubRes.data || []);
     setPromocoes(promoRes.data || []);
 
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
@@ -635,31 +635,16 @@ const AdminPanel = () => {
                           value={n.publicidade_id || 'none'}
                           onValueChange={async (v) => {
                             if (v === 'none') {
-                              updateNoticiaImmediate(n.id, { publicidade_id: null });
+                              updateNoticiaImmediate(n.id, { publicidade_id: null, promocao_id: null });
                             } else {
-                              const isPromo = promocoes.some((p) => p.id === v);
-                              if (isPromo) {
-                                // Create a proxy ad record to satisfy the foreign key constraint
-                                try {
-                                  toast.info('Vinculando promoção...', { id: 'link-promo' });
-                                  const { data: proxyData, error: proxyError } = await supabase.functions.invoke('news-ads-admin', {
-                                    body: { action: 'create_proxy', promocao_id: v }
-                                  });
-                                  if (proxyError) throw proxyError;
-
-                                  // Assign the new proxy ad ID to the news article
-                                  updateNoticiaImmediate(n.id, { publicidade_id: proxyData.id });
-                                  toast.success('Promoção vinculada!', { id: 'link-promo' });
-
-                                  // Refresh ads list so it shows up if needed
-                                  const { data: pubRes } = await supabase.functions.invoke('news-ads-admin', { body: { action: 'list' } });
-                                  setPublicidades(pubRes?.items || []);
-                                } catch (err: any) {
-                                  toast.error('Erro ao vincular promoção: ' + err.message, { id: 'link-promo' });
-                                  console.error(err);
-                                }
+                              const selectedPromo = promocoes.find((p) => p.id === v);
+                              if (selectedPromo) {
+                                // Vincula diretamente como promoção
+                                updateNoticiaImmediate(n.id, { promocao_id: v, publicidade_id: null });
+                                toast.success('Promoção vinculada!');
                               } else {
-                                updateNoticiaImmediate(n.id, { publicidade_id: v });
+                                // Vincula como publicidade normal
+                                updateNoticiaImmediate(n.id, { publicidade_id: v, promocao_id: null });
                               }
                             }
                           }}
@@ -708,26 +693,26 @@ const AdminPanel = () => {
 
   // Publicidade CRUD helpers (via backend function para evitar bloqueio de navegador)
   const addPublicidade = async () => {
-    const { data, error } = await supabase.functions.invoke('news-ads-admin', {
-      body: { action: 'create', payload: { nome: 'Nova Publicidade', texto: '', ativo: true } },
-    });
+    const { data, error } = await supabase
+      .from('publicidade_noticias')
+      .insert({ nome: 'Nova Publicidade', texto: '', ativo: true })
+      .select()
+      .single();
 
-    if (error || data?.error) {
-      toast.error(`Erro ao criar publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
+    if (error) {
+      toast.error(`Erro ao criar publicidade: ${error.message}`);
       return;
     }
 
-    if (data?.item) setPublicidades(prev => [data.item, ...prev.filter(p => p.id !== data.item.id)]);
+    if (data) setPublicidades(prev => [data, ...prev]);
     toast.success('Publicidade criada!');
   };
 
   const deletePublicidade = async (id: string) => {
-    const { data, error } = await supabase.functions.invoke('news-ads-admin', {
-      body: { action: 'delete', id },
-    });
+    const { error } = await supabase.from('publicidade_noticias').delete().eq('id', id);
 
-    if (error || data?.error) {
-      toast.error(`Erro ao remover publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
+    if (error) {
+      toast.error(`Erro ao remover publicidade: ${error.message}`);
       return;
     }
 
@@ -736,11 +721,8 @@ const AdminPanel = () => {
   };
 
   const persistPublicidade = useCallback(async (id: string, updates: any) => {
-    const { data, error } = await supabase.functions.invoke('news-ads-admin', {
-      body: { action: 'update', id, payload: updates },
-    });
-
-    if (error || data?.error) toast.error(`Erro ao atualizar publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
+    const { error } = await supabase.from('publicidade_noticias').update(updates).eq('id', id);
+    if (error) toast.error(`Erro ao atualizar publicidade: ${error.message}`);
   }, []);
 
   const debouncedSavePublicidade = useDebouncedSave(persistPublicidade);
@@ -752,12 +734,8 @@ const AdminPanel = () => {
 
   const updatePublicidadeImmediate = async (id: string, updates: any) => {
     setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-
-    const { data, error } = await supabase.functions.invoke('news-ads-admin', {
-      body: { action: 'update', id, payload: updates },
-    });
-
-    if (error || data?.error) toast.error(`Erro ao salvar publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
+    const { error } = await supabase.from('publicidade_noticias').update(updates).eq('id', id);
+    if (error) toast.error(`Erro ao salvar publicidade: ${error.message}`);
   };
 
   // Promoções CRUD helpers
