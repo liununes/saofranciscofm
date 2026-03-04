@@ -262,7 +262,7 @@ const AdminPanel = () => {
   // CRUD
   const addLocutor = async () => { const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor' }).select().single(); if (!error && data) setLocutores(prev => [...prev, data]); };
   const deleteLocutor = async (id: string) => { await supabase.from('locutores').delete().eq('id', id); setLocutores(prev => prev.filter(l => l.id !== id)); };
-  const addPrograma = async () => { const { data, error } = await supabase.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1,2,3,4,5] }).select('*, locutores(*)').single(); if (!error && data) setProgramas(prev => [...prev, data]); };
+  const addPrograma = async () => { const { data, error } = await supabase.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5] }).select('*, locutores(*)').single(); if (!error && data) setProgramas(prev => [...prev, data]); };
   const deletePrograma = async (id: string) => { await supabase.from('programas').delete().eq('id', id); setProgramas(prev => prev.filter(p => p.id !== id)); };
   const addMusica = async () => { const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '' }).select().single(); if (!error && data) setMusicas(prev => [data, ...prev]); };
   const deleteMusica = async (id: string) => { await supabase.from('musicas_recentes').delete().eq('id', id); setMusicas(prev => prev.filter(m => m.id !== id)); };
@@ -622,7 +622,7 @@ const AdminPanel = () => {
                   <Textarea placeholder="Resumo (exibido no card)" value={n.resumo || ''} onChange={e => updateNoticia(n.id, { resumo: e.target.value })} rows={2} />
                   <Textarea placeholder="Conteúdo completo da matéria (separe parágrafos com linhas em branco)" value={n.conteudo || ''} onChange={e => updateNoticia(n.id, { conteudo: e.target.value })} rows={8} />
                   <Input placeholder="Link externo (opcional - ex: Acesse a matéria completa)" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
-                  
+
                   {/* Publicidade na matéria */}
                   <div className="p-3 bg-muted rounded-lg space-y-2">
                     <div className="flex items-center justify-between">
@@ -632,20 +632,20 @@ const AdminPanel = () => {
                     {n.publicidade_ativa && (
                       <>
                         <Select value={n.publicidade_id || ''} onValueChange={v => updateNoticiaImmediate(n.id, { publicidade_id: v || null })}>
-                          <SelectTrigger><SelectValue placeholder="Selecionar publicidade..." /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Selecionar publicidade ou promoção..." /></SelectTrigger>
                           <SelectContent>
-                            {publicidades.filter(p => {
-                              if (!p.ativo) return false;
-                              const hoje = new Date().toISOString().slice(0, 10);
-                              if (p.data_inicio && p.data_inicio > hoje) return false;
-                              if (p.data_fim && p.data_fim < hoje) return false;
-                              return true;
-                            }).map(p => (
-                              <SelectItem key={p.id} value={p.id}>{p.nome}{p.data_fim ? ` (até ${new Date(p.data_fim).toLocaleDateString('pt-BR')})` : ''}</SelectItem>
+                            <SelectItem value="none">Nenhuma</SelectItem>
+                            <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground bg-muted/50">PUBLICIDADES</div>
+                            {publicidades.filter(p => p.ativo).map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                            ))}
+                            <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground bg-muted/50 mt-1">PROMOÇÕES</div>
+                            {promocoes.filter(p => p.ativo).map(p => (
+                              <SelectItem key={p.id} value={p.id}>🎁 {p.nome}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <p className="text-[10px] text-muted-foreground">Cadastre publicidades na seção "Publicidade Notícias"</p>
+                        <p className="text-[10px] text-muted-foreground">Escolha uma publicidade ou promoção para aparecer no meio do texto.</p>
                       </>
                     )}
                   </div>

@@ -29,18 +29,29 @@ const NoticiaDetalhe = () => {
       console.debug('Noticia fetch:', { id, publicidade_id: data?.publicidade_id, publicidade_ativa: data?.publicidade_ativa });
 
       if (data?.publicidade_id && data?.publicidade_ativa) {
-        const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).single();
-        console.debug('Publicidade fetch for noticia:', { pub });
+        // Try Publicidade Notícias first
+        const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
+
         if (pub?.ativo) {
           const hoje = new Date().toISOString().slice(0, 10);
           const dentroDoPerido = (!pub.data_inicio || pub.data_inicio <= hoje) && (!pub.data_fim || pub.data_fim >= hoje);
           if (dentroDoPerido) setPatrocinador(pub);
         }
+
+        // Fallback to Promoções if not found/active
+        if (!patrocinador) {
+          const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.publicidade_id).maybeSingle();
+          if (promo?.ativo) {
+            const hoje = new Date().toISOString().slice(0, 10);
+            const dentroDoPerido = (!promo.data_inicio || promo.data_inicio <= hoje) && (!(promo.prorrogada_ate || promo.data_validade) || (promo.prorrogada_ate || promo.data_validade) >= hoje);
+            if (dentroDoPerido) setPatrocinador(promo);
+          }
+        }
       }
       setLoading(false);
     };
     fetchData();
-  }, [id]);
+  }, [id, patrocinador]); // Added patrocinador to dependencies just in case, though state update is inside
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background">Carregando...</div>;
   if (!noticia) return <div className="min-h-screen flex items-center justify-center bg-background">Notícia não encontrada.</div>;

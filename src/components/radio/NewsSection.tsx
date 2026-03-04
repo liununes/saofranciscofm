@@ -41,46 +41,95 @@ const NewsSection = () => {
   const openNoticia = async (n: any) => {
     const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
     let patrocinador = null;
+
     if (data?.publicidade_id && data?.publicidade_ativa) {
-      const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).single();
+      // First try Publicidade Notícias
+      const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
+
       if (pub?.ativo) {
         const hoje = new Date().toISOString().slice(0, 10);
         const dentroDoPerido = (!pub.data_inicio || pub.data_inicio <= hoje) && (!pub.data_fim || pub.data_fim >= hoje);
         if (dentroDoPerido) patrocinador = pub;
       }
+
+      // If not found or not active in Publicidade, try Promoções
+      if (!patrocinador) {
+        const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.publicidade_id).maybeSingle();
+        if (promo?.ativo) {
+          const hoje = new Date().toISOString().slice(0, 10);
+          const dentroDoPerido = (!promo.data_inicio || promo.data_inicio <= hoje) && (!(promo.prorrogada_ate || promo.data_validade) || (promo.prorrogada_ate || promo.data_validade) >= hoje);
+          if (dentroDoPerido) {
+            // Map promotion fields to match InlineAd expectation if needed, though they are mostly same
+            patrocinador = { ...promo, is_promotion: true };
+          }
+        }
+      }
     }
+
     setSelected({
       ...n,
       conteudo: data?.conteudo || n.resumo,
       link_completo: data?.link_completo || n.link_completo,
       patrocinador,
+      // Pass the publicidade_ativa flag from DB to show diagnostic if needed
+      publicidade_ativa: data?.publicidade_ativa,
     });
   };
 
   const renderModalContent = () => {
     if (!selected) return null;
     const text = selected.conteudo || selected.resumo || '';
-    const paragraphs = text.split('\n\n').filter((p: string) => p.trim());
     const pat = selected.patrocinador;
 
-    if (!pat || paragraphs.length < 3) {
-      return <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{text}</div>;
+    // Split using more robust regex
+    let paragraphs = text.split(/\n\s*\n/).filter((p: string) => p.trim());
+
+    if (!pat) {
+      return (
+        <div className="space-y-3">
+          {/* If the article expects an ad but none was loaded, show a small diagnostic placeholder */}
+          {selected?.id && (selected as any).publicidade_ativa && !pat ? (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded text-sm">
+              Publicidade ativa nesta matéria, mas nenhum anúncio disponível no momento. Verifique se a publicidade está ativa e no prazo.
+            </div>
+          ) : null}
+          <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{text}</div>
+        </div>
+      );
     }
 
-    const midpoint = Math.floor(paragraphs.length / 2);
-    const before = paragraphs.slice(0, midpoint).join('\n\n');
-    const after = paragraphs.slice(midpoint).join('\n\n');
+    let before = '';
+    let after = '';
+
+    if (paragraphs.length >= 2) {
+      const midpoint = Math.floor(paragraphs.length / 2);
+      before = paragraphs.slice(0, midpoint).join('\n\n');
+      after = paragraphs.slice(midpoint).join('\n\n');
+    } else {
+      const full = paragraphs[0] || text || '';
+      const mid = Math.floor(full.length / 2);
+      // find nearest space around midpoint
+      const leftSpace = full.lastIndexOf(' ', mid);
+      const rightSpace = full.indexOf(' ', mid + 1);
+      let splitAt = -1;
+      if (leftSpace > 50) splitAt = leftSpace;
+      else if (rightSpace !== -1) splitAt = rightSpace;
+      else splitAt = mid;
+
+      before = full.slice(0, splitAt).trim();
+      after = full.slice(splitAt).trim();
+    }
 
     return (
       <div className="space-y-4">
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{before}</div>
+
+        {/* Ad block (full-width) */}
         <div className="my-6 p-6 bg-muted/60 rounded-xl border border-border text-center w-full">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Publicidade</p>
-          {/* InlineAd will center snippets and render internal ads */}
-          {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-          {/* @ts-ignore */}
           <InlineAd patrocinador={pat} />
         </div>
+
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{after}</div>
       </div>
     );
