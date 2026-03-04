@@ -21,11 +21,11 @@ const InlineAd = ({ patrocinador, className = '' }: InlineAdProps) => {
   // Otherwise render internal image/text/link ad
   return (
     <a href={patrocinador.link || '#'} target="_blank" rel="noopener noreferrer" className={`block hover:opacity-90 transition-opacity ${className}`}>
-      {patrocinador.imagem_url ? (
-        <img src={patrocinador.imagem_url} alt={patrocinador.nome} className="w-full max-h-72 object-cover rounded-md mx-auto" />
+      {(patrocinador.imagem_url || patrocinador.imagem) ? (
+        <img src={patrocinador.imagem_url || patrocinador.imagem} alt={patrocinador.nome} className="w-full max-h-72 object-cover rounded-md mx-auto" />
       ) : null}
       {patrocinador.texto && <p className="text-sm font-medium text-foreground mt-3">{patrocinador.texto}</p>}
-      {!patrocinador.imagem_url && !patrocinador.texto && <span className="text-sm font-medium text-foreground">{patrocinador.nome}</span>}
+      {!patrocinador.imagem_url && !patrocinador.imagem && !patrocinador.texto && <span className="text-sm font-medium text-foreground">{patrocinador.nome}</span>}
     </a>
   );
 };
