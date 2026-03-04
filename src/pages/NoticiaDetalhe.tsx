@@ -25,36 +25,15 @@ const NoticiaDetalhe = () => {
       const { data } = await supabase.from('noticias').select('*').eq('id', id).single();
       setNoticia(data);
 
-      // Debug logs to help identify why an assigned ad might not appear
-      console.debug('Noticia fetch:', { id, publicidade_id: data?.publicidade_id, publicidade_ativa: data?.publicidade_ativa });
-
       let foundAd = null;
 
-      if (data?.publicidade_ativa) {
-        if (data?.publicidade_id) {
-          // Try Publicidade Notícias first
-          const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).eq('ativo', true).maybeSingle();
-          if (pub) {
-            foundAd = pub;
-          }
-        } else if (data?.promocao_id) {
-          // Fallback to Promoções if not found/active
-          const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.promocao_id).eq('ativo', true).maybeSingle();
-          if (promo) {
-            foundAd = { ...promo, is_promotion: true };
-          }
-        }
-      }
-
-      if (!foundAd) {
-        const { data: pubs } = await supabase
-          .from('publicidade_noticias')
-          .select('*')
-          .eq('ativo', true);
-
-        if (pubs && pubs.length > 0) {
-          foundAd = pubs[Math.floor(Math.random() * pubs.length)];
-        }
+      try {
+        const { data: resolved } = await supabase.functions.invoke('news-content-admin', {
+          body: { action: 'resolve_for_news', noticia_id: id },
+        });
+        foundAd = resolved?.ad || null;
+      } catch {
+        foundAd = null;
       }
 
       if (foundAd) {
