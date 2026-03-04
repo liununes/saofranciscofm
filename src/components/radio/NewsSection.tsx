@@ -42,20 +42,17 @@ const NewsSection = () => {
   const openNoticia = async (n: any) => {
     const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
     let foundAd = null;
-    const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-
     if (data?.publicidade_ativa) {
       if (data?.publicidade_id) {
         // Try Publicidade Notícias
-        const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
-        if (pub?.ativo && (!pub.data_fim || pub.data_fim >= hoje)) {
+        const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).eq('ativo', true).maybeSingle();
+        if (pub) {
           foundAd = pub;
         }
       } else if (data?.promocao_id) {
         // Try Promoções
-        const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.promocao_id).maybeSingle();
-        const promoFim = promo?.prorrogada_ate || promo?.data_validade;
-        if (promo?.ativo && (!promoFim || promoFim >= hoje)) {
+        const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.promocao_id).eq('ativo', true).maybeSingle();
+        if (promo) {
           foundAd = { ...promo, is_promotion: true };
         }
       }
@@ -66,11 +63,9 @@ const NewsSection = () => {
       const { data: pubs } = await supabase
         .from('publicidade_noticias')
         .select('*')
-        .eq('ativo', true)
-        .or(`data_fim.is.null,data_fim.gte.${hoje}`);
-      
+        .eq('ativo', true);
+
       if (pubs && pubs.length > 0) {
-        // Pega uma aleatória para exibir
         foundAd = pubs[Math.floor(Math.random() * pubs.length)];
       }
     }

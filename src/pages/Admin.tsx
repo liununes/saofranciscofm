@@ -783,34 +783,7 @@ const AdminPanel = () => {
     if (error) toast.error(`Erro ao salvar promoção: ${error.message}`);
   };
 
-  const prorrogarPromocao = async (promocao: any) => {
-    const novaData = prorrogacoes[promocao.id];
-    if (!novaData) {
-      toast.error('Informe a nova data para prorrogar.');
-      return;
-    }
-
-    const { error } = await supabase
-      .from('promocoes')
-      .update({
-        ativo: true,
-        prorrogada_ate: novaData,
-        data_validade: novaData,
-      })
-      .eq('id', promocao.id);
-
-    if (error) {
-      toast.error(`Erro ao prorrogar promoção: ${error.message}`);
-      return;
-    }
-
-    setPromocoes(prev => prev.map(p => p.id === promocao.id ? { ...p, ativo: true, prorrogada_ate: novaData, data_validade: novaData } : p));
-    setProrrogacoes(prev => ({ ...prev, [promocao.id]: '' }));
-    toast.success(`Promoção prorrogada até ${new Date(novaData).toLocaleDateString('pt-BR')}.`);
-  };
-
   const renderPublicidadeNoticias = () => {
-    const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -818,73 +791,54 @@ const AdminPanel = () => {
           <Button onClick={addPublicidade} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Cadastre publicidades aqui. Depois, vá na seção <strong>Notícias</strong> e ative a publicidade escolhendo qual exibir em cada matéria.
+          Cadastre publicidades aqui. Basta ativar para que apareçam aleatoriamente nas notícias ou vinculá-las manualmente.
         </p>
         <div className="space-y-4">
-          {publicidades.map(p => {
-            const expirada = p.data_fim && p.data_fim < hoje;
-            const statusLabel = expirada ? '⛔ Expirada' : p.ativo ? '✅ Ativa' : '❌ Inativa';
-            return (
-              <Card key={p.id} className={expirada ? 'opacity-60' : ''}>
-                <CardContent className="pt-4 space-y-3">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <Input placeholder="Nome da publicidade" value={p.nome || ''} onChange={e => updatePublicidade(p.id, { nome: e.target.value })} className="flex-1 min-w-[200px]" />
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-medium">{statusLabel}</span>
-                          <label className="flex items-center gap-2 whitespace-nowrap text-xs">
-                            <Switch checked={p.ativo ?? true} onCheckedChange={checked => updatePublicidadeImmediate(p.id, { ativo: checked })} />
-                            {p.ativo ? 'Ativo' : 'Inativo'}
-                          </label>
-                        </div>
+          {publicidades.map(p => (
+            <Card key={p.id}>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <Input placeholder="Nome da publicidade" value={p.nome || ''} onChange={e => updatePublicidade(p.id, { nome: e.target.value })} className="flex-1 min-w-[200px]" />
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium">{p.ativo ? '✅ Ativa' : '❌ Inativa'}</span>
+                        <label className="flex items-center gap-2 whitespace-nowrap text-xs">
+                          <Switch checked={p.ativo ?? true} onCheckedChange={checked => updatePublicidadeImmediate(p.id, { ativo: checked })} />
+                          {p.ativo ? 'Ativo' : 'Inativo'}
+                        </label>
                       </div>
-
-                      <Textarea placeholder="Texto da publicidade (ex: Promoção especial! Clique e confira)" value={p.texto || ''} onChange={e => updatePublicidade(p.id, { texto: e.target.value })} rows={3} />
-                      <Input placeholder="Link (URL destino ao clicar)" value={p.link || ''} onChange={e => updatePublicidade(p.id, { link: e.target.value })} />
-                      <div>
-                        <Label className="text-xs">Código HTML/JS (opcional)</Label>
-                        <Textarea placeholder="Cole aqui o código do anúncio (ex: AdSense)" value={p.codigo || ''} onChange={e => updatePublicidade(p.id, { codigo: e.target.value })} rows={4} />
-                        <p className="text-[10px] text-muted-foreground">Opcional: insira HTML/JS do anúncio. Use com cautela.</p>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs">Imagem</Label>
-                        {p.imagem_url && (
-                          <div className="relative inline-block mb-2">
-                            <img src={p.imagem_url} alt="Preview" className="h-20 object-contain rounded border" />
-                            <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => updatePublicidadeImmediate(p.id, { imagem_url: null })}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        )}
-                        <ImageUpload value={p.imagem_url} onChange={url => updatePublicidadeImmediate(p.id, { imagem_url: url })} folder="publicidade" />
-                        <ImageHint text="728×90 px (banner) ou 300×250 px (retângulo)" />
-                      </div>
-
-                      <div className="p-3 bg-muted rounded-lg space-y-2">
-                        <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> Encerramento Automático</span>
-                        <div className="grid grid-cols-1 gap-2">
-                          <div>
-                            <Label className="text-xs">Data de Término</Label>
-                            <Input type="date" value={p.data_fim || ''} onChange={e => updatePublicidadeImmediate(p.id, { data_fim: e.target.value || null })} />
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">A publicidade sairá do ar automaticamente após esta data (Horário de Brasília).</p>
-                      </div>
-
-                      {p.created_at && (
-                        <p className="text-xs text-muted-foreground">Criada em: {new Date(p.created_at).toLocaleDateString('pt-BR')}</p>
-                      )}
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => deletePublicidade(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
+
+                    <Textarea placeholder="Texto da publicidade" value={p.texto || ''} onChange={e => updatePublicidade(p.id, { texto: e.target.value })} rows={3} />
+                    <Input placeholder="Link (URL destino ao clicar)" value={p.link || ''} onChange={e => updatePublicidade(p.id, { link: e.target.value })} />
+
+                    <div>
+                      <Label className="text-xs">Código HTML/JS (opcional)</Label>
+                      <Textarea placeholder="Cole aqui o código do anúncio (ex: AdSense)" value={p.codigo || ''} onChange={e => updatePublicidade(p.id, { codigo: e.target.value })} rows={4} />
+                    </div>
+
+                    <div>
+                      <Label className="text-xs">Imagem</Label>
+                      {p.imagem_url && (
+                        <div className="relative inline-block mb-2">
+                          <img src={p.imagem_url} alt="Preview" className="h-20 object-contain rounded border" />
+                          <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => updatePublicidadeImmediate(p.id, { imagem_url: null })}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                      <ImageUpload value={p.imagem_url} onChange={url => updatePublicidadeImmediate(p.id, { imagem_url: url })} folder="publicidade" />
+                      <ImageHint text="728×90 px ou 300×250 px" />
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  <Button variant="ghost" size="icon" onClick={() => deletePublicidade(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
           {publicidades.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma publicidade cadastrada. Clique em "Adicionar" para criar.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma publicidade cadastrada.</p>
           )}
         </div>
       </div>
@@ -892,94 +846,51 @@ const AdminPanel = () => {
   };
 
   const renderPromocoes = () => {
-    const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-
-    const getStatus = (p: any) => {
-      const fim = p.prorrogada_ate || p.data_validade;
-      if (!p.ativo) return '❌ Inativa';
-      if (fim && fim < hoje) return '⛔ Expirada';
-      if (p.prorrogada_ate) return `🔁 Prorrogada até ${new Date(p.prorrogada_ate).toLocaleDateString('pt-BR')}`;
-      return '✅ Ativa';
-    };
-
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display font-bold text-xl text-foreground flex items-center gap-2"><Ticket className="w-5 h-5 text-primary" /> Promoções</h2>
           <Button onClick={addPromocao} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
         </div>
-        <p className="text-sm text-muted-foreground">Gestão completa de promoções com imagem, texto, validade automática e prorrogação.</p>
+        <p className="text-sm text-muted-foreground">Gestão simplificada de promoções. Basta ativar para exibir no site.</p>
 
         <div className="space-y-4">
-          {promocoes.map((p) => {
-            const expirada = (p.prorrogada_ate || p.data_validade) && (p.prorrogada_ate || p.data_validade) < hoje;
-            const statusLabel = getStatus(p);
-
-            return (
-              <Card key={p.id} className={expirada ? 'opacity-60' : ''}>
-                <CardContent className="pt-4 space-y-3">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <Input placeholder="Nome da promoção" value={p.nome || ''} onChange={(e) => updatePromocao(p.id, { nome: e.target.value })} className="flex-1 min-w-[220px]" />
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-medium">{statusLabel}</span>
-                          <label className="flex items-center gap-2 whitespace-nowrap text-xs">
-                            <Switch checked={p.ativo ?? true} onCheckedChange={(checked) => updatePromocaoImmediate(p.id, { ativo: checked })} />
-                            {p.ativo ? 'Ativa' : 'Inativa'}
-                          </label>
-                        </div>
-                      </div>
-
-                      <Textarea placeholder="Texto curto da promoção" value={p.texto || ''} onChange={(e) => updatePromocao(p.id, { texto: e.target.value })} rows={2} />
-                      <Textarea placeholder="Descrição detalhada (opcional)" value={p.descricao || ''} onChange={(e) => updatePromocao(p.id, { descricao: e.target.value })} rows={3} />
-                      <Input placeholder="Link da promoção (opcional)" value={p.link || ''} onChange={(e) => updatePromocao(p.id, { link: e.target.value })} />
-
-                      <div>
-                        <Label className="text-xs">Imagem</Label>
-                        <ImageUpload value={p.imagem_url} onChange={(url) => updatePromocaoImmediate(p.id, { imagem_url: url })} folder="promocoes" />
-                        <ImageHint text="1080×1080 px (card) ou 1200×630 px (destaque)" />
-                      </div>
-
-                      <div className="p-3 bg-muted rounded-lg space-y-3">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                          <CalendarDays className="w-4 h-4" /> Encerramento Automático
-                        </div>
-                        <div className="grid grid-cols-1 gap-2">
-                          <div>
-                            <Label className="text-xs">Data de Término (Validade)</Label>
-                            <Input type="date" value={p.data_validade || ''} onChange={(e) => updatePromocaoImmediate(p.id, { data_validade: e.target.value || null, prorrogada_ate: null })} />
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">A promoção sairá do ar automaticamente após esta data (Horário de Brasília).</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
-                        <div>
-                          <Label className="text-xs">Prorrogar até</Label>
-                          <Input
-                            type="date"
-                            value={prorrogacoes[p.id] || ''}
-                            onChange={(e) => setProrrogacoes(prev => ({ ...prev, [p.id]: e.target.value }))}
-                          />
-                        </div>
-                        <Button type="button" variant="outline" onClick={() => prorrogarPromocao(p)}>
-                          Prorrogar
-                        </Button>
+          {promocoes.map((p) => (
+            <Card key={p.id}>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <Input placeholder="Nome da promoção" value={p.nome || ''} onChange={(e) => updatePromocao(p.id, { nome: e.target.value })} className="flex-1 min-w-[220px]" />
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium">{p.ativo ? '✅ Ativa' : '❌ Inativa'}</span>
+                        <label className="flex items-center gap-2 whitespace-nowrap text-xs">
+                          <Switch checked={p.ativo ?? true} onCheckedChange={(checked) => updatePromocaoImmediate(p.id, { ativo: checked })} />
+                          {p.ativo ? 'Ativa' : 'Inativa'}
+                        </label>
                       </div>
                     </div>
 
-                    <Button variant="ghost" size="icon" onClick={() => deletePromocao(p.id)} className="text-destructive flex-shrink-0">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <Textarea placeholder="Texto curto da promoção" value={p.texto || ''} onChange={(e) => updatePromocao(p.id, { texto: e.target.value })} rows={2} />
+                    <Textarea placeholder="Descrição detalhada" value={p.descricao || ''} onChange={(e) => updatePromocao(p.id, { descricao: e.target.value })} rows={3} />
+                    <Input placeholder="Link da promoção (opcional)" value={p.link || ''} onChange={(e) => updatePromocao(p.id, { link: e.target.value })} />
+
+                    <div>
+                      <Label className="text-xs">Imagem</Label>
+                      <ImageUpload value={p.imagem_url} onChange={(url) => updatePromocaoImmediate(p.id, { imagem_url: url })} folder="promocoes" />
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+
+                  <Button variant="ghost" size="icon" onClick={() => deletePromocao(p.id)} className="text-destructive flex-shrink-0">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
 
           {promocoes.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma promoção cadastrada. Clique em "Adicionar" para criar.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma promoção cadastrada.</p>
           )}
         </div>
       </div>
