@@ -811,8 +811,7 @@ const AdminPanel = () => {
         <div className="space-y-4">
           {publicidades.map(p => {
             const expirada = p.data_fim && p.data_fim < hoje;
-            const naoIniciada = p.data_inicio && p.data_inicio > hoje;
-            const statusLabel = expirada ? '⛔ Expirada' : naoIniciada ? '⏳ Agendada' : p.ativo ? '✅ Ativa' : '❌ Inativa';
+            const statusLabel = expirada ? '⛔ Expirada' : p.ativo ? '✅ Ativa' : '❌ Inativa';
             return (
               <Card key={p.id} className={expirada ? 'opacity-60' : ''}>
                 <CardContent className="pt-4 space-y-3">
@@ -886,7 +885,6 @@ const AdminPanel = () => {
     const getStatus = (p: any) => {
       const fim = p.prorrogada_ate || p.data_validade;
       if (!p.ativo) return '❌ Inativa';
-      if (p.data_inicio && p.data_inicio > hoje) return '⏳ Agendada';
       if (fim && fim < hoje) return '⛔ Expirada';
       if (p.prorrogada_ate) return `🔁 Prorrogada até ${new Date(p.prorrogada_ate).toLocaleDateString('pt-BR')}`;
       return '✅ Ativa';
@@ -957,434 +955,432 @@ const AdminPanel = () => {
                         </Button>
                       </div>
                     </div>
+
+                    <Button variant="ghost" size="icon" onClick={() => deletePromocao(p.id)} className="text-destructive flex-shrink-0">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
+                </CardContent>
+              </Card>
+            );
+          })}
 
-                  <Button variant="ghost" size="icon" onClick={() => deletePromocao(p.id)} className="text-destructive flex-shrink-0">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          {promocoes.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma promoção cadastrada. Clique em "Adicionar" para criar.</p>
+          )}
+        </div>
         );
-        })}
+  };
 
-        {promocoes.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma promoção cadastrada. Clique em "Adicionar" para criar.</p>
-        )}
-      </div>
-    </div >
-  );
-};
-
-const renderPatrocinadores = () => (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <h2 className="font-display font-bold text-xl text-foreground">Patrocinadores</h2>
-      <Button onClick={addPatrocinador} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-    </div>
-    <div className="space-y-3">
-      {patrocinadores.map(p => (
-        <Card key={p.id}>
-          <CardContent className="pt-4 flex items-start gap-3">
-            <div>
-              <ImageUpload value={p.imagem_url} onChange={url => updatePatrocinadorImmediate(p.id, { imagem_url: url })} folder="patrocinadores" />
-              <ImageHint text={p.tipo === 'premium' ? '400×200 px (premium)' : '200×120 px (normal)'} />
-            </div>
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <Input placeholder="Nome" value={p.nome} onChange={e => updatePatrocinador(p.id, { nome: e.target.value })} />
-              <Input placeholder="Link" value={p.link || ''} onChange={e => updatePatrocinador(p.id, { link: e.target.value })} />
-              <Select value={p.tipo || 'normal'} onValueChange={v => updatePatrocinadorImmediate(p.id, { tipo: v })}>
-                <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={p.posicao || 'rodape'} onValueChange={v => {
-                if (v === 'topo' && p.tipo !== 'premium') { toast.error('Apenas patrocinadores premium podem ficar no topo.'); return; }
-                updatePatrocinadorImmediate(p.id, { posicao: v });
-              }}>
-                <SelectTrigger><SelectValue placeholder="Posição" /></SelectTrigger>
-                <SelectContent>{POSICOES_PATROCINADOR.map(pos => <SelectItem key={pos.value} value={pos.value}>{pos.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => deletePatrocinador(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  </div>
-);
-
-const renderSlides = () => (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <h2 className="font-display font-bold text-xl text-foreground">Slides de Imagem</h2>
-      <Button onClick={addSlide} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-    </div>
-    <p className="text-sm text-muted-foreground">Deixe vazio para usar as imagens padrão.</p>
-    <div className="space-y-3">
-      {slides.map((s, i) => (
-        <Card key={s.id}>
-          <CardContent className="pt-4 flex items-center gap-3">
-            <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
-            <div>
-              <ImageUpload value={s.imagem_url} onChange={url => updateSlideImmediate(s.id, { imagem_url: url })} folder="slides" />
-              <ImageHint text="1280×720 px (16:9)" />
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => deleteSlide(s.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  </div>
-);
-
-const renderWhatsApp = () => (
-  <div className="space-y-4">
-    <h2 className="font-display font-bold text-xl text-foreground">Pedidos via WhatsApp</h2>
-    <Card>
-      <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><Label>Número do WhatsApp</Label><Input value={rc.whatsapp_numero || ''} onChange={e => setRc({ ...rc, whatsapp_numero: e.target.value })} placeholder="553335112000" /></div>
-        <div><Label>Mensagem Padrão</Label><Input value={rc.whatsapp_mensagem || ''} onChange={e => setRc({ ...rc, whatsapp_mensagem: e.target.value })} /></div>
-      </CardContent>
-    </Card>
-  </div>
-);
-
-const renderAparencia = () => (
-  <div className="space-y-4">
-    <h2 className="font-display font-bold text-xl text-foreground">Personalização</h2>
-    <Card>
-      <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label>Tema do Site</Label>
-          <Select value={rc.tema || 'claro'} onValueChange={v => setRc({ ...rc, tema: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="claro">Claro</SelectItem>
-              <SelectItem value="escuro">Escuro</SelectItem>
-              <SelectItem value="moderno">Moderno</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Alinhamento dos Patrocinadores</Label>
-          <Select value={rc.patrocinador_alinhamento || 'center'} onValueChange={v => setRc({ ...rc, patrocinador_alinhamento: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="left">Esquerda</SelectItem>
-              <SelectItem value="center">Centro</SelectItem>
-              <SelectItem value="right">Direita</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {['cor_primaria', 'cor_secundaria', 'cor_texto', 'cor_fundo'].map(key => {
-          const labels: Record<string, string> = { cor_primaria: 'Cor Primária', cor_secundaria: 'Cor Secundária', cor_texto: 'Cor do Texto', cor_fundo: 'Cor de Fundo' };
-          const defaults: Record<string, string> = { cor_primaria: '#005BBB', cor_secundaria: '#FFA500', cor_texto: '#1a1a2e', cor_fundo: '#f5f7fa' };
-          return (
-            <div key={key}>
-              <Label>{labels[key]}</Label>
-              <div className="flex gap-2 items-center">
-                <input type="color" value={rc[key] || defaults[key]} onChange={e => setRc({ ...rc, [key]: e.target.value })} className="w-10 h-10 rounded cursor-pointer border-0" />
-                <Input value={rc[key] || ''} onChange={e => setRc({ ...rc, [key]: e.target.value })} />
-              </div>
-            </div>
-          );
-        })}
-        <div>
-          <Label>Imagem de Fundo</Label>
-          <ImageUpload value={rc.imagem_fundo} onChange={url => setRc({ ...rc, imagem_fundo: url })} folder="backgrounds" />
-        </div>
-        <div>
-          <Label>Modo da Imagem de Fundo</Label>
-          <Select value={rc.imagem_fundo_modo || 'cover'} onValueChange={v => setRc({ ...rc, imagem_fundo_modo: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cover">Preencher (cover)</SelectItem>
-              <SelectItem value="contain">Conter/ajustar</SelectItem>
-              <SelectItem value="left">Alinhar à esquerda</SelectItem>
-              <SelectItem value="right">Alinhar à direita</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-);
-
-const renderPaginas = () => (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <h2 className="font-display font-bold text-xl text-foreground">Páginas</h2>
-      <Button onClick={async () => {
-        const slug = `pagina-${Date.now()}`;
-        const { data, error } = await supabase.from('paginas').insert({ slug, titulo: 'Nova Página', conteudo: '' }).select().single();
-        if (!error && data) { setPaginas(prev => [...prev, data]); toast.success('Página criada!'); }
-        else toast.error('Erro ao criar página.');
-      }} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Nova Página</Button>
-    </div>
-    <div className="space-y-4">
-      {paginas.map(p => (
-        <Card key={p.id}>
-          <CardContent className="pt-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-mono">/{p.slug}</p>
-              <Button variant="ghost" size="icon" onClick={async () => {
-                await supabase.from('paginas').delete().eq('id', p.id);
-                setPaginas(prev => prev.filter(pg => pg.id !== p.id));
-                toast.success('Página removida.');
-              }} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-            </div>
-            <Input placeholder="Slug (URL)" value={p.slug} onChange={e => updatePagina(p.id, { slug: e.target.value })} />
-            <Input placeholder="Título" value={p.titulo} onChange={e => updatePagina(p.id, { titulo: e.target.value })} />
-            <Textarea placeholder="Conteúdo" value={p.conteudo || ''} onChange={e => updatePagina(p.id, { conteudo: e.target.value })} rows={6} />
-            <div>
-              <ImageUpload value={p.imagem_url} onChange={url => updatePaginaImmediate(p.id, { imagem_url: url })} folder="paginas" />
-              <ImageHint text="1200×630 px" />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  </div>
-);
-
-const renderRedesSociais = () => (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <h2 className="font-display font-bold text-xl text-foreground">Redes Sociais</h2>
-      <Button onClick={addSocialLink} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-    </div>
-    <p className="text-sm text-muted-foreground">Gerencie os ícones sociais do cabeçalho. Ative apenas os que possuem link.</p>
-    <div className="space-y-3">
-      {socialLinks.map(s => (
-        <Card key={s.id}>
-          <CardContent className="pt-4 flex items-center gap-3">
-            <Switch checked={s.ativo} onCheckedChange={checked => updateSocialLinkImmediate(s.id, { ativo: checked })} />
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Input placeholder="Nome" value={s.nome} onChange={e => updateSocialLink(s.id, { nome: e.target.value })} />
-              <Input placeholder="URL" value={s.url || ''} onChange={e => updateSocialLink(s.id, { url: e.target.value })} />
-              <Select value={s.icone || 'link'} onValueChange={v => updateSocialLinkImmediate(s.id, { icone: v })}>
-                <SelectTrigger><SelectValue placeholder="Ícone" /></SelectTrigger>
-                <SelectContent>{SOCIAL_ICONS.map(icon => <SelectItem key={icon.value} value={icon.value}>{icon.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => deleteSocialLink(s.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  </div>
-);
-
-const renderVisibilidade = () => (
-  <div className="space-y-4">
-    <h2 className="font-display font-bold text-xl text-foreground">Controle de Visibilidade</h2>
-    <p className="text-sm text-muted-foreground">Ative ou desative seções. As alterações são aplicadas ao salvar.</p>
-    <Card>
-      <CardContent className="pt-6 space-y-3">
-        {[
-          { key: 'visibilidade_logo', label: 'Logo Principal' },
-          { key: 'visibilidade_player', label: 'Player de Áudio' },
-          { key: 'visibilidade_telefone', label: 'Telefone de Contato' },
-          { key: 'visibilidade_noticias', label: 'Notícias' },
-          { key: 'visibilidade_musicas', label: 'Últimas Músicas' },
-          { key: 'visibilidade_patrocinadores', label: 'Patrocinadores' },
-          { key: 'visibilidade_slides', label: 'Imagens / Slides' },
-          { key: 'visibilidade_destaque', label: '📰 Módulo: Notícia em Destaque' },
-          { key: 'visibilidade_proximo_programa', label: '⏰ Módulo: Próximo Programa' },
-          { key: 'visibilidade_participacao', label: '🎤 Módulo: Participação do Ouvinte' },
-          { key: 'visibilidade_premium', label: '⭐ Módulo: Patrocinador Premium' },
-        ].map(item => (
-          <div key={item.key} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-            <span className="font-medium text-sm text-foreground">{item.label}</span>
-            <Switch checked={rc[item.key] ?? true} onCheckedChange={checked => setRc({ ...rc, [item.key]: checked })} />
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  </div>
-);
-
-const renderAnuncios = () => (
-  <div className="space-y-4">
-    <h2 className="font-display font-bold text-xl text-foreground">Espaços para Google Ads</h2>
-    <p className="text-sm text-muted-foreground">Cole o código do Google Ads em cada espaço e ative para exibir.</p>
-    {[
-      { codigoKey: 'ads_topo_codigo', ativoKey: 'ads_topo_ativo', label: 'Topo do Site' },
-      { codigoKey: 'ads_meio_codigo', ativoKey: 'ads_meio_ativo', label: 'Meio do Conteúdo' },
-      { codigoKey: 'ads_rodape_codigo', ativoKey: 'ads_rodape_ativo', label: 'Rodapé' },
-    ].map(ad => (
-      <Card key={ad.codigoKey}>
-        <CardContent className="pt-4 space-y-3">
+  const renderPatrocinadores = () => (
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-sm text-foreground">{ad.label}</span>
-            <Switch checked={rc[ad.ativoKey] ?? false} onCheckedChange={checked => setRc({ ...rc, [ad.ativoKey]: checked })} />
+            <h2 className="font-display font-bold text-xl text-foreground">Patrocinadores</h2>
+            <Button onClick={addPatrocinador} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
           </div>
-          <Textarea placeholder="Cole o código do Google Ads..." value={rc[ad.codigoKey] || ''} onChange={e => setRc({ ...rc, [ad.codigoKey]: e.target.value })} rows={4} className="font-mono text-xs" />
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-);
-
-const renderUsuarios = () => (
-  <div className="space-y-4">
-    <h2 className="font-display font-bold text-xl text-foreground">Gerenciar Usuários</h2>
-    <Card>
-      <CardContent className="pt-6 space-y-3">
-        <h3 className="font-semibold text-sm text-foreground">Criar Novo Usuário</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <Input placeholder="Nome" value={newUserName} onChange={e => setNewUserName(e.target.value)} />
-          <Input placeholder="E-mail" type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} />
-          <Input placeholder="Senha" type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} />
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões iniciais:</p>
-          <div className="flex flex-wrap gap-2">
-            {PERMISSIONS.filter(p => p.key !== 'gerenciar_usuarios' || isAdmin).map(perm => (
-              <label key={perm.key} className="flex items-center gap-1 text-xs">
-                <Checkbox checked={newUserPerms.includes(perm.key)} onCheckedChange={checked => {
-                  setNewUserPerms(prev => checked ? [...prev, perm.key] : prev.filter(k => k !== perm.key));
-                }} />
-                {perm.label}
-              </label>
+          <div className="space-y-3">
+            {patrocinadores.map(p => (
+              <Card key={p.id}>
+                <CardContent className="pt-4 flex items-start gap-3">
+                  <div>
+                    <ImageUpload value={p.imagem_url} onChange={url => updatePatrocinadorImmediate(p.id, { imagem_url: url })} folder="patrocinadores" />
+                    <ImageHint text={p.tipo === 'premium' ? '400×200 px (premium)' : '200×120 px (normal)'} />
+                  </div>
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Input placeholder="Nome" value={p.nome} onChange={e => updatePatrocinador(p.id, { nome: e.target.value })} />
+                    <Input placeholder="Link" value={p.link || ''} onChange={e => updatePatrocinador(p.id, { link: e.target.value })} />
+                    <Select value={p.tipo || 'normal'} onValueChange={v => updatePatrocinadorImmediate(p.id, { tipo: v })}>
+                      <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={p.posicao || 'rodape'} onValueChange={v => {
+                      if (v === 'topo' && p.tipo !== 'premium') { toast.error('Apenas patrocinadores premium podem ficar no topo.'); return; }
+                      updatePatrocinadorImmediate(p.id, { posicao: v });
+                    }}>
+                      <SelectTrigger><SelectValue placeholder="Posição" /></SelectTrigger>
+                      <SelectContent>{POSICOES_PATROCINADOR.map(pos => <SelectItem key={pos.value} value={pos.value}>{pos.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => deletePatrocinador(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
-        <Button onClick={createUser} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Criar</Button>
-      </CardContent>
-    </Card>
+        );
 
-    <div className="space-y-4">
-      {users.map(u => {
-        const uIsAdmin = u.roles?.some((r: any) => r.role === 'admin');
-        const isSelf = u.user_id === user?.id;
-        return (
-          <Card key={u.id}>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-sm text-foreground">{u.display_name || u.email} {isSelf && <span className="text-xs text-muted-foreground">(você)</span>}</p>
-                  <p className="text-xs text-muted-foreground">{u.email}</p>
-                </div>
-                {isAdmin && !isSelf && (
-                  <label className="flex items-center gap-2 text-xs">
-                    <Checkbox checked={uIsAdmin} onCheckedChange={() => toggleUserRole(u.user_id, uIsAdmin)} />
-                    Admin
-                  </label>
-                )}
-                {isSelf && uIsAdmin && (
-                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">Admin</span>
-                )}
-              </div>
-              {!uIsAdmin && !isSelf && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {PERMISSIONS.filter(perm => perm.key !== 'gerenciar_usuarios' || isAdmin).map(perm => (
-                      <label key={perm.key} className="flex items-center gap-1 text-xs">
-                        <Checkbox checked={u.permissions?.includes(perm.key)} onCheckedChange={() => toggleUserPermission(u.user_id, perm.key, u.permissions?.includes(perm.key))} />
-                        {perm.label}
-                      </label>
-                    ))}
+  const renderSlides = () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-bold text-xl text-foreground">Slides de Imagem</h2>
+            <Button onClick={addSlide} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+          </div>
+          <p className="text-sm text-muted-foreground">Deixe vazio para usar as imagens padrão.</p>
+          <div className="space-y-3">
+            {slides.map((s, i) => (
+              <Card key={s.id}>
+                <CardContent className="pt-4 flex items-center gap-3">
+                  <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}</span>
+                  <div>
+                    <ImageUpload value={s.imagem_url} onChange={url => updateSlideImmediate(s.id, { imagem_url: url })} folder="slides" />
+                    <ImageHint text="1280×720 px (16:9)" />
                   </div>
-                </div>
-              )}
+                  <Button variant="ghost" size="icon" onClick={() => deleteSlide(s.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+        );
+
+  const renderWhatsApp = () => (
+        <div className="space-y-4">
+          <h2 className="font-display font-bold text-xl text-foreground">Pedidos via WhatsApp</h2>
+          <Card>
+            <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label>Número do WhatsApp</Label><Input value={rc.whatsapp_numero || ''} onChange={e => setRc({ ...rc, whatsapp_numero: e.target.value })} placeholder="553335112000" /></div>
+              <div><Label>Mensagem Padrão</Label><Input value={rc.whatsapp_mensagem || ''} onChange={e => setRc({ ...rc, whatsapp_mensagem: e.target.value })} /></div>
             </CardContent>
           </Card>
+        </div>
         );
-      })}
-    </div>
-  </div>
-);
 
-const renderPerfil = () => (
-  <div className="space-y-4">
-    <h2 className="font-display font-bold text-xl text-foreground">Meu Perfil</h2>
-    <Card>
-      <CardContent className="pt-6 space-y-4">
-        <p className="text-sm text-muted-foreground">{user?.email}</p>
-        <div className="max-w-sm space-y-3">
-          <Label>Alterar Senha</Label>
-          <div className="relative">
-            <Input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nova senha (min. 6 caracteres)" />
-            <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-              {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-          <Button onClick={handlePasswordChange} size="sm">Alterar Senha</Button>
+  const renderAparencia = () => (
+        <div className="space-y-4">
+          <h2 className="font-display font-bold text-xl text-foreground">Personalização</h2>
+          <Card>
+            <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Tema do Site</Label>
+                <Select value={rc.tema || 'claro'} onValueChange={v => setRc({ ...rc, tema: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="claro">Claro</SelectItem>
+                    <SelectItem value="escuro">Escuro</SelectItem>
+                    <SelectItem value="moderno">Moderno</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Alinhamento dos Patrocinadores</Label>
+                <Select value={rc.patrocinador_alinhamento || 'center'} onValueChange={v => setRc({ ...rc, patrocinador_alinhamento: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">Esquerda</SelectItem>
+                    <SelectItem value="center">Centro</SelectItem>
+                    <SelectItem value="right">Direita</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {['cor_primaria', 'cor_secundaria', 'cor_texto', 'cor_fundo'].map(key => {
+                const labels: Record<string, string> = { cor_primaria: 'Cor Primária', cor_secundaria: 'Cor Secundária', cor_texto: 'Cor do Texto', cor_fundo: 'Cor de Fundo' };
+                const defaults: Record<string, string> = { cor_primaria: '#005BBB', cor_secundaria: '#FFA500', cor_texto: '#1a1a2e', cor_fundo: '#f5f7fa' };
+                return (
+                  <div key={key}>
+                    <Label>{labels[key]}</Label>
+                    <div className="flex gap-2 items-center">
+                      <input type="color" value={rc[key] || defaults[key]} onChange={e => setRc({ ...rc, [key]: e.target.value })} className="w-10 h-10 rounded cursor-pointer border-0" />
+                      <Input value={rc[key] || ''} onChange={e => setRc({ ...rc, [key]: e.target.value })} />
+                    </div>
+                  </div>
+                );
+              })}
+              <div>
+                <Label>Imagem de Fundo</Label>
+                <ImageUpload value={rc.imagem_fundo} onChange={url => setRc({ ...rc, imagem_fundo: url })} folder="backgrounds" />
+              </div>
+              <div>
+                <Label>Modo da Imagem de Fundo</Label>
+                <Select value={rc.imagem_fundo_modo || 'cover'} onValueChange={v => setRc({ ...rc, imagem_fundo_modo: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cover">Preencher (cover)</SelectItem>
+                    <SelectItem value="contain">Conter/ajustar</SelectItem>
+                    <SelectItem value="left">Alinhar à esquerda</SelectItem>
+                    <SelectItem value="right">Alinhar à direita</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </CardContent>
-    </Card>
-  </div>
-);
+        );
 
-return (
-  <div className="min-h-screen bg-muted flex">
-    {/* Sidebar */}
-    <aside className={`${sidebarOpen ? 'w-56' : 'w-14'} bg-card border-r border-border flex-shrink-0 transition-all duration-200 hidden md:flex flex-col`}>
-      <div className="p-3 border-b border-border flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="flex-shrink-0">
-          <Menu className="w-5 h-5" />
-        </Button>
-        {sidebarOpen && <span className="font-display font-bold text-sm text-foreground truncate">Admin</span>}
-      </div>
-      <nav className="flex-1 overflow-y-auto py-2">
-        {filteredNavItems.map(item => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium border-r-2 border-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {sidebarOpen && <span className="truncate">{item.label}</span>}
-            </button>
-          );
-        })}
-      </nav>
-      <div className="p-2 border-t border-border">
-        <Button variant="ghost" size="sm" onClick={signOut} className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive">
-          <LogOut className="w-4 h-4" />
-          {sidebarOpen && <span>Sair</span>}
-        </Button>
-      </div>
-    </aside>
+  const renderPaginas = () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-bold text-xl text-foreground">Páginas</h2>
+            <Button onClick={async () => {
+              const slug = `pagina-${Date.now()}`;
+              const { data, error } = await supabase.from('paginas').insert({ slug, titulo: 'Nova Página', conteudo: '' }).select().single();
+              if (!error && data) { setPaginas(prev => [...prev, data]); toast.success('Página criada!'); }
+              else toast.error('Erro ao criar página.');
+            }} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Nova Página</Button>
+          </div>
+          <div className="space-y-4">
+            {paginas.map(p => (
+              <Card key={p.id}>
+                <CardContent className="pt-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground font-mono">/{p.slug}</p>
+                    <Button variant="ghost" size="icon" onClick={async () => {
+                      await supabase.from('paginas').delete().eq('id', p.id);
+                      setPaginas(prev => prev.filter(pg => pg.id !== p.id));
+                      toast.success('Página removida.');
+                    }} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                  <Input placeholder="Slug (URL)" value={p.slug} onChange={e => updatePagina(p.id, { slug: e.target.value })} />
+                  <Input placeholder="Título" value={p.titulo} onChange={e => updatePagina(p.id, { titulo: e.target.value })} />
+                  <Textarea placeholder="Conteúdo" value={p.conteudo || ''} onChange={e => updatePagina(p.id, { conteudo: e.target.value })} rows={6} />
+                  <div>
+                    <ImageUpload value={p.imagem_url} onChange={url => updatePaginaImmediate(p.id, { imagem_url: url })} folder="paginas" />
+                    <ImageHint text="1200×630 px" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+        );
 
-    {/* Main */}
-    <div className="flex-1 flex flex-col min-w-0">
-      <header className="gradient-primary sticky top-0 z-50">
-        <div className="flex items-center justify-between py-3 px-4">
-          <div className="flex items-center gap-3">
-            {/* Mobile menu */}
-            <select
-              value={activeSection}
-              onChange={e => setActiveSection(e.target.value)}
-              className="md:hidden bg-primary-foreground/10 text-primary-foreground text-sm rounded px-2 py-1 border-0"
-            >
-              {filteredNavItems.map(item => (
-                <option key={item.id} value={item.id}>{item.label}</option>
+  const renderRedesSociais = () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-bold text-xl text-foreground">Redes Sociais</h2>
+            <Button onClick={addSocialLink} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+          </div>
+          <p className="text-sm text-muted-foreground">Gerencie os ícones sociais do cabeçalho. Ative apenas os que possuem link.</p>
+          <div className="space-y-3">
+            {socialLinks.map(s => (
+              <Card key={s.id}>
+                <CardContent className="pt-4 flex items-center gap-3">
+                  <Switch checked={s.ativo} onCheckedChange={checked => updateSocialLinkImmediate(s.id, { ativo: checked })} />
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <Input placeholder="Nome" value={s.nome} onChange={e => updateSocialLink(s.id, { nome: e.target.value })} />
+                    <Input placeholder="URL" value={s.url || ''} onChange={e => updateSocialLink(s.id, { url: e.target.value })} />
+                    <Select value={s.icone || 'link'} onValueChange={v => updateSocialLinkImmediate(s.id, { icone: v })}>
+                      <SelectTrigger><SelectValue placeholder="Ícone" /></SelectTrigger>
+                      <SelectContent>{SOCIAL_ICONS.map(icon => <SelectItem key={icon.value} value={icon.value}>{icon.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => deleteSocialLink(s.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+        );
+
+  const renderVisibilidade = () => (
+        <div className="space-y-4">
+          <h2 className="font-display font-bold text-xl text-foreground">Controle de Visibilidade</h2>
+          <p className="text-sm text-muted-foreground">Ative ou desative seções. As alterações são aplicadas ao salvar.</p>
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              {[
+                { key: 'visibilidade_logo', label: 'Logo Principal' },
+                { key: 'visibilidade_player', label: 'Player de Áudio' },
+                { key: 'visibilidade_telefone', label: 'Telefone de Contato' },
+                { key: 'visibilidade_noticias', label: 'Notícias' },
+                { key: 'visibilidade_musicas', label: 'Últimas Músicas' },
+                { key: 'visibilidade_patrocinadores', label: 'Patrocinadores' },
+                { key: 'visibilidade_slides', label: 'Imagens / Slides' },
+                { key: 'visibilidade_destaque', label: '📰 Módulo: Notícia em Destaque' },
+                { key: 'visibilidade_proximo_programa', label: '⏰ Módulo: Próximo Programa' },
+                { key: 'visibilidade_participacao', label: '🎤 Módulo: Participação do Ouvinte' },
+                { key: 'visibilidade_premium', label: '⭐ Módulo: Patrocinador Premium' },
+              ].map(item => (
+                <div key={item.key} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <span className="font-medium text-sm text-foreground">{item.label}</span>
+                  <Switch checked={rc[item.key] ?? true} onCheckedChange={checked => setRc({ ...rc, [item.key]: checked })} />
+                </div>
               ))}
-            </select>
-            <Link to="/" className="p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"><ArrowLeft className="w-5 h-5" /></Link>
-            <h1 className="font-display font-bold text-lg text-primary-foreground hidden sm:block">Painel Administrativo</h1>
-          </div>
-          <Button onClick={saveConfig} disabled={saving} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <Save className="w-4 h-4" />{saving ? 'Salvando...' : 'Salvar'}
-          </Button>
+            </CardContent>
+          </Card>
         </div>
-      </header>
+        );
 
-      <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-        {renderContent()}
-      </main>
-    </div>
-  </div>
-);
+  const renderAnuncios = () => (
+        <div className="space-y-4">
+          <h2 className="font-display font-bold text-xl text-foreground">Espaços para Google Ads</h2>
+          <p className="text-sm text-muted-foreground">Cole o código do Google Ads em cada espaço e ative para exibir.</p>
+          {[
+            { codigoKey: 'ads_topo_codigo', ativoKey: 'ads_topo_ativo', label: 'Topo do Site' },
+            { codigoKey: 'ads_meio_codigo', ativoKey: 'ads_meio_ativo', label: 'Meio do Conteúdo' },
+            { codigoKey: 'ads_rodape_codigo', ativoKey: 'ads_rodape_ativo', label: 'Rodapé' },
+          ].map(ad => (
+            <Card key={ad.codigoKey}>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm text-foreground">{ad.label}</span>
+                  <Switch checked={rc[ad.ativoKey] ?? false} onCheckedChange={checked => setRc({ ...rc, [ad.ativoKey]: checked })} />
+                </div>
+                <Textarea placeholder="Cole o código do Google Ads..." value={rc[ad.codigoKey] || ''} onChange={e => setRc({ ...rc, [ad.codigoKey]: e.target.value })} rows={4} className="font-mono text-xs" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        );
+
+  const renderUsuarios = () => (
+        <div className="space-y-4">
+          <h2 className="font-display font-bold text-xl text-foreground">Gerenciar Usuários</h2>
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <h3 className="font-semibold text-sm text-foreground">Criar Novo Usuário</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Input placeholder="Nome" value={newUserName} onChange={e => setNewUserName(e.target.value)} />
+                <Input placeholder="E-mail" type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} />
+                <Input placeholder="Senha" type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões iniciais:</p>
+                <div className="flex flex-wrap gap-2">
+                  {PERMISSIONS.filter(p => p.key !== 'gerenciar_usuarios' || isAdmin).map(perm => (
+                    <label key={perm.key} className="flex items-center gap-1 text-xs">
+                      <Checkbox checked={newUserPerms.includes(perm.key)} onCheckedChange={checked => {
+                        setNewUserPerms(prev => checked ? [...prev, perm.key] : prev.filter(k => k !== perm.key));
+                      }} />
+                      {perm.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={createUser} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Criar</Button>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-4">
+            {users.map(u => {
+              const uIsAdmin = u.roles?.some((r: any) => r.role === 'admin');
+              const isSelf = u.user_id === user?.id;
+              return (
+                <Card key={u.id}>
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-sm text-foreground">{u.display_name || u.email} {isSelf && <span className="text-xs text-muted-foreground">(você)</span>}</p>
+                        <p className="text-xs text-muted-foreground">{u.email}</p>
+                      </div>
+                      {isAdmin && !isSelf && (
+                        <label className="flex items-center gap-2 text-xs">
+                          <Checkbox checked={uIsAdmin} onCheckedChange={() => toggleUserRole(u.user_id, uIsAdmin)} />
+                          Admin
+                        </label>
+                      )}
+                      {isSelf && uIsAdmin && (
+                        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">Admin</span>
+                      )}
+                    </div>
+                    {!uIsAdmin && !isSelf && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">Permissões:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {PERMISSIONS.filter(perm => perm.key !== 'gerenciar_usuarios' || isAdmin).map(perm => (
+                            <label key={perm.key} className="flex items-center gap-1 text-xs">
+                              <Checkbox checked={u.permissions?.includes(perm.key)} onCheckedChange={() => toggleUserPermission(u.user_id, perm.key, u.permissions?.includes(perm.key))} />
+                              {perm.label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+        );
+
+  const renderPerfil = () => (
+        <div className="space-y-4">
+          <h2 className="font-display font-bold text-xl text-foreground">Meu Perfil</h2>
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <div className="max-w-sm space-y-3">
+                <Label>Alterar Senha</Label>
+                <div className="relative">
+                  <Input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nova senha (min. 6 caracteres)" />
+                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <Button onClick={handlePasswordChange} size="sm">Alterar Senha</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        );
+
+        return (
+        <div className="min-h-screen bg-muted flex">
+          {/* Sidebar */}
+          <aside className={`${sidebarOpen ? 'w-56' : 'w-14'} bg-card border-r border-border flex-shrink-0 transition-all duration-200 hidden md:flex flex-col`}>
+            <div className="p-3 border-b border-border flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="flex-shrink-0">
+                <Menu className="w-5 h-5" />
+              </Button>
+              {sidebarOpen && <span className="font-display font-bold text-sm text-foreground truncate">Admin</span>}
+            </div>
+            <nav className="flex-1 overflow-y-auto py-2">
+              {filteredNavItems.map(item => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium border-r-2 border-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {sidebarOpen && <span className="truncate">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="p-2 border-t border-border">
+              <Button variant="ghost" size="sm" onClick={signOut} className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive">
+                <LogOut className="w-4 h-4" />
+                {sidebarOpen && <span>Sair</span>}
+              </Button>
+            </div>
+          </aside>
+
+          {/* Main */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="gradient-primary sticky top-0 z-50">
+              <div className="flex items-center justify-between py-3 px-4">
+                <div className="flex items-center gap-3">
+                  {/* Mobile menu */}
+                  <select
+                    value={activeSection}
+                    onChange={e => setActiveSection(e.target.value)}
+                    className="md:hidden bg-primary-foreground/10 text-primary-foreground text-sm rounded px-2 py-1 border-0"
+                  >
+                    {filteredNavItems.map(item => (
+                      <option key={item.id} value={item.id}>{item.label}</option>
+                    ))}
+                  </select>
+                  <Link to="/" className="p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"><ArrowLeft className="w-5 h-5" /></Link>
+                  <h1 className="font-display font-bold text-lg text-primary-foreground hidden sm:block">Painel Administrativo</h1>
+                </div>
+                <Button onClick={saveConfig} disabled={saving} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                  <Save className="w-4 h-4" />{saving ? 'Salvando...' : 'Salvar'}
+                </Button>
+              </div>
+            </header>
+
+            <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+              {renderContent()}
+            </main>
+          </div>
+        </div>
+        );
 };
 
-export default AdminPanel;
+        export default AdminPanel;
