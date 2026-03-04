@@ -210,7 +210,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
       supabase.from('social_links').select('*').order('ordem', { ascending: true }),
       supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
-      supabase.from('page_views' as any).select('*', { count: 'exact', head: true }),
+      supabase.from('page_views').select('*', { count: 'exact', head: true }),
     ]);
 
     const rc = rcRes.data;
