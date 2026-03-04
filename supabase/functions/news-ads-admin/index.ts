@@ -29,18 +29,31 @@ serve(async (req) => {
     });
 
     let user: any = null;
+    let authErrorDetails: any = null;
     try {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        console.warn('No Authorization header provided');
+      }
+
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) {
         console.warn('supabase.auth.getUser returned error', userError);
+        authErrorDetails = userError;
       }
       user = userData?.user ?? null;
     } catch (authErr) {
-      console.warn('auth.getUser failed', authErr instanceof Error ? authErr.message : String(authErr));
+      console.error('auth.getUser critical failure', authErr instanceof Error ? authErr.message : String(authErr));
+      authErrorDetails = authErr;
     }
 
     if (!user) {
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
+      console.error('Authentication check failed - user is null');
+      return new Response(JSON.stringify({
+        error: "Não autenticado",
+        details: authErrorDetails,
+        debug: "Check if Authorization header is being sent correctly from the frontend."
+      }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
