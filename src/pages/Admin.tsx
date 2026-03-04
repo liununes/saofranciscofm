@@ -242,7 +242,16 @@ const AdminPanel = () => {
   const updateProgramaImmediate = async (id: string, updates: any) => { setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('programas').update(updates).eq('id', id); };
   const updateMusica = (id: string, updates: any) => { setMusicas(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m)); debouncedSaveMusica(id, updates); };
   const updateNoticia = (id: string, updates: any) => { setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n)); debouncedSaveNoticia(id, updates); };
-  const updateNoticiaImmediate = async (id: string, updates: any) => { setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n)); await supabase.from('noticias').update(updates).eq('id', id); };
+  const updateNoticiaImmediate = async (id: string, updates: any) => {
+    setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+    const { error } = await supabase.from('noticias').update(updates).eq('id', id);
+    if (error) {
+      toast.error(`Erro ao salvar notícia: ${error.message}`);
+      return;
+    }
+    // Refresh shared data so NewsSection and other consumers get updated noticias
+    try { await refreshData(); } catch (e) { /* ignore refresh errors */ }
+  };
   const updatePatrocinador = (id: string, updates: any) => { setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePatrocinador(id, updates); };
   const updatePatrocinadorImmediate = async (id: string, updates: any) => { setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('patrocinadores').update(updates).eq('id', id); };
   const updateSlide = (id: string, updates: any) => { setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); debouncedSaveSlide(id, updates); };
