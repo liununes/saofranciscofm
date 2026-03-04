@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
@@ -118,9 +117,6 @@ const AdminPanel = () => {
   const [promocoes, setPromocoes] = useState<any[]>([]);
   const [prorrogacoes, setProrrogacoes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [applyModalOpen, setApplyModalOpen] = useState(false);
-  const [applySelectedNoticiaId, setApplySelectedNoticiaId] = useState<string | null>(null);
-  const [applyLoading, setApplyLoading] = useState(false);
 
   const [users, setUsers] = useState<any[]>([]);
   const [newUserEmail, setNewUserEmail] = useState('');
@@ -678,7 +674,7 @@ const AdminPanel = () => {
       return;
     }
 
-    if (data?.item) setPublicidades(prev => [data.item, ...prev]);
+    if (data?.item) setPublicidades(prev => [data.item, ...prev.filter(p => p.id !== data.item.id)]);
     toast.success('Publicidade criada!');
   };
 
@@ -800,51 +796,7 @@ const AdminPanel = () => {
           <h2 className="font-display font-bold text-xl text-foreground">Publicidade em Notícias</h2>
           <div className="flex items-center gap-2">
             <Button onClick={addPublicidade} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-            <Dialog open={applyModalOpen} onOpenChange={o => setApplyModalOpen(o)}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="secondary" className="gap-1"><Plus className="w-4 h-4" /> Adicionar e Aplicar a uma Notícia</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="font-display">Adicionar publicidade e aplicar a uma notícia</DialogTitle>
-                </DialogHeader>
-
-                <div className="mt-4">
-                  <Label className="text-xs">Escolha a notícia</Label>
-                  <select className="w-full mt-2 p-2 border rounded" value={applySelectedNoticiaId || ''} onChange={e => setApplySelectedNoticiaId(e.target.value || null)}>
-                    <option value="">-- selecione --</option>
-                    {noticias.map(n => (
-                      <option key={n.id} value={n.id}>{n.titulo} {n.created_at ? `(${new Date(n.created_at).toLocaleDateString('pt-BR')})` : ''}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="mt-4 flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => { setApplyModalOpen(false); setApplySelectedNoticiaId(null); }}>Cancelar</Button>
-                  <Button onClick={async () => {
-                    if (!applySelectedNoticiaId) { toast.error('Selecione uma notícia para aplicar.'); return; }
-                    setApplyLoading(true);
-                    try {
-                      const { data, error } = await supabase.functions.invoke('news-ads-admin', {
-                        body: { action: 'create', payload: { nome: 'Nova Publicidade', texto: '', ativo: true } },
-                      });
-                      if (error || data?.error) { toast.error(`Erro ao criar publicidade: ${error?.message || data?.error || 'Falha inesperada'}`); return; }
-                      const item = data?.item;
-                      if (item && item.id) {
-                        const { error: updErr } = await supabase.from('noticias').update({ publicidade_id: item.id, publicidade_ativa: true }).eq('id', applySelectedNoticiaId);
-                        if (updErr) { toast.error(`Erro ao aplicar publicidade na notícia: ${updErr.message}`); return; }
-                        // update local state
-                        setPublicidades(prev => [item, ...prev.filter(p => p.id !== item.id)]);
-                        setNoticias(prev => prev.map(n => n.id === applySelectedNoticiaId ? { ...n, publicidade_id: item.id, publicidade_ativa: true } : n));
-                        toast.success('Publicidade criada e aplicada na notícia selecionada.');
-                        setApplyModalOpen(false);
-                        setApplySelectedNoticiaId(null);
-                      }
-                    } finally { setApplyLoading(false); }
-                  }}>{applyLoading ? 'Aplicando...' : 'Aplicar'}</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button onClick={addPublicidade} size="sm" variant="secondary" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
