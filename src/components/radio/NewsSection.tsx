@@ -44,23 +44,18 @@ const NewsSection = () => {
     let foundAd = null;
 
     if (data?.publicidade_id && data?.publicidade_ativa) {
-      const hoje = new Date().toLocaleDateString('en-CA');
       // First try Publicidade Notícias
       const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
 
       if (pub?.ativo) {
-        const dentroDoPerido = (!pub.data_inicio || pub.data_inicio <= hoje) && (!pub.data_fim || pub.data_fim >= hoje);
-        if (dentroDoPerido) foundAd = pub;
+        foundAd = pub;
       }
 
       // If not found or not active in Publicidade, try Promoções
       if (!foundAd) {
         const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.publicidade_id).maybeSingle();
         if (promo?.ativo) {
-          const dentroDoPerido = (!promo.data_inicio || promo.data_inicio <= hoje) && (!(promo.prorrogada_ate || promo.data_validade) || (promo.prorrogada_ate || promo.data_validade) >= hoje);
-          if (dentroDoPerido) {
-            foundAd = { ...promo, is_promotion: true };
-          }
+          foundAd = { ...promo, is_promotion: true };
         }
       }
     }
