@@ -3,7 +3,8 @@ import { useRadio } from '@/contexts/RadioContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Phone, ToggleLeft, Megaphone, LayoutDashboard, Menu, Ticket, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Phone, ToggleLeft, Megaphone, LayoutDashboard, Menu, Ticket, CalendarDays, BarChart3 } from 'lucide-react';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import AddNoticiaByUrl from '@/components/admin/AddNoticiaByUrl';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,6 +79,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'analytics', label: 'Estatísticas', icon: BarChart3 },
   { id: 'geral', label: 'Geral', icon: Radio, permission: 'editar_geral' },
   { id: 'locutores', label: 'Locutores', icon: Mic, permission: 'editar_locutores' },
   { id: 'programas', label: 'Programas', icon: CalendarClock, permission: 'editar_programacao' },
@@ -116,6 +118,7 @@ const AdminPanel = () => {
   const [publicidades, setPublicidades] = useState<any[]>([]);
   const [promocoes, setPromocoes] = useState<any[]>([]);
   const [prorrogacoes, setProrrogacoes] = useState<Record<string, string>>({});
+  const [stats, setStats] = useState({ today: 0, total: 0 });
   const [saving, setSaving] = useState(false);
 
   const [users, setUsers] = useState<any[]>([]);
@@ -170,6 +173,14 @@ const AdminPanel = () => {
     setSocialLinks(socialRes.data || []);
     setPublicidades(publicidadesData);
     setPromocoes(promoRes.data || []);
+
+    // Analytics brief stats
+    const todayStr = new Date().toISOString().split('T')[0];
+    const [{ count: total }, { count: today }] = await Promise.all([
+      supabase.from('page_views' as any).select('*', { count: 'exact', head: true }),
+      supabase.from('page_views' as any).select('*', { count: 'exact', head: true }).gte('created_at', `${todayStr}T00:00:00Z`)
+    ]);
+    setStats({ total: total || 0, today: today || 0 });
 
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
       const { data: profiles } = await supabase.from('profiles').select('*');
@@ -338,6 +349,7 @@ const AdminPanel = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard': return renderDashboard();
+      case 'analytics': return <AnalyticsDashboard />;
       case 'geral': return renderGeral();
       case 'locutores': return renderLocutores();
       case 'programas': return renderProgramas();
@@ -364,7 +376,14 @@ const AdminPanel = () => {
   const renderDashboard = () => (
     <div className="space-y-6">
       <h2 className="font-display font-bold text-xl text-foreground">Dashboard</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow bg-primary/5" onClick={() => setActiveSection('analytics')}>
+          <CardContent className="pt-6 text-center">
+            <Eye className="w-8 h-8 mx-auto text-primary mb-2" />
+            <p className="text-2xl font-bold text-foreground">{stats.today}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Visitas Hoje</p>
+          </CardContent>
+        </Card>
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection('noticias')}>
           <CardContent className="pt-6 text-center">
             <Newspaper className="w-8 h-8 mx-auto text-primary mb-2" />
