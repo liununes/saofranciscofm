@@ -344,6 +344,7 @@ export type Database = {
       publicidade_noticias: {
         Row: {
           ativo: boolean
+          codigo: string | null
           created_at: string
           data_fim: string | null
           data_inicio: string | null
@@ -355,6 +356,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string | null
@@ -366,6 +368,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string | null
