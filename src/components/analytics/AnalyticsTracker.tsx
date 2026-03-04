@@ -14,7 +14,7 @@ const AnalyticsTracker = () => {
                 const geoRes = await fetch('https://ipapi.co/json/').catch(() => null);
                 const geoData = geoRes && geoRes.ok ? await geoRes.json() : {};
 
-                const { error } = await supabase.from('page_views' as any).insert({
+                const { error } = await supabase.from('page_views').insert({
                     path: location.pathname + location.hash,
                     user_agent: navigator.userAgent,
                     city: geoData.city || null,
