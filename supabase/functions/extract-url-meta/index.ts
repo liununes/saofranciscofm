@@ -10,9 +10,33 @@ serve(async (req) => {
 
   try {
     const { url } = await req.json();
-    if (!url) {
+    if (!url || typeof url !== "string") {
       return new Response(JSON.stringify({ error: "URL é obrigatória" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // SSRF protection: validate URL protocol and block private/internal addresses
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return new Response(JSON.stringify({ error: "URL inválida" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return new Response(JSON.stringify({ error: "Apenas URLs HTTP/HTTPS são permitidas" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const hostname = parsed.hostname;
+    const privatePattern = /^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/i;
+    if (privatePattern.test(hostname)) {
+      return new Response(JSON.stringify({ error: "Endereços internos não são permitidos" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
