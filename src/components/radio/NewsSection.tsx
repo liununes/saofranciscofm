@@ -81,12 +81,6 @@ const NewsSection = () => {
     if (!pat) {
       return (
         <div className="space-y-3">
-          {/* If the article expects an ad but none was loaded, show a small diagnostic placeholder */}
-          {selected?.publicidade_ativa && !pat ? (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded text-sm font-medium">
-              A matéria está marcada para exibir publicidade, mas o anúncio (ID: {selected?.patrocinador_id || 'não definido'}) não foi encontrado, está inativo ou fora da data de validade.
-            </div>
-          ) : null}
           <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{text}</div>
         </div>
       );
