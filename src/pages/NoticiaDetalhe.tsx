@@ -7,6 +7,8 @@ import RadioFooter from '@/components/radio/RadioFooter';
 import WhatsAppButton from '@/components/radio/WhatsAppButton';
 import ShareButtons from '@/components/radio/ShareButtons';
 import InlineAd from '@/components/radio/InlineAd';
+import GoogleAd from '@/components/radio/GoogleAd';
+import { useRadio } from '@/contexts/RadioContext';
 
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return '';
@@ -15,6 +17,7 @@ const formatDate = (dateStr?: string) => {
 
 const NoticiaDetalhe = () => {
   const { id } = useParams<{ id: string }>();
+  const { config } = useRadio();
   const [noticia, setNoticia] = useState<any>(null);
   const [patrocinador, setPatrocinador] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -56,11 +59,14 @@ const NoticiaDetalhe = () => {
     // try split by blank line first, fallback to single-line split later
     let paragraphs = text.split(/\n\s*\n/).filter((p: string) => p.trim());
 
-    if (!patrocinador) {
+    const hasGlobalAd = config.ads_meio_ativo && config.ads_meio_codigo;
+    const hasSponsorAd = !!patrocinador;
+
+    if (!hasSponsorAd && !hasGlobalAd) {
       return (
         <div className="space-y-3">
           {/* If the article expects an ad but none was loaded, show a small diagnostic placeholder */}
-          {noticia?.publicidade_ativa && noticia?.publicidade_id && !patrocinador ? (
+          {noticia?.publicidade_ativa && noticia?.publicidade_id && !hasSponsorAd ? (
             <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded text-sm">
               Publicidade ativa nesta matéria, mas nenhum anúncio disponível no momento. Verifique em Administração → Publicidade Notícias se a publicidade selecionada está ativa e dentro do período configurado.
             </div>
@@ -99,12 +105,23 @@ const NoticiaDetalhe = () => {
 
     return (
       <div className="space-y-4">
+        {/* If the article expects an ad but none was loaded, show a small diagnostic placeholder */}
+        {noticia?.publicidade_ativa && noticia?.publicidade_id && !hasSponsorAd ? (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded text-sm mb-4">
+            Publicidade ativa nesta matéria, mas nenhum anúncio disponível no momento. Verifique em Administração → Publicidade Notícias se a publicidade selecionada está ativa e dentro do período configurado.
+          </div>
+        ) : null}
+
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{before}</div>
-        
-        {/* Sponsor block (full-width, similar to design screenshot) */}
+
+        {/* Ad block (full-width, similar to design screenshot) */}
         <div className="my-6 p-6 bg-muted/60 rounded-xl border border-border text-center w-full">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Publicidade</p>
-          <InlineAd patrocinador={patrocinador} />
+          {hasSponsorAd ? (
+            <InlineAd patrocinador={patrocinador} />
+          ) : (
+            <GoogleAd codigo={config.ads_meio_codigo} centered={true} className="w-full max-w-full" />
+          )}
         </div>
 
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{after}</div>
@@ -119,13 +136,13 @@ const NoticiaDetalhe = () => {
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-6">
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
-        
+
         {noticia.imagem_url && (
           <img src={noticia.imagem_url} alt={noticia.titulo} className="w-full h-64 object-cover rounded-xl mb-6" />
         )}
-        
+
         <h1 className="font-display font-bold text-2xl text-foreground mb-3">{noticia.titulo}</h1>
-        
+
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-4">
           {noticia.created_at && <span>Publicado em: {formatDate(noticia.created_at)}</span>}
           {noticia.updated_at && noticia.updated_at !== noticia.created_at && (
@@ -154,9 +171,9 @@ const NoticiaDetalhe = () => {
         {/* External link */}
         {noticia.link_completo && (
           <div className="mt-8 p-4 bg-muted rounded-xl">
-            <a 
-              href={noticia.link_completo} 
-              target="_blank" 
+            <a
+              href={noticia.link_completo}
+              target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
             >
