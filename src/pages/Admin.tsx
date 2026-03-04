@@ -631,7 +631,21 @@ const AdminPanel = () => {
                     </div>
                     {n.publicidade_ativa && (
                       <>
-                        <Select value={n.publicidade_id || ''} onValueChange={v => updateNoticiaImmediate(n.id, { publicidade_id: v || null })}>
+                        <Select
+                          value={n.publicidade_id || n.promocao_id || 'none'}
+                          onValueChange={(v) => {
+                            if (v === 'none') {
+                              updateNoticiaImmediate(n.id, { publicidade_id: null, promocao_id: null });
+                            } else {
+                              const isPromo = promocoes.some((p) => p.id === v);
+                              if (isPromo) {
+                                updateNoticiaImmediate(n.id, { promocao_id: v, publicidade_id: null });
+                              } else {
+                                updateNoticiaImmediate(n.id, { publicidade_id: v, promocao_id: null });
+                              }
+                            }
+                          }}
+                        >
                           <SelectTrigger><SelectValue placeholder="Selecionar publicidade ou promoção..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">Nenhuma</SelectItem>

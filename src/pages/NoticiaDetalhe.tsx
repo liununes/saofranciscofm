@@ -28,20 +28,19 @@ const NoticiaDetalhe = () => {
       // Debug logs to help identify why an assigned ad might not appear
       console.debug('Noticia fetch:', { id, publicidade_id: data?.publicidade_id, publicidade_ativa: data?.publicidade_ativa });
 
-      if (data?.publicidade_id && data?.publicidade_ativa) {
+      if (data?.publicidade_ativa) {
         let foundAd = null;
         const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
-        // Try Publicidade Notícias first
-        const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
-
-        if (pub?.ativo && (!pub.data_fim || pub.data_fim >= hoje)) {
-          foundAd = pub;
-        }
-
-        // Fallback to Promoções if not found/active
-        if (!foundAd) {
-          const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.publicidade_id).maybeSingle();
+        if (data?.publicidade_id) {
+          // Try Publicidade Notícias first
+          const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
+          if (pub?.ativo && (!pub.data_fim || pub.data_fim >= hoje)) {
+            foundAd = pub;
+          }
+        } else if (data?.promocao_id) {
+          // Fallback to Promoções if not found/active
+          const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.promocao_id).maybeSingle();
           const promoFim = promo?.prorrogada_ate || promo?.data_validade;
           if (promo?.ativo && (!promoFim || promoFim >= hoje)) {
             foundAd = { ...promo, is_promotion: true };
