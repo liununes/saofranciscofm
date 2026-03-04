@@ -18,6 +18,7 @@ interface NoticiaModal {
   patrocinador_id?: string;
   patrocinador_ativo?: boolean;
   patrocinador?: any;
+  publicidade_ativa?: boolean;
 }
 
 const formatDate = (dateStr?: string) => {
@@ -40,27 +41,25 @@ const NewsSection = () => {
 
   const openNoticia = async (n: any) => {
     const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
-    let patrocinador = null;
+    let foundAd = null;
 
     if (data?.publicidade_id && data?.publicidade_ativa) {
+      const hoje = new Date().toLocaleDateString('en-CA');
       // First try Publicidade Notícias
       const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
 
       if (pub?.ativo) {
-        const hoje = new Date().toISOString().slice(0, 10);
         const dentroDoPerido = (!pub.data_inicio || pub.data_inicio <= hoje) && (!pub.data_fim || pub.data_fim >= hoje);
-        if (dentroDoPerido) patrocinador = pub;
+        if (dentroDoPerido) foundAd = pub;
       }
 
       // If not found or not active in Publicidade, try Promoções
-      if (!patrocinador) {
+      if (!foundAd) {
         const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.publicidade_id).maybeSingle();
         if (promo?.ativo) {
-          const hoje = new Date().toISOString().slice(0, 10);
           const dentroDoPerido = (!promo.data_inicio || promo.data_inicio <= hoje) && (!(promo.prorrogada_ate || promo.data_validade) || (promo.prorrogada_ate || promo.data_validade) >= hoje);
           if (dentroDoPerido) {
-            // Map promotion fields to match InlineAd expectation if needed, though they are mostly same
-            patrocinador = { ...promo, is_promotion: true };
+            foundAd = { ...promo, is_promotion: true };
           }
         }
       }
@@ -70,9 +69,9 @@ const NewsSection = () => {
       ...n,
       conteudo: data?.conteudo || n.resumo,
       link_completo: data?.link_completo || n.link_completo,
-      patrocinador,
-      // Pass the publicidade_ativa flag from DB to show diagnostic if needed
+      patrocinador: foundAd,
       publicidade_ativa: data?.publicidade_ativa,
+      patrocinador_id: data?.publicidade_id,
     });
   };
 
@@ -88,9 +87,9 @@ const NewsSection = () => {
       return (
         <div className="space-y-3">
           {/* If the article expects an ad but none was loaded, show a small diagnostic placeholder */}
-          {selected?.id && (selected as any).publicidade_ativa && !pat ? (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded text-sm">
-              Publicidade ativa nesta matéria, mas nenhum anúncio disponível no momento. Verifique se a publicidade está ativa e no prazo.
+          {selected?.publicidade_ativa && !pat ? (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded text-sm font-medium">
+              A matéria está marcada para exibir publicidade, mas o anúncio (ID: {selected?.patrocinador_id || 'não definido'}) não foi encontrado, está inativo ou fora da data de validade.
             </div>
           ) : null}
           <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{text}</div>
