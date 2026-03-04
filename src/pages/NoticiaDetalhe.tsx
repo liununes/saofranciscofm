@@ -28,10 +28,10 @@ const NoticiaDetalhe = () => {
       // Debug logs to help identify why an assigned ad might not appear
       console.debug('Noticia fetch:', { id, publicidade_id: data?.publicidade_id, publicidade_ativa: data?.publicidade_ativa });
 
-      if (data?.publicidade_ativa) {
-        let foundAd = null;
-        const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+      let foundAd = null;
+      const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
+      if (data?.publicidade_ativa) {
         if (data?.publicidade_id) {
           // Try Publicidade Notícias first
           const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
@@ -46,8 +46,22 @@ const NoticiaDetalhe = () => {
             foundAd = { ...promo, is_promotion: true };
           }
         }
+      }
 
-        if (foundAd) setPatrocinador(foundAd);
+      if (!foundAd) {
+        const { data: pubs } = await supabase
+          .from('publicidade_noticias')
+          .select('*')
+          .eq('ativo', true)
+          .or(`data_fim.is.null,data_fim.gte.${hoje}`);
+
+        if (pubs && pubs.length > 0) {
+          foundAd = pubs[Math.floor(Math.random() * pubs.length)];
+        }
+      }
+
+      if (foundAd) {
+        setPatrocinador(foundAd);
       }
       setLoading(false);
     };

@@ -61,13 +61,27 @@ const NewsSection = () => {
       }
     }
 
+    // Se nenhuma publicidade especifica foi encontrada/associada, pegamos uma Publicidade Notícia ativa aleatoriamente
+    if (!foundAd) {
+      const { data: pubs } = await supabase
+        .from('publicidade_noticias')
+        .select('*')
+        .eq('ativo', true)
+        .or(`data_fim.is.null,data_fim.gte.${hoje}`);
+      
+      if (pubs && pubs.length > 0) {
+        // Pega uma aleatória para exibir
+        foundAd = pubs[Math.floor(Math.random() * pubs.length)];
+      }
+    }
+
     setSelected({
       ...n,
       conteudo: data?.conteudo || n.resumo,
       link_completo: data?.link_completo || n.link_completo,
       patrocinador: foundAd,
-      publicidade_ativa: data?.publicidade_ativa,
-      patrocinador_id: data?.publicidade_id,
+      publicidade_ativa: data?.publicidade_ativa || !!foundAd,
+      patrocinador_id: foundAd?.id || data?.publicidade_id,
     });
   };
 
