@@ -807,8 +807,21 @@ const AdminPanel = () => {
               }
               const item = data?.item;
               if (item && item.id) {
-                // Apply to all noticias. Avoid comparing id to empty string (invalid UUID).
-                const { error: updErr } = await supabase.from('noticias').update({ publicidade_id: item.id, publicidade_ativa: true });
+                // Fetch all noticia ids and update using WHERE IN to satisfy DB restrictions
+                const { data: noticiasList, error: newsErr } = await supabase.from('noticias').select('id');
+                if (newsErr) {
+                  toast.error(`Erro ao recuperar notícias: ${newsErr.message}`);
+                  return;
+                }
+
+                const ids = (noticiasList || []).map((n: any) => n.id).filter(Boolean);
+                if (ids.length === 0) {
+                  setPublicidades(prev => [item, ...prev]);
+                  toast.success('Publicidade criada, mas não há notícias para aplicar.');
+                  return;
+                }
+
+                const { error: updErr } = await supabase.from('noticias').update({ publicidade_id: item.id, publicidade_ativa: true }).in('id', ids);
                 if (updErr) {
                   toast.error(`Erro ao aplicar publicidade nas notícias: ${updErr.message}`);
                 } else {
