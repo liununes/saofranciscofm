@@ -53,7 +53,8 @@ const NoticiaDetalhe = () => {
       setLoading(false);
     };
     fetchData();
-  }, [id, patrocinador]); // Added patrocinador to dependencies just in case, though state update is inside
+  }, [id]);
+
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background">Carregando...</div>;
   if (!noticia) return <div className="min-h-screen flex items-center justify-center bg-background">Notícia não encontrada.</div>;
