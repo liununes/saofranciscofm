@@ -9,10 +9,34 @@ const AnalyticsTracker = () => {
     useEffect(() => {
         const trackView = async () => {
             try {
-                // Tentativa de obter dados de geolocalização simples
-                // Usando ipapi.co (limite gratuito de 1000 requests/dia)
+                // Verifica se já registrou este acesso nesta sessão do navegador
+                const alreadyTracked = sessionStorage.getItem('analytics_tracked');
+                if (alreadyTracked) return;
+
                 const geoRes = await fetch('https://ipapi.co/json/').catch(() => null);
                 const geoData = geoRes && geoRes.ok ? await geoRes.json() : {};
+                const ip = geoData.ip || null;
+
+                if (ip) {
+                    // Verifica se já existe registro deste IP hoje
+                    const today = new Date().toISOString().split('T')[0];
+                    const { count } = await supabase
+                        .from('page_views')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('ip', ip)
+                        .gte('created_at', `${today}T00:00:00.000Z`);
+
+                    if (count && count > 0) {
+                        sessionStorage.setItem('analytics_tracked', '1');
+                        return;
+                    }
+                }
+
+                const sessionId = sessionStorage.getItem('analytics_session_id') || (() => {
+                    const id = Math.random().toString(36).substring(2, 15);
+                    sessionStorage.setItem('analytics_session_id', id);
+                    return id;
+                })();
 
                 const { error } = await supabase.from('page_views').insert({
                     path: location.pathname + location.hash,
@@ -20,21 +44,17 @@ const AnalyticsTracker = () => {
                     city: geoData.city || null,
                     region: geoData.region || null,
                     country: geoData.country_name || null,
-                    ip: geoData.ip || null,
-                    session_id: sessionStorage.getItem('analytics_session_id') || (() => {
-                        const id = Math.random().toString(36).substring(2, 15);
-                        sessionStorage.setItem('analytics_session_id', id);
-                        return id;
-                    })(),
+                    ip,
+                    session_id: sessionId,
                 });
 
                 if (error) console.error('Supabase Analytics Error:', error);
+                else sessionStorage.setItem('analytics_tracked', '1');
             } catch (error) {
                 console.warn('Analytics tracking skipped or failed:', error);
             }
         };
 
-        // Pequeno delay para garantir que a página carregou e não contar redirects rápidos demais
         const timer = setTimeout(trackView, 1000);
         return () => clearTimeout(timer);
     }, [location.pathname]);
