@@ -16,6 +16,13 @@ const Programacao = () => {
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, Mic, Radio } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface ProgramaData {
   id: string;
@@ -61,18 +68,38 @@ const ProgramacaoContent = () => {
               return (
                 <div
                   key={prog.id}
-                  className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                    isCurrent
+                  className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${isCurrent
                       ? 'bg-primary/10 border-primary shadow-md'
                       : 'bg-card border-border hover:shadow-card'
-                  }`}
+                    }`}
                 >
                   {prog.locutores?.imagem_url ? (
-                    <img
-                      src={prog.locutores.imagem_url}
-                      alt={prog.locutores.nome}
-                      className="w-14 h-14 rounded-full object-cover border-2 border-secondary"
-                    />
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <img
+                          src={prog.locutores.imagem_url}
+                          alt={prog.locutores.nome}
+                          className="w-14 h-14 rounded-full object-cover border-2 border-secondary cursor-pointer hover:opacity-80 transition-opacity"
+                        />
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-transparent border-none shadow-none">
+                        <DialogHeader className="sr-only">
+                          <DialogTitle>{prog.locutores.nome}</DialogTitle>
+                        </DialogHeader>
+                        <div className="relative flex items-center justify-center">
+                          <img
+                            src={prog.locutores.imagem_url}
+                            alt={prog.locutores.nome}
+                            className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                          />
+                        </div>
+                        <div className="absolute bottom-4 left-0 right-0 text-center">
+                          <span className="bg-black/60 text-white px-4 py-2 rounded-full backdrop-blur-sm font-display font-medium">
+                            {prog.locutores.nome}
+                          </span>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   ) : (
                     <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
                       <Mic className="w-6 h-6 text-muted-foreground" />

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 import { Newspaper, Clock, MessageCircle, Music, Send, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -142,7 +142,33 @@ const NextProgramModule = () => {
       </div>
       <div className="flex items-center gap-4">
         {locutor?.imagem_url && (
-          <img src={locutor.imagem_url} alt={locutor.nome} className="w-16 h-16 rounded-full object-cover border-2 border-secondary flex-shrink-0" loading="lazy" />
+          <Dialog>
+            <DialogTrigger asChild>
+              <img
+                src={locutor.imagem_url}
+                alt={locutor.nome}
+                className="w-16 h-16 rounded-full object-cover border-2 border-secondary flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                loading="lazy"
+              />
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-transparent border-none shadow-none">
+              <DialogHeader className="sr-only">
+                <DialogTitle>{locutor.nome}</DialogTitle>
+              </DialogHeader>
+              <div className="relative flex items-center justify-center">
+                <img
+                  src={locutor.imagem_url}
+                  alt={locutor.nome}
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                />
+              </div>
+              <div className="absolute bottom-4 left-0 right-0 text-center">
+                <span className="bg-black/60 text-white px-4 py-2 rounded-full backdrop-blur-sm font-display font-medium">
+                  {locutor.nome}
+                </span>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
         <div className="flex-1 min-w-0">
           <h3 className="font-display font-bold text-base text-foreground truncate">{nextProgram.nome}</h3>

@@ -2,6 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 import { Play, Pause, Volume2, VolumeX, Phone } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const RadioPlayer = () => {
   const { config, isLive } = useRadio();
@@ -27,7 +34,7 @@ const RadioPlayer = () => {
       audioRef.current.pause();
     } else {
       audioRef.current.src = config.streaming_url;
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().catch(() => { });
       setAutoplayBlocked(false);
     }
     setIsPlaying(!isPlaying);
@@ -80,7 +87,32 @@ const RadioPlayer = () => {
           <div className="flex items-center gap-4 bg-primary-foreground/5 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-primary-foreground/10 flex-1 w-full max-w-xl">
             {/* Locutor image */}
             {isLive && config.locutor_imagem && (
-              <img src={config.locutor_imagem} alt={config.locutor_ao_vivo} className="w-12 h-12 rounded-full object-cover border-2 border-secondary flex-shrink-0 hidden sm:block" />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <img
+                    src={config.locutor_imagem}
+                    alt={config.locutor_ao_vivo}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-secondary flex-shrink-0 hidden sm:block cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-transparent border-none shadow-none">
+                  <DialogHeader className="sr-only">
+                    <DialogTitle>{config.locutor_ao_vivo}</DialogTitle>
+                  </DialogHeader>
+                  <div className="relative flex items-center justify-center">
+                    <img
+                      src={config.locutor_imagem}
+                      alt={config.locutor_ao_vivo}
+                      className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                    />
+                  </div>
+                  <div className="absolute bottom-4 left-0 right-0 text-center">
+                    <span className="bg-black/60 text-white px-4 py-2 rounded-full backdrop-blur-sm font-display font-medium">
+                      {config.locutor_ao_vivo}
+                    </span>
+                  </div>
+                </DialogContent>
+              </Dialog>
             )}
 
             {/* Play Button */}
