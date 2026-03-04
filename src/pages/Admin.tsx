@@ -54,7 +54,7 @@ const SOCIAL_ICONS = [
 ];
 
 const ImageHint = ({ text }: { text: string }) => (
-  <p className="text-[10px] text-muted-foreground mt-1">📐 {text}</p>
+  <p className="text-[10px] text-muted-foreground mt-1">📐 {text} • 📦 Máx. 2MB</p>
 );
 
 function useDebouncedSave(saveFn: (id: string, updates: any) => Promise<void>, delay = 600) {
@@ -908,7 +908,7 @@ const AdminPanel = () => {
 
                     <div>
                       <Label className="text-xs">Imagem</Label>
-                      <p className="text-[11px] text-muted-foreground mb-1">Tamanho recomendado: 800×400px (proporção 2:1). Formatos: JPG ou PNG.</p>
+                      <p className="text-[11px] text-muted-foreground mb-1">Tamanho recomendado: 800×400px (proporção 2:1). Formatos: JPG ou PNG. Máx. 2MB.</p>
                       <ImageUpload value={p.imagem_url} onChange={(url) => updatePromocaoImmediate(p.id, { imagem_url: url })} folder="promocoes" />
                     </div>
                   </div>
