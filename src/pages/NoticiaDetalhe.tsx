@@ -30,18 +30,20 @@ const NoticiaDetalhe = () => {
 
       if (data?.publicidade_id && data?.publicidade_ativa) {
         let foundAd = null;
+        const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
         // Try Publicidade Notícias first
         const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).maybeSingle();
 
-        if (pub?.ativo) {
+        if (pub?.ativo && (!pub.data_fim || pub.data_fim >= hoje)) {
           foundAd = pub;
         }
 
         // Fallback to Promoções if not found/active
         if (!foundAd) {
           const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.publicidade_id).maybeSingle();
-          if (promo?.ativo) {
+          const promoFim = promo?.prorrogada_ate || promo?.data_validade;
+          if (promo?.ativo && (!promoFim || promoFim >= hoje)) {
             foundAd = { ...promo, is_promotion: true };
           }
         }
@@ -70,13 +72,6 @@ const NoticiaDetalhe = () => {
     if (!patrocinador) {
       return (
         <div className="space-y-3">
-          {/* If the article expects an ad but none was loaded, show a small diagnostic placeholder */}
-          {noticia?.publicidade_ativa && noticia?.publicidade_id && !patrocinador ? (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded text-sm">
-              Publicidade ativa nesta matéria, mas nenhum anúncio disponível no momento. Verifique em Administração → Publicidade Notícias se a publicidade selecionada está ativa e dentro do período configurado.
-            </div>
-          ) : null}
-
           <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
             {text}
           </div>
