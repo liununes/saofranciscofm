@@ -10,50 +10,32 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    console.log('news-ads-admin invoked', { method: req.method });
-    console.log('request headers', Object.fromEntries(req.headers.entries()));
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY');
-      return new Response(JSON.stringify({ error: 'Server misconfiguration: missing env vars' }), {
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      console.error('Missing environment variables');
+      return new Response(JSON.stringify({ error: 'Falta configuração no servidor (env vars)' }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+    // Cliente para verificar autenticação do usuário
+    const authHeader = req.headers.get("Authorization");
+    const supabaseUserClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader || "" } },
     });
 
-    let user: any = null;
-    let authErrorDetails: any = null;
-    try {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
-        console.warn('No Authorization header provided');
-      }
+    // Cliente administrativo para bypass de RLS
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.warn('supabase.auth.getUser returned error', userError);
-        authErrorDetails = userError;
-      }
-      user = userData?.user ?? null;
-    } catch (authErr) {
-      console.error('auth.getUser critical failure', authErr instanceof Error ? authErr.message : String(authErr));
-      authErrorDetails = authErr;
-    }
+    const { data: { user }, error: userError } = await supabaseUserClient.auth.getUser();
 
-    if (!user) {
-      console.error('Authentication check failed - user is null');
-      return new Response(JSON.stringify({
-        error: "Não autenticado",
-        details: authErrorDetails,
-        debug: "Check if Authorization header is being sent correctly from the frontend."
-      }), {
+    if (userError || !user) {
+      console.error('Auth check failed:', userError);
+      return new Response(JSON.stringify({ error: "Não autenticado", details: userError }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -68,8 +50,8 @@ serve(async (req) => {
 
       const codigoProxy = `PROMO:${promocaoId}`;
 
-      // Check if proxy already exists
-      const { data: existing } = await supabase
+      // Verificar se proxy já existe (usando Admin para garantir que vemos tudo)
+      const { data: existing } = await supabaseAdmin
         .from("publicidade_noticias")
         .select("id")
         .eq("codigo", codigoProxy)
@@ -81,14 +63,14 @@ serve(async (req) => {
         });
       }
 
-      // Fetch promo details to mirror its name
-      const { data: promo } = await supabase.from("promocoes").select("nome").eq("id", promocaoId).single();
+      // Buscar detalhes da promoção
+      const { data: promo } = await supabaseAdmin.from("promocoes").select("nome").eq("id", promocaoId).single();
 
-      // Create it
-      const { data: newProxy, error: proxyErr } = await supabase
+      // Criar o proxy
+      const { data: newProxy, error: proxyErr } = await supabaseAdmin
         .from("publicidade_noticias")
         .insert({
-          nome: `[PROXY] ${promo?.nome || promocaoId}`,
+          nome: `🎁 [Promoção] ${promo?.nome || promocaoId}`,
           ativo: true,
           codigo: codigoProxy,
         })
@@ -103,7 +85,7 @@ serve(async (req) => {
     }
 
     if (action === "list") {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("publicidade_noticias")
         .select("*")
         .order("created_at", { ascending: false });
@@ -116,7 +98,7 @@ serve(async (req) => {
 
     if (action === "create") {
       const payload = body?.payload || {};
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("publicidade_noticias")
         .insert({
           nome: payload.nome ?? "Nova Publicidade",
@@ -141,14 +123,9 @@ serve(async (req) => {
       const id = body?.id;
       const payload = body?.payload || {};
 
-      if (!id) {
-        return new Response(JSON.stringify({ error: "ID é obrigatório" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!id) throw new Error("ID é obrigatório");
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("publicidade_noticias")
         .update(payload)
         .eq("id", id)
@@ -163,14 +140,9 @@ serve(async (req) => {
 
     if (action === "delete") {
       const id = body?.id;
-      if (!id) {
-        return new Response(JSON.stringify({ error: "ID é obrigatório" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!id) throw new Error("ID é obrigatório");
 
-      const { error } = await supabase.from("publicidade_noticias").delete().eq("id", id);
+      const { error } = await supabaseAdmin.from("publicidade_noticias").delete().eq("id", id);
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true }), {
@@ -185,7 +157,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("news-ads-admin error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erro interno" }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Erro interno",
+        stack: error instanceof Error ? error.stack : undefined
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
