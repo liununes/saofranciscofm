@@ -1,0 +1,1 @@
+ALTER TABLE public.publicidade_noticias ADD COLUMN IF NOT EXISTS codigo text UNIQUE DEFAULT NULL;
