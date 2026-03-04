@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import { format, subDays, startOfDay, endOfDay, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Users, Eye, MapPin, Globe, Loader2, Calendar } from 'lucide-react';
+import { Users, Eye, MapPin, Globe, Loader2, Calendar, Smartphone, Laptop, Monitor } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -17,7 +17,7 @@ import { useRadio } from '@/contexts/RadioContext';
 import { Radio as RadioIcon } from 'lucide-react';
 
 const AnalyticsDashboard = () => {
-    const { onlineCount } = useRadio();
+    const { onlineCount, presenceData } = useRadio();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any[]>([]);
     const [filter, setFilter] = useState('7days'); // 24h, 7days, 30days, month, year, all, custom
@@ -145,12 +145,15 @@ const AnalyticsDashboard = () => {
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                                    Ouvintes Ao Vivo
+                                    Ouvintes Ao Vivo (Site)
                                 </p>
                                 <h3 className="text-3xl font-bold mt-1">{onlineCount}</h3>
                             </div>
                             <RadioIcon className="w-8 h-8 text-red-500 opacity-50" />
                         </div>
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                            {presenceData.filter(p => p.is_listening).length} ouvindo o áudio agora
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -289,22 +292,42 @@ const AnalyticsDashboard = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <Loader2 className="w-4 h-4" /> Atividade Recente
+                            <Users className="w-4 h-4" /> Localidade dos Ouvintes Online
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4 max-h-[280px] overflow-y-auto pr-2">
-                            {data.slice().reverse().slice(0, 10).map((view, i) => (
-                                <div key={i} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-bold truncate max-w-[200px]">{view.path === '/' ? 'Página Inicial' : view.path}</span>
-                                        <span className="text-[10px] text-muted-foreground">{view.city || 'Desconhecido'}, {view.country || 'BR'}</span>
+                            {presenceData.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-4">Nenhum ouvinte detectado no momento.</p>
+                            ) : (
+                                presenceData.map((p, i) => (
+                                    <div key={i} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors border-b last:border-0 border-border/40">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold">{p.city || 'Desconhecido'}{p.region ? `, ${p.region}` : ''}</span>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/50 px-1.5 rounded">
+                                                    {p.device === 'iPhone' || p.device === 'Android' ? <Smartphone className="w-3 h-3" /> : (p.device === 'Mac' ? <Laptop className="w-3 h-3" /> : <Monitor className="w-3 h-3" />)}
+                                                    {p.device || 'Dispositivo'}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    {p.browser || 'Navegador'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {p.is_listening ? (
+                                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 text-[9px] font-bold animate-pulse">
+                                                    <RadioIcon className="w-3 h-3" /> OUVINDO
+                                                </div>
+                                            ) : (
+                                                <div className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[9px] font-medium">
+                                                    NA PÁGINA
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                        {format(parseISO(view.created_at), 'HH:mm (dd/MM)')}
-                                    </span>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </CardContent>
                 </Card>

@@ -92,9 +92,6 @@ const RadioHeader = () => {
             </div>
           )}
 
-          <Link to="/admin" className="p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors text-primary-foreground" title="Painel Administrativo">
-            <Settings className="w-5 h-5" />
-          </Link>
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground">
             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>

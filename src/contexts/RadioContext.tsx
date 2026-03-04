@@ -191,6 +191,9 @@ interface RadioContextType {
   currentPrograma: Programa | null;
   refreshData: () => Promise<void>;
   onlineCount: number;
+  presenceData: any[];
+  isListening: boolean;
+  setIsListening: (val: boolean) => void;
 }
 
 const RadioContext = createContext<RadioContextType | undefined>(undefined);
@@ -201,6 +204,9 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const [currentPrograma, setCurrentPrograma] = useState<Programa | null>(null);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [onlineCount, setOnlineCount] = useState(1);
+  const [presenceData, setPresenceData] = useState<any[]>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [locationInfo, setLocationInfo] = useState({ city: 'Desconhecido', region: '' });
 
   const fetchData = async () => {
     const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes, visitasRes] = await Promise.all([
@@ -342,7 +348,16 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    // Try to get location
+    fetch('https://ipapi.co/json/')
+      .then(res => res.json())
+      .then(data => {
+        if (data.city) setLocationInfo({ city: data.city, region: data.region });
+      })
+      .catch(() => { });
+  }, []);
 
   useEffect(() => {
     checkCurrentProgram();
@@ -352,6 +367,25 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
 
   const updateConfig = (updates: Partial<RadioConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }));
+  };
+
+  // Helper to detect device and browser
+  const getDeviceInfo = () => {
+    const ua = navigator.userAgent;
+    let device = "PC / Outro";
+    if (/android/i.test(ua)) device = "Android";
+    else if (/iphone|ipad|ipod/i.test(ua)) device = "iPhone";
+    else if (/macintosh/i.test(ua)) device = "Mac";
+    else if (/windows/i.test(ua)) device = "Windows";
+
+    let browser = "Navegador";
+    if (/chrome|crios|crmo/i.test(ua)) browser = "Chrome";
+    else if (/safari/i.test(ua) && !/chrome|crios|crmo/i.test(ua)) browser = "Safari";
+    else if (/firefox|iceweasel|fxios/i.test(ua)) browser = "Firefox";
+    else if (/edg/i.test(ua)) browser = "Edge";
+    else if (/opera|opr/i.test(ua)) browser = "Opera";
+
+    return { device, browser };
   };
 
   // Listeners Real-time Presence
@@ -367,22 +401,41 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        const count = Object.keys(state).length;
-        setOnlineCount(count > 0 ? count : 1);
+        const presences = Object.values(state).flat();
+        setPresenceData(presences);
+        setOnlineCount(presences.length > 0 ? presences.length : 1);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ online_at: new Date().toISOString() });
+          const info = getDeviceInfo();
+          await channel.track({
+            online_at: new Date().toISOString(),
+            is_listening: isListening,
+            city: locationInfo.city,
+            region: locationInfo.region,
+            device: info.device,
+            browser: info.browser
+          });
         }
       });
 
     return () => {
       channel.unsubscribe();
     };
-  }, []);
+  }, [isListening, locationInfo]);
 
   return (
-    <RadioContext.Provider value={{ config, updateConfig, isLive, currentPrograma, refreshData: fetchData, onlineCount }}>
+    <RadioContext.Provider value={{
+      config,
+      updateConfig,
+      isLive,
+      currentPrograma,
+      refreshData: fetchData,
+      onlineCount,
+      presenceData,
+      isListening,
+      setIsListening
+    }}>
       {children}
     </RadioContext.Provider>
   );

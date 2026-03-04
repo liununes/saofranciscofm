@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 
 const RadioPlayer = () => {
-  const { config, isLive } = useRadio();
+  const { config, isLive, setIsListening } = useRadio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
@@ -25,17 +25,22 @@ const RadioPlayer = () => {
     const audio = audioRef.current;
     audio.src = config.streaming_url;
     audio.volume = volume / 100;
-    audio.play().then(() => setIsPlaying(true)).catch(() => setAutoplayBlocked(true));
+    audio.play().then(() => {
+      setIsPlaying(true);
+      setIsListening(true);
+    }).catch(() => setAutoplayBlocked(true));
   }, [config.streaming_url]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
+      setIsListening(false);
     } else {
       audioRef.current.src = config.streaming_url;
       audioRef.current.play().catch(() => { });
       setAutoplayBlocked(false);
+      setIsListening(true);
     }
     setIsPlaying(!isPlaying);
   };
