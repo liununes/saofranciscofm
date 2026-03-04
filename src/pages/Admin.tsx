@@ -632,16 +632,34 @@ const AdminPanel = () => {
                     {n.publicidade_ativa && (
                       <>
                         <Select
-                          value={n.publicidade_id || n.promocao_id || 'none'}
-                          onValueChange={(v) => {
+                          value={n.publicidade_id || 'none'}
+                          onValueChange={async (v) => {
                             if (v === 'none') {
-                              updateNoticiaImmediate(n.id, { publicidade_id: null, promocao_id: null });
+                              updateNoticiaImmediate(n.id, { publicidade_id: null });
                             } else {
                               const isPromo = promocoes.some((p) => p.id === v);
                               if (isPromo) {
-                                updateNoticiaImmediate(n.id, { promocao_id: v, publicidade_id: null });
+                                // Create a proxy ad record to satisfy the foreign key constraint
+                                try {
+                                  toast.info('Vinculando promoção...', { id: 'link-promo' });
+                                  const { data: proxyData, error: proxyError } = await supabase.functions.invoke('news-ads-admin', {
+                                    body: { action: 'create_proxy', promocao_id: v }
+                                  });
+                                  if (proxyError) throw proxyError;
+
+                                  // Assign the new proxy ad ID to the news article
+                                  updateNoticiaImmediate(n.id, { publicidade_id: proxyData.id });
+                                  toast.success('Promoção vinculada!', { id: 'link-promo' });
+
+                                  // Refresh ads list so it shows up if needed
+                                  const { data: pubRes } = await supabase.functions.invoke('news-ads-admin', { body: { action: 'list' } });
+                                  setPublicidades(pubRes?.items || []);
+                                } catch (err: any) {
+                                  toast.error('Erro ao vincular promoção: ' + err.message, { id: 'link-promo' });
+                                  console.error(err);
+                                }
                               } else {
-                                updateNoticiaImmediate(n.id, { publicidade_id: v, promocao_id: null });
+                                updateNoticiaImmediate(n.id, { publicidade_id: v });
                               }
                             }
                           }}
@@ -650,13 +668,15 @@ const AdminPanel = () => {
                           <SelectContent>
                             <SelectItem value="none">Nenhuma</SelectItem>
                             <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground bg-muted/50">PUBLICIDADES</div>
-                            {publicidades.filter(p => p.ativo).map(p => (
+                            {publicidades.filter(p => p.ativo && !p.codigo?.startsWith('PROMO:')).map(p => (
                               <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                             ))}
                             <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground bg-muted/50 mt-1">PROMOÇÕES</div>
-                            {promocoes.filter(p => p.ativo).map(p => (
-                              <SelectItem key={p.id} value={p.id}>🎁 {p.nome}</SelectItem>
-                            ))}
+                            {promocoes.filter(p => p.ativo).map(p => {
+                              // Find if this promo has a proxy ad
+                              const proxyAd = publicidades.find(pub => pub.codigo === `PROMO:${p.id}`);
+                              return <SelectItem key={proxyAd?.id || p.id} value={p.id}>🎁 {p.nome}</SelectItem>;
+                            })}
                           </SelectContent>
                         </Select>
                         <p className="text-[10px] text-muted-foreground">Escolha uma publicidade ou promoção para aparecer no meio do texto.</p>

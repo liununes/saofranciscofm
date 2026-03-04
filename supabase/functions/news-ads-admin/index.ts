@@ -9,45 +9,85 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-    try {
-      console.log('news-ads-admin invoked', { method: req.method });
-      console.log('request headers', Object.fromEntries(req.headers.entries()));
+  try {
+    console.log('news-ads-admin invoked', { method: req.method });
+    console.log('request headers', Object.fromEntries(req.headers.entries()));
 
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY');
-        return new Response(JSON.stringify({ error: 'Server misconfiguration: missing env vars' }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY');
+      return new Response(JSON.stringify({ error: 'Server misconfiguration: missing env vars' }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
-      let user: any = null;
-      try {
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        if (userError) {
-          console.warn('supabase.auth.getUser returned error', userError);
-        }
-        user = userData?.user ?? null;
-      } catch (authErr) {
-        console.warn('auth.getUser failed', authErr instanceof Error ? authErr.message : String(authErr));
-      }
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+    });
 
-      if (!user) {
-        return new Response(JSON.stringify({ error: "Não autenticado" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+    let user: any = null;
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.warn('supabase.auth.getUser returned error', userError);
       }
+      user = userData?.user ?? null;
+    } catch (authErr) {
+      console.warn('auth.getUser failed', authErr instanceof Error ? authErr.message : String(authErr));
+    }
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Não autenticado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const body = await req.json();
     const action = body?.action;
+
+    if (action === "create_proxy") {
+      const promocaoId = body?.promocao_id;
+      if (!promocaoId) throw new Error("Missing promocao_id");
+
+      const codigoProxy = `PROMO:${promocaoId}`;
+
+      // Check if proxy already exists
+      const { data: existing } = await supabase
+        .from("publicidade_noticias")
+        .select("id")
+        .eq("codigo", codigoProxy)
+        .maybeSingle();
+
+      if (existing) {
+        return new Response(JSON.stringify(existing), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch promo details to mirror its name
+      const { data: promo } = await supabase.from("promocoes").select("nome").eq("id", promocaoId).single();
+
+      // Create it
+      const { data: newProxy, error: proxyErr } = await supabase
+        .from("publicidade_noticias")
+        .insert({
+          nome: `[PROXY] ${promo?.nome || promocaoId}`,
+          ativo: true,
+          codigo: codigoProxy,
+        })
+        .select("id")
+        .single();
+
+      if (proxyErr) throw proxyErr;
+
+      return new Response(JSON.stringify(newProxy), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (action === "list") {
       const { data, error } = await supabase
