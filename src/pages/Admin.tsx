@@ -405,7 +405,14 @@ const AdminPanel = () => {
             <p className="text-xs text-muted-foreground">Locutores</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection('patrocinadores')}>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow bg-secondary/5" onClick={() => setActiveSection('analytics')}>
+          <CardContent className="pt-6 text-center">
+            <Users className="w-8 h-8 mx-auto text-secondary mb-2" />
+            <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total de Visitas</p>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection('noticias')}>
           <CardContent className="pt-6 text-center">
             <Users className="w-8 h-8 mx-auto text-primary mb-2" />
             <p className="text-2xl font-bold text-foreground">{patrocinadores.length}</p>

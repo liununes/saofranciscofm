@@ -120,6 +120,7 @@ export interface RadioConfig {
   ads_meio_ativo: boolean;
   ads_rodape_codigo: string;
   ads_rodape_ativo: boolean;
+  total_visitas?: number;
   musicas_recentes: Musica[];
   noticias: Noticia[];
   patrocinadores: Patrocinador[];
@@ -200,7 +201,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const [programas, setProgramas] = useState<Programa[]>([]);
 
   const fetchData = async () => {
-    const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes] = await Promise.all([
+    const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes, visitasRes] = await Promise.all([
       supabase.from('radio_config').select('*').limit(1).single(),
       supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
       supabase.from('noticias').select('*').order('created_at', { ascending: false }),
@@ -209,6 +210,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
       supabase.from('social_links').select('*').order('ordem', { ascending: true }),
       supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
+      supabase.from('page_views' as any).select('*', { count: 'exact', head: true }),
     ]);
 
     const rc = rcRes.data;
@@ -275,6 +277,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       ads_meio_ativo: rc?.ads_meio_ativo ?? false,
       ads_rodape_codigo: rc?.ads_rodape_codigo || '',
       ads_rodape_ativo: rc?.ads_rodape_ativo ?? false,
+      total_visitas: visitasRes?.count || 0,
       musicas_recentes: (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
       noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '', created_at: n.created_at, updated_at: n.updated_at, destaque: (n as any).destaque || false })),
       patrocinadores: (patrocinadores || []).map(p => ({

@@ -1,5 +1,5 @@
 import { useRadio } from '@/contexts/RadioContext';
-import { Radio } from 'lucide-react';
+import { Radio, Eye } from 'lucide-react';
 import PhoneContact from '@/components/radio/PhoneContact';
 
 const RadioFooter = () => {
@@ -16,6 +16,12 @@ const RadioFooter = () => {
         <p className="text-primary-foreground/60 text-sm">
           © {new Date().getFullYear()} {config.nome_radio}. Todos os direitos reservados.
         </p>
+
+        {/* Contador de Acessos Público */}
+        <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-primary-foreground/40 uppercase tracking-widest font-bold">
+          <Eye className="w-3 h-3" />
+          <span>Acessos: {config.total_visitas || '...'}</span>
+        </div>
 
         <PhoneContact position="rodape" variant="footer" />
 

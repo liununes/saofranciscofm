@@ -16,11 +16,12 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 const AnalyticsDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any[]>([]);
-    const [filter, setFilter] = useState('7days'); // 24h, 7days, 30days, month, year
+    const [filter, setFilter] = useState('7days'); // 24h, 7days, 30days, month, year, all, custom
+    const [customDate, setCustomDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
     useEffect(() => {
         fetchAnalytics();
-    }, [filter]);
+    }, [filter, customDate]);
 
     const fetchAnalytics = async () => {
         setLoading(true);
@@ -38,6 +39,10 @@ const AnalyticsDashboard = () => {
                 query = query.gte('created_at', startOfMonth(now).toISOString());
             } else if (filter === 'year') {
                 query = query.gte('created_at', new Date(now.getFullYear(), 0, 1).toISOString());
+            } else if (filter === 'custom') {
+                const start = startOfDay(new Date(customDate));
+                const end = endOfDay(new Date(customDate));
+                query = query.gte('created_at', start.toISOString()).lte('created_at', end.toISOString());
             }
 
             const { data: views, error } = await query.order('created_at', { ascending: true });
@@ -113,8 +118,19 @@ const AnalyticsDashboard = () => {
                             <SelectItem value="month">Este mês</SelectItem>
                             <SelectItem value="year">Este ano</SelectItem>
                             <SelectItem value="all">Tudo</SelectItem>
+                            <SelectItem value="custom">Data Específica</SelectItem>
                         </SelectContent>
                     </Select>
+                    {filter === 'custom' && (
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
+                            <input
+                                type="date"
+                                value={customDate}
+                                onChange={(e) => setCustomDate(e.target.value)}
+                                className="bg-background border rounded px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
