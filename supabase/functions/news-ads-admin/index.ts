@@ -9,25 +9,42 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    try {
+      console.log('news-ads-admin invoked', { method: req.method });
+      console.log('request headers', Object.fromEntries(req.headers.entries()));
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
-    });
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY');
+        return new Response(JSON.stringify({ error: 'Server misconfiguration: missing env vars' }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
       });
-    }
+
+      let user: any = null;
+      try {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          console.warn('supabase.auth.getUser returned error', userError);
+        }
+        user = userData?.user ?? null;
+      } catch (authErr) {
+        console.warn('auth.getUser failed', authErr instanceof Error ? authErr.message : String(authErr));
+      }
+
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Não autenticado" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
     const body = await req.json();
     const action = body?.action;
@@ -56,6 +73,7 @@ serve(async (req) => {
           link: payload.link ?? "",
           data_inicio: payload.data_inicio ?? null,
           data_fim: payload.data_fim ?? null,
+          codigo: payload.codigo ?? null,
         })
         .select("*")
         .single();
