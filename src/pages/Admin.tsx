@@ -794,7 +794,30 @@ const AdminPanel = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display font-bold text-xl text-foreground">Publicidade em Notícias</h2>
-          <Button onClick={addPublicidade} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={addPublicidade} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
+            <Button onClick={async () => {
+              // Create and apply to all news
+              const { data, error } = await supabase.functions.invoke('news-ads-admin', {
+                body: { action: 'create', payload: { nome: 'Nova Publicidade', texto: '', ativo: true } },
+              });
+              if (error || data?.error) {
+                toast.error(`Erro ao criar publicidade: ${error?.message || data?.error || 'Falha inesperada'}`);
+                return;
+              }
+              const item = data?.item;
+              if (item && item.id) {
+                const { error: updErr } = await supabase.from('noticias').update({ publicidade_id: item.id, publicidade_ativa: true }).neq('id', '');
+                if (updErr) {
+                  toast.error(`Erro ao aplicar publicidade nas notícias: ${updErr.message}`);
+                } else {
+                  setPublicidades(prev => [item, ...prev]);
+                  toast.success('Publicidade criada e aplicada em todas as notícias.');
+                  // refresh local list
+                }
+              }
+            }} size="sm" variant="secondary" className="gap-1"><Plus className="w-4 h-4" /> Adicionar e Aplicar em Todas</Button>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground">
           Cadastre publicidades aqui. Depois, vá na seção <strong>Notícias</strong> e ative a publicidade escolhendo qual exibir em cada matéria.
