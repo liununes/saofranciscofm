@@ -13,7 +13,11 @@ import { Users, Eye, MapPin, Globe, Loader2, Calendar } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
+import { useRadio } from '@/contexts/RadioContext';
+import { Radio as RadioIcon } from 'lucide-react';
+
 const AnalyticsDashboard = () => {
+    const { onlineCount } = useRadio();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any[]>([]);
     const [filter, setFilter] = useState('7days'); // 24h, 7days, 30days, month, year, all, custom
@@ -134,7 +138,22 @@ const AnalyticsDashboard = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-br from-red-500/10 to-transparent border-red-500/20">
+                    <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                                    Ouvintes Ao Vivo
+                                </p>
+                                <h3 className="text-3xl font-bold mt-1">{onlineCount}</h3>
+                            </div>
+                            <RadioIcon className="w-8 h-8 text-red-500 opacity-50" />
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20">
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">

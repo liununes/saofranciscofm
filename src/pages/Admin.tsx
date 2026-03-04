@@ -859,7 +859,7 @@ const AdminPanel = () => {
                           </Button>
                         </div>
                       )}
-                      <ImageUpload value={p.imagem_url} onChange={url => updatePublicidadeImmediate(p.id, { imagem_url: url })} folder="publicidade" />
+                      <ImageUpload value={p.imagem_url} onChange={url => updatePublicidadeImmediate(p.id, { imagem_url: url })} folder="midia" />
                       <ImageHint text="728×90 px ou 300×250 px" />
                     </div>
                   </div>

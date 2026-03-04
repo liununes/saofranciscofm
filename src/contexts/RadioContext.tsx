@@ -190,6 +190,7 @@ interface RadioContextType {
   isLive: boolean;
   currentPrograma: Programa | null;
   refreshData: () => Promise<void>;
+  onlineCount: number;
 }
 
 const RadioContext = createContext<RadioContextType | undefined>(undefined);
@@ -199,6 +200,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const [isLive, setIsLive] = useState(false);
   const [currentPrograma, setCurrentPrograma] = useState<Programa | null>(null);
   const [programas, setProgramas] = useState<Programa[]>([]);
+  const [onlineCount, setOnlineCount] = useState(1);
 
   const fetchData = async () => {
     const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes, visitasRes] = await Promise.all([
@@ -352,8 +354,35 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
     setConfig(prev => ({ ...prev, ...updates }));
   };
 
+  // Listeners Real-time Presence
+  useEffect(() => {
+    const channel = supabase.channel('online-listeners', {
+      config: {
+        presence: {
+          key: 'user',
+        },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const count = Object.keys(state).length;
+        setOnlineCount(count > 0 ? count : 1);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
+
   return (
-    <RadioContext.Provider value={{ config, updateConfig, isLive, currentPrograma, refreshData: fetchData }}>
+    <RadioContext.Provider value={{ config, updateConfig, isLive, currentPrograma, refreshData: fetchData, onlineCount }}>
       {children}
     </RadioContext.Provider>
   );
