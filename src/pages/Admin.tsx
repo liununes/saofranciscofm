@@ -882,6 +882,7 @@ const AdminPanel = () => {
 
                     <div>
                       <Label className="text-xs">Imagem</Label>
+                      <p className="text-[11px] text-muted-foreground mb-1">Tamanho recomendado: 800×400px (proporção 2:1). Formatos: JPG ou PNG.</p>
                       <ImageUpload value={p.imagem_url} onChange={(url) => updatePromocaoImmediate(p.id, { imagem_url: url })} folder="promocoes" />
                     </div>
                   </div>
