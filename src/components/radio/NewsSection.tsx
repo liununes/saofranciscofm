@@ -41,33 +41,15 @@ const NewsSection = () => {
 
   const openNoticia = async (n: any) => {
     const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
+
     let foundAd = null;
-    if (data?.publicidade_ativa) {
-      if (data?.publicidade_id) {
-        // Try Publicidade Notícias
-        const { data: pub } = await supabase.from('publicidade_noticias').select('*').eq('id', data.publicidade_id).eq('ativo', true).maybeSingle();
-        if (pub) {
-          foundAd = pub;
-        }
-      } else if (data?.promocao_id) {
-        // Try Promoções
-        const { data: promo } = await supabase.from('promocoes').select('*').eq('id', data.promocao_id).eq('ativo', true).maybeSingle();
-        if (promo) {
-          foundAd = { ...promo, is_promotion: true };
-        }
-      }
-    }
-
-    // Se nenhuma publicidade especifica foi encontrada/associada, pegamos uma Publicidade Notícia ativa aleatoriamente
-    if (!foundAd) {
-      const { data: pubs } = await supabase
-        .from('publicidade_noticias')
-        .select('*')
-        .eq('ativo', true);
-
-      if (pubs && pubs.length > 0) {
-        foundAd = pubs[Math.floor(Math.random() * pubs.length)];
-      }
+    try {
+      const { data: resolved } = await supabase.functions.invoke('news-content-admin', {
+        body: { action: 'resolve_for_news', noticia_id: n.id },
+      });
+      foundAd = resolved?.ad || null;
+    } catch {
+      foundAd = null;
     }
 
     setSelected({
@@ -76,7 +58,7 @@ const NewsSection = () => {
       link_completo: data?.link_completo || n.link_completo,
       patrocinador: foundAd,
       publicidade_ativa: data?.publicidade_ativa || !!foundAd,
-      patrocinador_id: foundAd?.id || data?.publicidade_id,
+      patrocinador_id: foundAd?.id || data?.publicidade_id || data?.promocao_id,
     });
   };
 

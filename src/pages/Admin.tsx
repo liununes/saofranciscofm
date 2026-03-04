@@ -131,8 +131,14 @@ const AdminPanel = () => {
 
   useEffect(() => { loadAll(); }, []);
 
+  const invokeNewsContentAdmin = async (body: Record<string, any>) => {
+    const { data, error } = await supabase.functions.invoke('news-content-admin', { body });
+    if (error) throw error;
+    return data;
+  };
+
   const loadAll = async () => {
-    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, pubRes, promoRes] = await Promise.all([
+    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, promoRes] = await Promise.all([
       supabase.from('radio_config').select('*').limit(1).single(),
       supabase.from('locutores').select('*').order('created_at'),
       supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
@@ -142,9 +148,17 @@ const AdminPanel = () => {
       supabase.from('slide_imagens').select('*').order('ordem'),
       supabase.from('paginas').select('*').order('slug'),
       supabase.from('social_links').select('*').order('ordem'),
-      supabase.from('publicidade_noticias').select('*').order('created_at', { ascending: false }),
       supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
     ]);
+
+    let publicidadesData: any[] = [];
+    try {
+      const res = await invokeNewsContentAdmin({ action: 'list_admin' });
+      publicidadesData = res?.items || [];
+    } catch {
+      publicidadesData = [];
+    }
+
     setRc(rcRes.data || {});
     setLocutores(locRes.data || []);
     setProgramas(progRes.data || []);
@@ -154,7 +168,7 @@ const AdminPanel = () => {
     setSlides(slidRes.data || []);
     setPaginas(pagRes.data || []);
     setSocialLinks(socialRes.data || []);
-    setPublicidades(pubRes.data || []);
+    setPublicidades(publicidadesData);
     setPromocoes(promoRes.data || []);
 
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
@@ -632,7 +646,7 @@ const AdminPanel = () => {
                     {n.publicidade_ativa && (
                       <>
                         <Select
-                          value={n.publicidade_id || 'none'}
+                          value={n.publicidade_id || n.promocao_id || 'none'}
                           onValueChange={async (v) => {
                             if (v === 'none') {
                               updateNoticiaImmediate(n.id, { publicidade_id: null, promocao_id: null });
@@ -653,15 +667,13 @@ const AdminPanel = () => {
                           <SelectContent>
                             <SelectItem value="none">Nenhuma</SelectItem>
                             <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground bg-muted/50">PUBLICIDADES</div>
-                            {publicidades.filter(p => p.ativo && !p.codigo?.startsWith('PROMO:')).map(p => (
+                            {publicidades.filter(p => p.ativo).map(p => (
                               <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                             ))}
                             <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground bg-muted/50 mt-1">PROMOÇÕES</div>
-                            {promocoes.filter(p => p.ativo).map(p => {
-                              // Find if this promo has a proxy ad
-                              const proxyAd = publicidades.find(pub => pub.codigo === `PROMO:${p.id}`);
-                              return <SelectItem key={proxyAd?.id || p.id} value={p.id}>🎁 {p.nome}</SelectItem>;
-                            })}
+                            {promocoes.filter(p => p.ativo).map(p => (
+                              <SelectItem key={p.id} value={p.id}>🎁 {p.nome}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <p className="text-[10px] text-muted-foreground">Escolha uma publicidade ou promoção para aparecer no meio do texto.</p>
@@ -693,36 +705,31 @@ const AdminPanel = () => {
 
   // Publicidade CRUD helpers (via backend function para evitar bloqueio de navegador)
   const addPublicidade = async () => {
-    const { data, error } = await supabase
-      .from('publicidade_noticias')
-      .insert({ nome: 'Nova Publicidade', texto: '', ativo: true })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error(`Erro ao criar publicidade: ${error.message}`);
-      return;
+    try {
+      const data = await invokeNewsContentAdmin({ action: 'create', payload: { nome: 'Nova Publicidade', texto: '', ativo: true } });
+      if (data?.item) setPublicidades(prev => [data.item, ...prev]);
+      toast.success('Publicidade criada!');
+    } catch (error: any) {
+      toast.error(`Erro ao criar publicidade: ${error?.message || 'Falha na requisição'}`);
     }
-
-    if (data) setPublicidades(prev => [data, ...prev]);
-    toast.success('Publicidade criada!');
   };
 
   const deletePublicidade = async (id: string) => {
-    const { error } = await supabase.from('publicidade_noticias').delete().eq('id', id);
-
-    if (error) {
-      toast.error(`Erro ao remover publicidade: ${error.message}`);
-      return;
+    try {
+      await invokeNewsContentAdmin({ action: 'delete', id });
+      setPublicidades(prev => prev.filter(p => p.id !== id));
+      toast.success('Publicidade removida.');
+    } catch (error: any) {
+      toast.error(`Erro ao remover publicidade: ${error?.message || 'Falha na requisição'}`);
     }
-
-    setPublicidades(prev => prev.filter(p => p.id !== id));
-    toast.success('Publicidade removida.');
   };
 
   const persistPublicidade = useCallback(async (id: string, updates: any) => {
-    const { error } = await supabase.from('publicidade_noticias').update(updates).eq('id', id);
-    if (error) toast.error(`Erro ao atualizar publicidade: ${error.message}`);
+    try {
+      await invokeNewsContentAdmin({ action: 'update', id, payload: updates });
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar publicidade: ${error?.message || 'Falha na requisição'}`);
+    }
   }, []);
 
   const debouncedSavePublicidade = useDebouncedSave(persistPublicidade);
@@ -734,8 +741,11 @@ const AdminPanel = () => {
 
   const updatePublicidadeImmediate = async (id: string, updates: any) => {
     setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    const { error } = await supabase.from('publicidade_noticias').update(updates).eq('id', id);
-    if (error) toast.error(`Erro ao salvar publicidade: ${error.message}`);
+    try {
+      await invokeNewsContentAdmin({ action: 'update', id, payload: updates });
+    } catch (error: any) {
+      toast.error(`Erro ao salvar publicidade: ${error?.message || 'Falha na requisição'}`);
+    }
   };
 
   // Promoções CRUD helpers
@@ -814,11 +824,6 @@ const AdminPanel = () => {
                     <Input placeholder="Link (URL destino ao clicar)" value={p.link || ''} onChange={e => updatePublicidade(p.id, { link: e.target.value })} />
 
                     <div>
-                      <Label className="text-xs">Código HTML/JS (opcional)</Label>
-                      <Textarea placeholder="Cole aqui o código do anúncio (ex: AdSense)" value={p.codigo || ''} onChange={e => updatePublicidade(p.id, { codigo: e.target.value })} rows={4} />
-                    </div>
-
-                    <div>
                       <Label className="text-xs">Imagem</Label>
                       {p.imagem_url && (
                         <div className="relative inline-block mb-2">
@@ -877,6 +882,7 @@ const AdminPanel = () => {
 
                     <div>
                       <Label className="text-xs">Imagem</Label>
+                      <p className="text-[11px] text-muted-foreground mb-1">Tamanho recomendado: 800×400px (proporção 2:1). Formatos: JPG ou PNG.</p>
                       <ImageUpload value={p.imagem_url} onChange={(url) => updatePromocaoImmediate(p.id, { imagem_url: url })} folder="promocoes" />
                     </div>
                   </div>
