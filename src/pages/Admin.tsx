@@ -807,13 +807,13 @@ const AdminPanel = () => {
               }
               const item = data?.item;
               if (item && item.id) {
-                const { error: updErr } = await supabase.from('noticias').update({ publicidade_id: item.id, publicidade_ativa: true }).neq('id', '');
+                // Apply to all noticias. Avoid comparing id to empty string (invalid UUID).
+                const { error: updErr } = await supabase.from('noticias').update({ publicidade_id: item.id, publicidade_ativa: true });
                 if (updErr) {
                   toast.error(`Erro ao aplicar publicidade nas notícias: ${updErr.message}`);
                 } else {
                   setPublicidades(prev => [item, ...prev]);
                   toast.success('Publicidade criada e aplicada em todas as notícias.');
-                  // refresh local list
                 }
               }
             }} size="sm" variant="secondary" className="gap-1"><Plus className="w-4 h-4" /> Adicionar e Aplicar em Todas</Button>
