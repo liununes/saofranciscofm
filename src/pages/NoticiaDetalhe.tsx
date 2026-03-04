@@ -47,6 +47,9 @@ const NoticiaDetalhe = () => {
 
   const shareUrl = window.location.href;
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const showAdsDebug = urlParams.get('ads_debug') === '1';
+
   // Prepare and split content, then inject sponsor block in the middle
   const renderContent = () => {
     const text = noticia.conteudo || noticia.resumo || '';
@@ -136,7 +139,16 @@ const NoticiaDetalhe = () => {
         </div>
 
         {noticia.resumo && <p className="text-muted-foreground mb-6 text-lg">{noticia.resumo}</p>}
-        
+        {showAdsDebug ? (
+          <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-800 rounded text-sm">
+            <div className="font-semibold mb-1">ADS DEBUG</div>
+            <div className="text-xs">publicidade_ativa: {String(noticia.publicidade_ativa)}</div>
+            <div className="text-xs">publicidade_id: {String(noticia.publicidade_id)}</div>
+            <div className="text-xs">patrocinador loaded: {patrocinador ? 'yes' : 'no'}</div>
+            <details className="text-xs mt-2"><summary>patrocinador object</summary><pre className="text-xs">{JSON.stringify(patrocinador, null, 2)}</pre></details>
+          </div>
+        ) : null}
+
         {renderContent()}
 
         {/* External link */}
