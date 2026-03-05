@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
-    
+
     const admin = roles?.some(r => r.role === 'admin') ?? false;
     setIsAdmin(admin);
 
@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchRoleAndPermissions(session.user.id), 0);
+          await fetchRoleAndPermissions(session.user.id);
         } else {
           setIsAdmin(false);
           setPermissions([]);
@@ -59,11 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRoleAndPermissions(session.user.id);
+        await fetchRoleAndPermissions(session.user.id);
       }
       setLoading(false);
     });
