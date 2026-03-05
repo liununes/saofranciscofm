@@ -130,7 +130,8 @@ const AdminPanel = () => {
   const [newPassword, setNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
 
-  const hasPermission = (perm: string) => isAdmin || permissions.includes(perm);
+  const isMasterAccount = user?.email === 'liununes06@gmail.com';
+  const hasPermission = (perm: string) => isAdmin || isMasterAccount || permissions.includes(perm);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -1405,10 +1406,13 @@ const AdminLogin = () => {
 const Admin = () => {
   const { user, loading, isAdmin, signOut } = useAuth();
 
+  // EMERGENCY OVERRIDE FOR MASTER ACCOUNT
+  const isMasterAccount = user?.email === 'liununes06@gmail.com';
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background">Carregando painel...</div>;
   if (!user) return <AdminLogin />;
 
-  if (!isAdmin) {
+  if (!isAdmin && !isMasterAccount) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background space-y-4">
         <Shield className="w-16 h-16 text-destructive mb-4" />
