@@ -392,48 +392,11 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
     return { device, browser };
   };
 
-  // Listeners Real-time Presence (disabled on self-hosted Supabase without Realtime)
+  // Realtime presence disabled - self-hosted Supabase doesn't support WebSocket
   useEffect(() => {
-    let channel: any;
-    try {
-      channel = supabase.channel('online-listeners', {
-        config: {
-          presence: {
-            key: 'user',
-          },
-        },
-      });
-
-      channel
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState();
-          const presences = Object.values(state).flat();
-          setPresenceData(presences);
-          setOnlineCount(presences.length > 0 ? presences.length : 1);
-        })
-        .subscribe(async (status: string) => {
-          if (status === 'SUBSCRIBED') {
-            const info = getDeviceInfo();
-            await channel.track({
-              online_at: new Date().toISOString(),
-              is_listening: isListening,
-              city: locationInfo.city,
-              region: locationInfo.region,
-              device: info.device,
-              browser: info.browser
-            });
-          }
-        });
-    } catch {
-      // Realtime not available on self-hosted Supabase
-    }
-
-    return () => {
-      if (channel) {
-        try { channel.unsubscribe(); } catch {}
-      }
-    };
-  }, [isListening, locationInfo]);
+    setOnlineCount(1);
+    setPresenceData([]);
+  }, []);
 
   return (
     <RadioContext.Provider value={{

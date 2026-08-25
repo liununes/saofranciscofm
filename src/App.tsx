@@ -4,11 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RadioProvider } from "./contexts/RadioContext";
-import { AuthProvider, useAuth } from "./hooks/useAuth";
+import { AuthProvider } from "./hooks/useAuth";
 import AnalyticsTracker from "./components/analytics/AnalyticsTracker";
 import Index from "./pages/Index";
 import Admin from "./pages/Admin";
-import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NoticiaDetalhe from "./pages/NoticiaDetalhe";
 import Sobre from "./pages/Sobre";
@@ -16,14 +15,6 @@ import Programacao from "./pages/Programacao";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
-  const { user, loading, isAdmin } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
-  if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && !isAdmin) return <Navigate to="/" replace />;
-  return <>{children}</>;
-};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,9 +30,9 @@ const App = () => (
               <Route path="/sobre" element={<Sobre />} />
               <Route path="/programacao" element={<Programacao />} />
               <Route path="/noticia/:id" element={<NoticiaDetalhe />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/login" element={<Navigate to="/admin" replace />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
