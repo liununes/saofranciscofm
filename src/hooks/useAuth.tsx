@@ -25,21 +25,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [permissions, setPermissions] = useState<string[]>([]);
 
   const fetchRoleAndPermissions = async (userId: string) => {
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-
-    const admin = roles?.some(r => r.role === 'admin') ?? false;
-    setIsAdmin(admin);
-
-    if (!admin) {
-      const { data: perms } = await supabase
-        .from('user_permissions')
-        .select('permission')
+    try {
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
         .eq('user_id', userId);
-      setPermissions(perms?.map(p => p.permission) ?? []);
-    } else {
+
+      const admin = roles?.some(r => r.role === 'admin') ?? false;
+      setIsAdmin(admin);
+
+      if (!admin) {
+        const { data: perms } = await supabase
+          .from('user_permissions')
+          .select('permission')
+          .eq('user_id', userId);
+        setPermissions(perms?.map(p => p.permission) ?? []);
+      } else {
+        setPermissions([]);
+      }
+    } catch {
+      setIsAdmin(false);
       setPermissions([]);
     }
   };
@@ -65,6 +70,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         await fetchRoleAndPermissions(session.user.id);
       }
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
