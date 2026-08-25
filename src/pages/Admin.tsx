@@ -143,7 +143,7 @@ const AdminPanel = () => {
 
   const loadAll = async () => {
     try {
-      const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, promoRes] = await Promise.all([
+      const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, promoRes] = await Promise.allSettled([
         supabase.from('radio_config').select('*').limit(1).single(),
         supabase.from('locutores').select('*').order('created_at'),
         supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
@@ -164,26 +164,21 @@ const AdminPanel = () => {
         publicidadesData = [];
       }
 
-      setRc(rcRes.data || {});
-      setLocutores(locRes.data || []);
-      setProgramas(progRes.data || []);
-      setMusicas(musRes.data || []);
-      setNoticias(notRes.data || []);
-      setPatrocinadores(patRes.data || []);
-      setSlides(slidRes.data || []);
-      setPaginas(pagRes.data || []);
-      setSocialLinks(socialRes.data || []);
+      setRc(rcRes.status === 'fulfilled' ? rcRes.value.data || {} : {});
+      setLocutores(locRes.status === 'fulfilled' ? locRes.value.data || [] : []);
+      setProgramas(progRes.status === 'fulfilled' ? progRes.value.data || [] : []);
+      setMusicas(musRes.status === 'fulfilled' ? musRes.value.data || [] : []);
+      setNoticias(notRes.status === 'fulfilled' ? notRes.value.data || [] : []);
+      setPatrocinadores(patRes.status === 'fulfilled' ? patRes.value.data || [] : []);
+      setSlides(slidRes.status === 'fulfilled' ? slidRes.value.data || [] : []);
+      setPaginas(pagRes.status === 'fulfilled' ? pagRes.value.data || [] : []);
+      setSocialLinks(socialRes.status === 'fulfilled' ? socialRes.value.data || [] : []);
       setPublicidades(publicidadesData);
-      setPromocoes(promoRes.data || []);
+      setPromocoes(promoRes.status === 'fulfilled' ? promoRes.value.data || [] : []);
 
     // Analytics brief stats
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const [{ count: total }, { count: today }] = await Promise.all([
-        supabase.from('page_views' as any).select('id', { count: 'exact' }).limit(1),
-        supabase.from('page_views' as any).select('id', { count: 'exact' }).limit(1).gte('created_at', `${todayStr}T00:00:00Z`)
-      ]);
-      setStats({ total: total || 0, today: today || 0 });
+      setStats({ total: 0, today: 0 });
     } catch {
       setStats({ total: 0, today: 0 });
     }

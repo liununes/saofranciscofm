@@ -210,7 +210,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchData = async () => {
     try {
-      const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes, visitasRes] = await Promise.all([
+      const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes] = await Promise.allSettled([
         supabase.from('radio_config').select('*').limit(1).single(),
         supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
         supabase.from('noticias').select('*').order('created_at', { ascending: false }),
@@ -219,17 +219,16 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
         supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
         supabase.from('social_links').select('*').order('ordem', { ascending: true }),
         supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
-        supabase.from('page_views').select('id', { count: 'exact' }).limit(1),
       ]);
 
-    const rc = rcRes.data;
-    const musicas = musicasRes.data;
-    const noticias = noticiasRes.data;
-    const patrocinadores = patRes.data;
-    const slides = slidesRes.data;
-    const progs = progsRes.data;
-    const socialLinks = socialRes.data;
-    const promocoes = promoRes.data;
+      const rc = rcRes.status === 'fulfilled' ? rcRes.value.data : null;
+      const musicas = musicasRes.status === 'fulfilled' ? musicasRes.value.data : null;
+      const noticias = noticiasRes.status === 'fulfilled' ? noticiasRes.value.data : null;
+      const patrocinadores = patRes.status === 'fulfilled' ? patRes.value.data : null;
+      const slides = slidesRes.status === 'fulfilled' ? slidesRes.value.data : null;
+      const progs = progsRes.status === 'fulfilled' ? progsRes.value.data : null;
+      const socialLinks = socialRes.status === 'fulfilled' ? socialRes.value.data : null;
+      const promocoes = promoRes.status === 'fulfilled' ? promoRes.value.data : null;
 
     const mappedProgramas: Programa[] = (progs || []).map((p: any) => ({
       id: p.id,
@@ -286,7 +285,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       ads_meio_ativo: rc?.ads_meio_ativo ?? false,
       ads_rodape_codigo: rc?.ads_rodape_codigo || '',
       ads_rodape_ativo: rc?.ads_rodape_ativo ?? false,
-      total_visitas: visitasRes?.count || 0,
+      total_visitas: 0,
       musicas_recentes: (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
       noticias: (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '', created_at: n.created_at, updated_at: n.updated_at, destaque: (n as any).destaque || false })),
       patrocinadores: (patrocinadores || []).map(p => ({
