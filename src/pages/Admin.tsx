@@ -142,57 +142,69 @@ const AdminPanel = () => {
   };
 
   const loadAll = async () => {
-    const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, promoRes] = await Promise.all([
-      supabase.from('radio_config').select('*').limit(1).single(),
-      supabase.from('locutores').select('*').order('created_at'),
-      supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
-      supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }),
-      supabase.from('noticias').select('*').order('created_at', { ascending: false }),
-      supabase.from('patrocinadores').select('*').order('created_at'),
-      supabase.from('slide_imagens').select('*').order('ordem'),
-      supabase.from('paginas').select('*').order('slug'),
-      supabase.from('social_links').select('*').order('ordem'),
-      supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
-    ]);
-
-    let publicidadesData: any[] = [];
     try {
-      const res = await invokeNewsContentAdmin({ action: 'list_admin' });
-      publicidadesData = res?.items || [];
-    } catch {
-      publicidadesData = [];
-    }
+      const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, promoRes] = await Promise.all([
+        supabase.from('radio_config').select('*').limit(1).single(),
+        supabase.from('locutores').select('*').order('created_at'),
+        supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
+        supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }),
+        supabase.from('noticias').select('*').order('created_at', { ascending: false }),
+        supabase.from('patrocinadores').select('*').order('created_at'),
+        supabase.from('slide_imagens').select('*').order('ordem'),
+        supabase.from('paginas').select('*').order('slug'),
+        supabase.from('social_links').select('*').order('ordem'),
+        supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
+      ]);
 
-    setRc(rcRes.data || {});
-    setLocutores(locRes.data || []);
-    setProgramas(progRes.data || []);
-    setMusicas(musRes.data || []);
-    setNoticias(notRes.data || []);
-    setPatrocinadores(patRes.data || []);
-    setSlides(slidRes.data || []);
-    setPaginas(pagRes.data || []);
-    setSocialLinks(socialRes.data || []);
-    setPublicidades(publicidadesData);
-    setPromocoes(promoRes.data || []);
+      let publicidadesData: any[] = [];
+      try {
+        const res = await invokeNewsContentAdmin({ action: 'list_admin' });
+        publicidadesData = res?.items || [];
+      } catch {
+        publicidadesData = [];
+      }
+
+      setRc(rcRes.data || {});
+      setLocutores(locRes.data || []);
+      setProgramas(progRes.data || []);
+      setMusicas(musRes.data || []);
+      setNoticias(notRes.data || []);
+      setPatrocinadores(patRes.data || []);
+      setSlides(slidRes.data || []);
+      setPaginas(pagRes.data || []);
+      setSocialLinks(socialRes.data || []);
+      setPublicidades(publicidadesData);
+      setPromocoes(promoRes.data || []);
 
     // Analytics brief stats
-    const todayStr = new Date().toISOString().split('T')[0];
-    const [{ count: total }, { count: today }] = await Promise.all([
-      supabase.from('page_views' as any).select('*', { count: 'exact', head: true }),
-      supabase.from('page_views' as any).select('*', { count: 'exact', head: true }).gte('created_at', `${todayStr}T00:00:00Z`)
-    ]);
-    setStats({ total: total || 0, today: today || 0 });
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const [{ count: total }, { count: today }] = await Promise.all([
+        supabase.from('page_views' as any).select('*', { count: 'exact', head: true }),
+        supabase.from('page_views' as any).select('*', { count: 'exact', head: true }).gte('created_at', `${todayStr}T00:00:00Z`)
+      ]);
+      setStats({ total: total || 0, today: today || 0 });
+    } catch {
+      setStats({ total: 0, today: 0 });
+    }
 
     if (isAdmin || permissions.includes('gerenciar_usuarios')) {
-      const { data: profiles } = await supabase.from('profiles').select('*');
-      if (profiles) {
-        const usersWithRoles = await Promise.all(profiles.map(async (p) => {
-          const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', p.user_id);
-          const { data: perms } = await supabase.from('user_permissions').select('permission').eq('user_id', p.user_id);
-          return { ...p, roles: roles || [], permissions: perms?.map(pp => pp.permission) || [] };
-        }));
-        setUsers(usersWithRoles);
+      try {
+        const { data: profiles } = await supabase.from('profiles').select('*');
+        if (profiles) {
+          const usersWithRoles = await Promise.all(profiles.map(async (p) => {
+            const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', p.user_id);
+            const { data: perms } = await supabase.from('user_permissions').select('permission').eq('user_id', p.user_id);
+            return { ...p, roles: roles || [], permissions: perms?.map(pp => pp.permission) || [] };
+          }));
+          setUsers(usersWithRoles);
+        }
+      } catch {
+        setUsers([]);
       }
+    }
+    } catch (e) {
+      console.error('Erro ao carregar dados do painel:', e);
     }
   };
 
