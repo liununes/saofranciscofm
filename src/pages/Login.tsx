@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Radio, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -8,19 +8,22 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 const Login = () => {
-  const { signIn, resetPassword } = useAuth();
+  const { signIn, resetPassword, user, loading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+  if (user) return <Navigate to="/admin" replace />;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setFormLoading(true);
     const { error } = await signIn(email, password);
-    setLoading(false);
+    setFormLoading(false);
     if (error) {
       toast.error('E-mail ou senha incorretos.');
     } else {
@@ -34,9 +37,9 @@ const Login = () => {
       toast.error('Informe seu e-mail.');
       return;
     }
-    setLoading(true);
+    setFormLoading(true);
     const { error } = await resetPassword(email);
-    setLoading(false);
+    setFormLoading(false);
     if (error) {
       toast.error('Erro ao enviar link de recuperação.');
     } else {
@@ -60,8 +63,8 @@ const Login = () => {
               <Label>E-mail</Label>
               <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Enviando...' : 'Enviar link'}
+            <Button type="submit" className="w-full" disabled={formLoading}>
+              {formLoading ? 'Enviando...' : 'Enviar link'}
             </Button>
             <button type="button" onClick={() => setForgotMode(false)} className="text-sm text-primary w-full text-center">
               Voltar ao login
@@ -87,8 +90,8 @@ const Login = () => {
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Entrando...' : 'Entrar'}
+            <Button type="submit" className="w-full" disabled={formLoading}>
+              {formLoading ? 'Entrando...' : 'Entrar'}
             </Button>
             <button type="button" onClick={() => setForgotMode(true)} className="text-sm text-primary w-full text-center">
               Esqueci minha senha

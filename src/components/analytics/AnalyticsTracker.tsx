@@ -22,7 +22,8 @@ const AnalyticsTracker = () => {
                     const today = new Date().toISOString().split('T')[0];
                     const { count } = await supabase
                         .from('page_views')
-                        .select('*', { count: 'exact', head: true })
+                        .select('id', { count: 'exact' })
+                        .limit(1)
                         .eq('ip', ip)
                         .gte('created_at', `${today}T00:00:00.000Z`);
 
