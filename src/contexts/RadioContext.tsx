@@ -209,17 +209,18 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const [locationInfo, setLocationInfo] = useState({ city: 'Desconhecido', region: '' });
 
   const fetchData = async () => {
-    const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes, visitasRes] = await Promise.all([
-      supabase.from('radio_config').select('*').limit(1).single(),
-      supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
-      supabase.from('noticias').select('*').order('created_at', { ascending: false }),
-      supabase.from('patrocinadores').select('*'),
-      supabase.from('slide_imagens').select('*').order('ordem', { ascending: true }),
-      supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
-      supabase.from('social_links').select('*').order('ordem', { ascending: true }),
-      supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
-      supabase.from('page_views').select('*', { count: 'exact', head: true }),
-    ]);
+    try {
+      const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes, visitasRes] = await Promise.all([
+        supabase.from('radio_config').select('*').limit(1).single(),
+        supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
+        supabase.from('noticias').select('*').order('created_at', { ascending: false }),
+        supabase.from('patrocinadores').select('*'),
+        supabase.from('slide_imagens').select('*').order('ordem', { ascending: true }),
+        supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
+        supabase.from('social_links').select('*').order('ordem', { ascending: true }),
+        supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
+        supabase.from('page_views').select('id', { count: 'exact' }).limit(1),
+      ]);
 
     const rc = rcRes.data;
     const musicas = musicasRes.data;
@@ -311,6 +312,9 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
         prorrogada_ate: p.prorrogada_ate || '',
       })),
     }));
+    } catch (err) {
+      console.error('fetchData error:', err);
+    }
   };
 
   const checkCurrentProgram = () => {
@@ -388,39 +392,46 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
     return { device, browser };
   };
 
-  // Listeners Real-time Presence
+  // Listeners Real-time Presence (disabled on self-hosted Supabase without Realtime)
   useEffect(() => {
-    const channel = supabase.channel('online-listeners', {
-      config: {
-        presence: {
-          key: 'user',
+    let channel: any;
+    try {
+      channel = supabase.channel('online-listeners', {
+        config: {
+          presence: {
+            key: 'user',
+          },
         },
-      },
-    });
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const presences = Object.values(state).flat();
-        setPresenceData(presences);
-        setOnlineCount(presences.length > 0 ? presences.length : 1);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          const info = getDeviceInfo();
-          await channel.track({
-            online_at: new Date().toISOString(),
-            is_listening: isListening,
-            city: locationInfo.city,
-            region: locationInfo.region,
-            device: info.device,
-            browser: info.browser
-          });
-        }
       });
 
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const presences = Object.values(state).flat();
+          setPresenceData(presences);
+          setOnlineCount(presences.length > 0 ? presences.length : 1);
+        })
+        .subscribe(async (status: string) => {
+          if (status === 'SUBSCRIBED') {
+            const info = getDeviceInfo();
+            await channel.track({
+              online_at: new Date().toISOString(),
+              is_listening: isListening,
+              city: locationInfo.city,
+              region: locationInfo.region,
+              device: info.device,
+              browser: info.browser
+            });
+          }
+        });
+    } catch {
+      // Realtime not available on self-hosted Supabase
+    }
+
     return () => {
-      channel.unsubscribe();
+      if (channel) {
+        try { channel.unsubscribe(); } catch {}
+      }
     };
   }, [isListening, locationInfo]);
 
