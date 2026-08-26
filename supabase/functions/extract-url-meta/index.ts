@@ -117,64 +117,24 @@ serve(async (req) => {
         .trim();
     }
 
-    // If missing title/resumo/conteudo, use AI
+    // If missing title/resumo/conteudo, try simple text extraction fallback
     if (!titulo || !resumo || !conteudo) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (LOVABLE_API_KEY) {
-        const textOnly = html.replace(/<script[\s\S]*?<\/script>/gi, "")
-          .replace(/<style[\s\S]*?<\/style>/gi, "")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .substring(0, 6000);
+      const textOnly = html.replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .substring(0, 6000);
 
-        try {
-          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
-              messages: [
-                { role: "system", content: "Extract news article metadata from the given text. Return ONLY valid JSON with keys: titulo (title), resumo (summary max 200 chars), conteudo (full article body text, preserving paragraphs with \\n\\n). No markdown formatting." },
-                { role: "user", content: textOnly },
-              ],
-              tools: [{
-                type: "function",
-                function: {
-                  name: "extract_metadata",
-                  description: "Extract article title, summary and full content",
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      titulo: { type: "string", description: "Article title" },
-                      resumo: { type: "string", description: "Short summary, max 200 chars" },
-                      conteudo: { type: "string", description: "Full article body text with paragraphs" },
-                    },
-                    required: ["titulo", "resumo", "conteudo"],
-                    additionalProperties: false,
-                  },
-                },
-              }],
-              tool_choice: { type: "function", function: { name: "extract_metadata" } },
-            }),
-          });
-
-          if (aiResp.ok) {
-            const aiData = await aiResp.json();
-            const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-            if (toolCall?.function?.arguments) {
-              const parsed = JSON.parse(toolCall.function.arguments);
-              if (!titulo && parsed.titulo) titulo = parsed.titulo;
-              if (!resumo && parsed.resumo) resumo = parsed.resumo;
-              if (!conteudo && parsed.conteudo) conteudo = parsed.conteudo;
-            }
-          }
-        } catch (e) {
-          console.error("AI extraction failed:", e);
-        }
+      if (!titulo) {
+        const firstSentence = textOnly.substring(0, 200).split(/[.!?]/)[0];
+        titulo = firstSentence || "Notícia";
+      }
+      if (!resumo) {
+        resumo = textOnly.substring(0, 200);
+      }
+      if (!conteudo) {
+        conteudo = textOnly;
       }
     }
 
