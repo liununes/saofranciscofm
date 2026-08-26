@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import RadioHeader from '@/components/radio/RadioHeader';
@@ -12,7 +12,7 @@ const Sobre = () => {
 
   useEffect(() => {
     const fetch = async () => {
-      const { data } = await supabaseAdmin.from('paginas').select('*').eq('slug', 'sobre').single();
+      const { data } = await supabase.from('paginas').select('*').eq('slug', 'sobre').single();
       setPagina(data);
       setLoading(false);
     };

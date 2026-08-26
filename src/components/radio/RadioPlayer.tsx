@@ -28,7 +28,7 @@ const RadioPlayer = () => {
     audio.play().then(() => {
       setIsPlaying(true);
       setIsListening(true);
-    }).catch(() => setAutoplayBlocked(true));
+    }).catch(err => { console.warn("Autoplay bloqueado ou erro de carregamento:", err); setAutoplayBlocked(true); });
   }, [config.streaming_url]);
 
   const togglePlay = () => {
@@ -38,7 +38,7 @@ const RadioPlayer = () => {
       setIsListening(false);
     } else {
       audioRef.current.src = config.streaming_url;
-      audioRef.current.play().catch(() => { });
+      audioRef.current.play().catch(err => console.error("Erro ao tocar streaming:", err));
       setAutoplayBlocked(false);
       setIsListening(true);
     }
