@@ -176,6 +176,10 @@ const AdminPanel = () => {
       setPublicidades(publicidadesData);
       setPromocoes(promoRes.status === 'fulfilled' ? promoRes.value.data || [] : []);
 
+      // Log errors for debugging
+      if (rcRes.status === 'rejected') console.error('radio_config error:', rcRes.reason);
+      if (locRes.status === 'rejected') console.error('locutores error:', locRes.reason);
+
     // Analytics brief stats
     try {
       setStats({ total: 0, today: 0 });
