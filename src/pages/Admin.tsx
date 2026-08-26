@@ -97,7 +97,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const AdminPanel = () => {
-  const { refreshData, radioId } = useRadio();
+  const { refreshData } = useRadio();
   const { user, isAdmin, permissions, signOut, updatePassword } = useAuth();
 
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -130,23 +130,21 @@ const AdminPanel = () => {
   const isMasterAccount = user?.email === 'liununes06@gmail.com';
   const hasPermission = (perm: string) => isAdmin || isMasterAccount || permissions.includes(perm);
 
-  useEffect(() => { loadAll(); }, [radioId]);
+  useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
     try {
-      const withRadio = (query: any) => radioId ? query.eq('radio_id', radioId) : query;
-
       const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, promoRes] = await Promise.allSettled([
-        withRadio(supabase.from('radio_config').select('*')).limit(1).single(),
-        withRadio(supabase.from('locutores').select('*')).order('created_at'),
-        withRadio(supabase.from('programas').select('*, locutores(*)')).order('horario_inicio'),
-        withRadio(supabase.from('musicas_recentes').select('*')).order('created_at', { ascending: false }),
-        withRadio(supabase.from('noticias').select('*')).order('created_at', { ascending: false }),
-        withRadio(supabase.from('patrocinadores').select('*')).order('created_at'),
-        withRadio(supabase.from('slide_imagens').select('*')).order('ordem'),
-        withRadio(supabase.from('paginas').select('*')).order('slug'),
-        withRadio(supabase.from('social_links').select('*')).order('ordem'),
-        withRadio(supabase.from('promocoes').select('*')).order('created_at', { ascending: false }),
+        supabase.from('radio_config').select('*').limit(1).single(),
+        supabase.from('locutores').select('*').order('created_at'),
+        supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
+        supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }),
+        supabase.from('noticias').select('*').order('created_at', { ascending: false }),
+        supabase.from('patrocinadores').select('*').order('created_at'),
+        supabase.from('slide_imagens').select('*').order('ordem'),
+        supabase.from('paginas').select('*').order('slug'),
+        supabase.from('social_links').select('*').order('ordem'),
+        supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
       ]);
 
       setRc(rcRes.status === 'fulfilled' ? rcRes.value.data || {} : {});
@@ -273,20 +271,20 @@ const AdminPanel = () => {
   const updatePaginaImmediate = async (id: string, updates: any) => { setPaginas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('paginas').update(updates).eq('id', id); };
 
   // CRUD
-  const addLocutor = async () => { const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor', radio_id: radioId }).select().single(); if (!error && data) setLocutores(prev => [...prev, data]); };
+  const addLocutor = async () => { const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor' }).select().single(); if (!error && data) setLocutores(prev => [...prev, data]); };
   const deleteLocutor = async (id: string) => { await supabase.from('locutores').delete().eq('id', id); setLocutores(prev => prev.filter(l => l.id !== id)); };
-  const addPrograma = async () => { const { data, error } = await supabase.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5], radio_id: radioId }).select('*, locutores(*)').single(); if (!error && data) setProgramas(prev => [...prev, data]); };
+  const addPrograma = async () => { const { data, error } = await supabase.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5] }).select('*, locutores(*)').single(); if (!error && data) setProgramas(prev => [...prev, data]); };
   const deletePrograma = async (id: string) => { await supabase.from('programas').delete().eq('id', id); setProgramas(prev => prev.filter(p => p.id !== id)); };
-  const addMusica = async () => { const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '', radio_id: radioId }).select().single(); if (!error && data) setMusicas(prev => [data, ...prev]); };
+  const addMusica = async () => { const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '' }).select().single(); if (!error && data) setMusicas(prev => [data, ...prev]); };
   const deleteMusica = async (id: string) => { await supabase.from('musicas_recentes').delete().eq('id', id); setMusicas(prev => prev.filter(m => m.id !== id)); };
-  const addNoticia = async () => { const { data, error } = await supabase.from('noticias').insert({ titulo: '', resumo: '', link_completo: '', radio_id: radioId }).select().single(); if (!error && data) setNoticias(prev => [data, ...prev]); };
+  const addNoticia = async () => { const { data, error } = await supabase.from('noticias').insert({ titulo: '', resumo: '', link_completo: '' }).select().single(); if (!error && data) setNoticias(prev => [data, ...prev]); };
   const deleteNoticia = async (id: string) => { await supabase.from('noticias').delete().eq('id', id); setNoticias(prev => prev.filter(n => n.id !== id)); };
-  const addPatrocinador = async () => { const { data, error } = await supabase.from('patrocinadores').insert({ nome: '', tipo: 'normal', posicao: 'rodape', radio_id: radioId }).select().single(); if (!error && data) setPatrocinadores(prev => [...prev, data]); };
+  const addPatrocinador = async () => { const { data, error } = await supabase.from('patrocinadores').insert({ nome: '', tipo: 'normal', posicao: 'rodape' }).select().single(); if (!error && data) setPatrocinadores(prev => [...prev, data]); };
   const deletePatrocinador = async (id: string) => { await supabase.from('patrocinadores').delete().eq('id', id); setPatrocinadores(prev => prev.filter(p => p.id !== id)); };
-  const addSlide = async () => { const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length, radio_id: radioId }).select().single(); if (!error && data) setSlides(prev => [...prev, data]); };
+  const addSlide = async () => { const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single(); if (!error && data) setSlides(prev => [...prev, data]); };
   const deleteSlide = async (id: string) => { await supabase.from('slide_imagens').delete().eq('id', id); setSlides(prev => prev.filter(s => s.id !== id)); };
 
-  const addSocialLink = async () => { const { data, error } = await supabase.from('social_links').insert({ nome: 'Novo Link', url: '', icone: 'link', ordem: socialLinks.length, ativo: false, radio_id: radioId }).select().single(); if (!error && data) setSocialLinks(prev => [...prev, data]); };
+  const addSocialLink = async () => { const { data, error } = await supabase.from('social_links').insert({ nome: 'Novo Link', url: '', icone: 'link', ordem: socialLinks.length, ativo: false }).select().single(); if (!error && data) setSocialLinks(prev => [...prev, data]); };
   const deleteSocialLink = async (id: string) => { await supabase.from('social_links').delete().eq('id', id); setSocialLinks(prev => prev.filter(s => s.id !== id)); };
   const persistSocialLink = useCallback(async (id: string, updates: any) => { await supabase.from('social_links').update(updates).eq('id', id); }, []);
   const debouncedSaveSocialLink = useDebouncedSave(persistSocialLink);
@@ -658,7 +656,7 @@ const AdminPanel = () => {
   const addPromocao = async () => {
     const { data, error } = await supabase
       .from('promocoes')
-      .insert({ nome: 'Nova Promoção', texto: '', ativo: true, radio_id: radioId })
+      .insert({ nome: 'Nova Promoção', texto: '', ativo: true })
       .select()
       .maybeSingle();
 
@@ -895,7 +893,7 @@ const AdminPanel = () => {
         <h2 className="font-display font-bold text-xl text-foreground">Páginas</h2>
         <Button onClick={async () => {
           const slug = `pagina-${Date.now()}`;
-          const { data, error } = await supabase.from('paginas').insert({ slug, titulo: 'Nova Página', conteudo: '', radio_id: radioId }).select().single();
+          const { data, error } = await supabase.from('paginas').insert({ slug, titulo: 'Nova Página', conteudo: '' }).select().single();
           if (!error && data) { setPaginas(prev => [...prev, data]); toast.success('Página criada!'); }
           else toast.error('Erro ao criar página.');
         }} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Nova Página</Button>

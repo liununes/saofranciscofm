@@ -194,8 +194,6 @@ interface RadioContextType {
   presenceData: any[];
   isListening: boolean;
   setIsListening: (val: boolean) => void;
-  radioId: string | null;
-  setRadioId: (id: string) => void;
 }
 
 const RadioContext = createContext<RadioContextType | undefined>(undefined);
@@ -209,33 +207,18 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const [presenceData, setPresenceData] = useState<any[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [locationInfo, setLocationInfo] = useState({ city: 'Desconhecido', region: '' });
-  const [radioId, setRadioId] = useState<string | null>(() => localStorage.getItem('radio_id'));
 
   const fetchData = async () => {
     try {
-      let activeRadioId = radioId;
-
-      // Auto-detect radio if not set
-      if (!activeRadioId) {
-        const { data: radios } = await supabase.from('radios').select('id').eq('ativo', true).limit(1);
-        if (radios && radios.length > 0) {
-          activeRadioId = radios[0].id;
-          setRadioId(activeRadioId);
-          localStorage.setItem('radio_id', activeRadioId);
-        }
-      }
-
-      const withRadio = (query: any) => activeRadioId ? query.eq('radio_id', activeRadioId) : query;
-
       const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes] = await Promise.allSettled([
-        withRadio(supabase.from('radio_config').select('*')).limit(1).single(),
-        withRadio(supabase.from('musicas_recentes').select('*')).order('created_at', { ascending: false }).limit(10),
-        withRadio(supabase.from('noticias').select('*')).order('created_at', { ascending: false }),
-        withRadio(supabase.from('patrocinadores').select('*')),
-        withRadio(supabase.from('slide_imagens').select('*')).order('ordem', { ascending: true }),
-        withRadio(supabase.from('programas').select('*, locutores(*)')).eq('ativo', true),
-        withRadio(supabase.from('social_links').select('*')).order('ordem', { ascending: true }),
-        withRadio(supabase.from('promocoes').select('*')).order('created_at', { ascending: false }),
+        supabase.from('radio_config').select('*').limit(1).single(),
+        supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
+        supabase.from('noticias').select('*').order('created_at', { ascending: false }),
+        supabase.from('patrocinadores').select('*'),
+        supabase.from('slide_imagens').select('*').order('ordem', { ascending: true }),
+        supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
+        supabase.from('social_links').select('*').order('ordem', { ascending: true }),
+        supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
       ]);
 
       const rc = rcRes.status === 'fulfilled' ? rcRes.value.data : null;
@@ -376,7 +359,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
         if (data.city) setLocationInfo({ city: data.city, region: data.region });
       })
       .catch(() => { });
-  }, [radioId]);
+  }, []);
 
   useEffect(() => {
     checkCurrentProgram();
@@ -424,11 +407,6 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       presenceData,
       isListening,
       setIsListening,
-      radioId,
-      setRadioId: (id: string) => {
-        setRadioId(id);
-        localStorage.setItem('radio_id', id);
-      }
     }}>
       {children}
     </RadioContext.Provider>
