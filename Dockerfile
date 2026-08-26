@@ -1,20 +1,17 @@
-# Usar Node como base
-FROM node:18
+FROM node:18-alpine
 
-# Criar diretório de trabalho
 WORKDIR /app
 
-# Copiar package.json e package-lock.json
 COPY package*.json ./
 
-# Instalar dependências
 RUN npm install
 
-# Copiar restante do projeto
 COPY . .
 
-# Expor porta
-EXPOSE 5173
+RUN npm run build
 
-# Comando padrão para rodar app
-CMD ["npm", "run", "dev"]
+RUN npm install -g serve
+
+EXPOSE 3000
+
+CMD ["serve", "dist", "-l", "3000", "-s"]
