@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase, supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Musica {
   id: string;
@@ -217,7 +217,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
 
       // Auto-detect radio if not set
       if (!activeRadioId) {
-        const { data: radios } = await supabaseAdmin.from('radios').select('id').eq('ativo', true).limit(1);
+        const { data: radios } = await supabase.from('radios').select('id').eq('ativo', true).limit(1);
         if (radios && radios.length > 0) {
           activeRadioId = radios[0].id;
           setRadioId(activeRadioId);
@@ -228,14 +228,14 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       const withRadio = (query: any) => activeRadioId ? query.eq('radio_id', activeRadioId) : query;
 
       const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes] = await Promise.allSettled([
-        withRadio(supabaseAdmin.from('radio_config').select('*')).limit(1).single(),
-        withRadio(supabaseAdmin.from('musicas_recentes').select('*')).order('created_at', { ascending: false }).limit(10),
-        withRadio(supabaseAdmin.from('noticias').select('*')).order('created_at', { ascending: false }),
-        withRadio(supabaseAdmin.from('patrocinadores').select('*')),
-        withRadio(supabaseAdmin.from('slide_imagens').select('*')).order('ordem', { ascending: true }),
-        withRadio(supabaseAdmin.from('programas').select('*, locutores(*)')).eq('ativo', true),
-        withRadio(supabaseAdmin.from('social_links').select('*')).order('ordem', { ascending: true }),
-        withRadio(supabaseAdmin.from('promocoes').select('*')).order('created_at', { ascending: false }),
+        withRadio(supabase.from('radio_config').select('*')).limit(1).single(),
+        withRadio(supabase.from('musicas_recentes').select('*')).order('created_at', { ascending: false }).limit(10),
+        withRadio(supabase.from('noticias').select('*')).order('created_at', { ascending: false }),
+        withRadio(supabase.from('patrocinadores').select('*')),
+        withRadio(supabase.from('slide_imagens').select('*')).order('ordem', { ascending: true }),
+        withRadio(supabase.from('programas').select('*, locutores(*)')).eq('ativo', true),
+        withRadio(supabase.from('social_links').select('*')).order('ordem', { ascending: true }),
+        withRadio(supabase.from('promocoes').select('*')).order('created_at', { ascending: false }),
       ]);
 
       const rc = rcRes.status === 'fulfilled' ? rcRes.value.data : null;

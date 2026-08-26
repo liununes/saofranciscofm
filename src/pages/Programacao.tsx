@@ -14,7 +14,7 @@ const Programacao = () => {
 };
 
 import { useEffect, useState } from 'react';
-import { supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { Clock, Mic, Radio } from 'lucide-react';
 import {
   Dialog,
@@ -40,7 +40,7 @@ const ProgramacaoContent = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabaseAdmin
+      const { data } = await supabase
         .from('programas')
         .select('*, locutores(*)')
         .eq('ativo', true)

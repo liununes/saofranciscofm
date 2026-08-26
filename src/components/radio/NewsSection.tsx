@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 import { Newspaper, ArrowRight, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import ShareButtons from '@/components/radio/ShareButtons';
 import InlineAd from '@/components/radio/InlineAd';
 
@@ -40,7 +40,7 @@ const NewsSection = () => {
   const isHorizontalGrid = posicao === 'centro' && !hasOtherBlocks;
 
   const openNoticia = async (n: any) => {
-    const { data } = await supabaseAdmin.from('noticias').select('*').eq('id', n.id).single();
+    const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
     setSelected({
       ...n,
       conteudo: data?.conteudo || n.resumo,
