@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import RadioHeader from '@/components/radio/RadioHeader';
 import RadioFooter from '@/components/radio/RadioFooter';
@@ -21,7 +21,7 @@ const NoticiaDetalhe = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
-      const { data } = await supabaseAdmin.from('noticias').select('*').eq('id', id).single();
+      const { data } = await supabase.from('noticias').select('*').eq('id', id).single();
       setNoticia(data);
       setLoading(false);
     };

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 const AnalyticsTracker = () => {
     const location = useLocation();
@@ -17,7 +17,7 @@ const AnalyticsTracker = () => {
                     return id;
                 })();
 
-                const { error } = await supabaseAdmin.from('page_views').insert({
+                const { error } = await supabase.from('page_views').insert({
                     path: location.pathname + location.hash,
                     user_agent: navigator.userAgent,
                     session_id: sessionId,

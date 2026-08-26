@@ -30,7 +30,7 @@ const RadioPlayer = () => {
       setIsPlaying(true);
       setIsListening(true);
     }).catch(() => setAutoplayBlocked(true));
-  }, [config.streaming_url, volume, setIsListening]);
+  }, [config.streaming_url]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -39,7 +39,7 @@ const RadioPlayer = () => {
       setIsListening(false);
     } else {
       audioRef.current.src = config.streaming_url;
-      audioRef.current.play().catch(() => { });
+      audioRef.current.play().catch(err => console.error("Erro ao tocar streaming:", err));
       setAutoplayBlocked(false);
       setIsListening(true);
     }
