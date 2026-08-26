@@ -2,10 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Phone, ToggleLeft, Megaphone, LayoutDashboard, Menu, Ticket, CalendarDays, BarChart3 } from 'lucide-react';
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import AddNoticiaByUrl from '@/components/admin/AddNoticiaByUrl';
+import { supabase, supabaseAdmin } from '@/integrations/supabase/client';
+import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Phone, ToggleLeft, Megaphone, LayoutDashboard, Menu, Ticket } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -79,13 +78,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'analytics', label: 'Estatísticas', icon: BarChart3 },
   { id: 'geral', label: 'Geral', icon: Radio, permission: 'editar_geral' },
   { id: 'locutores', label: 'Locutores', icon: Mic, permission: 'editar_locutores' },
   { id: 'programas', label: 'Programas', icon: CalendarClock, permission: 'editar_programacao' },
   { id: 'musicas', label: 'Músicas', icon: Music, permission: 'editar_musicas' },
   { id: 'noticias', label: 'Notícias', icon: Newspaper, permission: 'editar_noticias' },
-  { id: 'publicidade_noticias', label: 'Publicidade Notícias', icon: Megaphone, permission: 'editar_noticias' },
   { id: 'promocoes', label: 'Promoções', icon: Ticket, permission: 'editar_noticias' },
   { id: 'patrocinadores', label: 'Patrocinadores', icon: Users, permission: 'editar_patrocinadores' },
   { id: 'slides', label: 'Slides', icon: Image, permission: 'editar_slides' },
@@ -135,34 +132,20 @@ const AdminPanel = () => {
 
   useEffect(() => { loadAll(); }, []);
 
-  const invokeNewsContentAdmin = async (body: Record<string, any>) => {
-    const { data, error } = await supabase.functions.invoke('news-content-admin', { body });
-    if (error) throw error;
-    return data;
-  };
-
   const loadAll = async () => {
     try {
       const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, promoRes] = await Promise.allSettled([
-        supabase.from('radio_config').select('*').limit(1).single(),
-        supabase.from('locutores').select('*').order('created_at'),
-        supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
-        supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }),
-        supabase.from('noticias').select('*').order('created_at', { ascending: false }),
-        supabase.from('patrocinadores').select('*').order('created_at'),
-        supabase.from('slide_imagens').select('*').order('ordem'),
-        supabase.from('paginas').select('*').order('slug'),
-        supabase.from('social_links').select('*').order('ordem'),
-        supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('radio_config').select('*').limit(1).single(),
+        supabaseAdmin.from('locutores').select('*').order('created_at'),
+        supabaseAdmin.from('programas').select('*, locutores(*)').order('horario_inicio'),
+        supabaseAdmin.from('musicas_recentes').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('noticias').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('patrocinadores').select('*').order('created_at'),
+        supabaseAdmin.from('slide_imagens').select('*').order('ordem'),
+        supabaseAdmin.from('paginas').select('*').order('slug'),
+        supabaseAdmin.from('social_links').select('*').order('ordem'),
+        supabaseAdmin.from('promocoes').select('*').order('created_at', { ascending: false }),
       ]);
-
-      let publicidadesData: any[] = [];
-      try {
-        const res = await invokeNewsContentAdmin({ action: 'list_admin' });
-        publicidadesData = res?.items || [];
-      } catch {
-        publicidadesData = [];
-      }
 
       setRc(rcRes.status === 'fulfilled' ? rcRes.value.data || {} : {});
       setLocutores(locRes.status === 'fulfilled' ? locRes.value.data || [] : []);
@@ -173,35 +156,25 @@ const AdminPanel = () => {
       setSlides(slidRes.status === 'fulfilled' ? slidRes.value.data || [] : []);
       setPaginas(pagRes.status === 'fulfilled' ? pagRes.value.data || [] : []);
       setSocialLinks(socialRes.status === 'fulfilled' ? socialRes.value.data || [] : []);
-      setPublicidades(publicidadesData);
       setPromocoes(promoRes.status === 'fulfilled' ? promoRes.value.data || [] : []);
 
-      // Log errors for debugging
-      if (rcRes.status === 'rejected') console.error('radio_config error:', rcRes.reason);
-      if (locRes.status === 'rejected') console.error('locutores error:', locRes.reason);
-
-    // Analytics brief stats
-    try {
       setStats({ total: 0, today: 0 });
-    } catch {
-      setStats({ total: 0, today: 0 });
-    }
 
-    if (isAdmin || permissions.includes('gerenciar_usuarios')) {
-      try {
-        const { data: profiles } = await supabase.from('profiles').select('*');
-        if (profiles) {
-          const usersWithRoles = await Promise.all(profiles.map(async (p) => {
-            const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', p.user_id);
-            const { data: perms } = await supabase.from('user_permissions').select('permission').eq('user_id', p.user_id);
-            return { ...p, roles: roles || [], permissions: perms?.map(pp => pp.permission) || [] };
-          }));
-          setUsers(usersWithRoles);
+      if (isAdmin || permissions.includes('gerenciar_usuarios')) {
+        try {
+          const { data: profiles } = await supabaseAdmin.from('profiles').select('*');
+          if (profiles) {
+            const usersWithRoles = await Promise.all(profiles.map(async (p) => {
+              const { data: roles } = await supabaseAdmin.from('user_roles').select('role').eq('user_id', p.user_id);
+              const { data: perms } = await supabaseAdmin.from('user_permissions').select('permission').eq('user_id', p.user_id);
+              return { ...p, roles: roles || [], permissions: perms?.map(pp => pp.permission) || [] };
+            }));
+            setUsers(usersWithRoles);
+          }
+        } catch {
+          setUsers([]);
         }
-      } catch {
-        setUsers([]);
       }
-    }
     } catch (e) {
       console.error('Erro ao carregar dados do painel:', e);
     }
@@ -210,7 +183,7 @@ const AdminPanel = () => {
   const saveConfig = async () => {
     if (!rc?.id) { toast.error('Configuração não carregada.'); return; }
     setSaving(true);
-    const { error } = await supabase.from('radio_config').update({
+    const { error } = await supabaseAdmin.from('radio_config').update({
       nome_radio: rc.nome_radio,
       logo_principal: rc.logo_principal,
       logo_extra: rc.logo_extra,
@@ -259,30 +232,30 @@ const AdminPanel = () => {
   };
 
   // --- Debounced DB persistence ---
-  const persistLocutor = useCallback(async (id: string, updates: any) => { await supabase.from('locutores').update(updates).eq('id', id); }, []);
+  const persistLocutor = useCallback(async (id: string, updates: any) => { await supabaseAdmin.from('locutores').update(updates).eq('id', id); }, []);
   const debouncedSaveLocutor = useDebouncedSave(persistLocutor);
-  const persistPrograma = useCallback(async (id: string, updates: any) => { await supabase.from('programas').update(updates).eq('id', id); }, []);
+  const persistPrograma = useCallback(async (id: string, updates: any) => { await supabaseAdmin.from('programas').update(updates).eq('id', id); }, []);
   const debouncedSavePrograma = useDebouncedSave(persistPrograma);
-  const persistMusica = useCallback(async (id: string, updates: any) => { await supabase.from('musicas_recentes').update(updates).eq('id', id); }, []);
+  const persistMusica = useCallback(async (id: string, updates: any) => { await supabaseAdmin.from('musicas_recentes').update(updates).eq('id', id); }, []);
   const debouncedSaveMusica = useDebouncedSave(persistMusica);
-  const persistNoticia = useCallback(async (id: string, updates: any) => { await supabase.from('noticias').update(updates).eq('id', id); }, []);
+  const persistNoticia = useCallback(async (id: string, updates: any) => { await supabaseAdmin.from('noticias').update(updates).eq('id', id); }, []);
   const debouncedSaveNoticia = useDebouncedSave(persistNoticia);
-  const persistPatrocinador = useCallback(async (id: string, updates: any) => { await supabase.from('patrocinadores').update(updates).eq('id', id); }, []);
+  const persistPatrocinador = useCallback(async (id: string, updates: any) => { await supabaseAdmin.from('patrocinadores').update(updates).eq('id', id); }, []);
   const debouncedSavePatrocinador = useDebouncedSave(persistPatrocinador);
-  const persistSlide = useCallback(async (id: string, updates: any) => { await supabase.from('slide_imagens').update(updates).eq('id', id); }, []);
+  const persistSlide = useCallback(async (id: string, updates: any) => { await supabaseAdmin.from('slide_imagens').update(updates).eq('id', id); }, []);
   const debouncedSaveSlide = useDebouncedSave(persistSlide);
-  const persistPagina = useCallback(async (id: string, updates: any) => { await supabase.from('paginas').update(updates).eq('id', id); }, []);
+  const persistPagina = useCallback(async (id: string, updates: any) => { await supabaseAdmin.from('paginas').update(updates).eq('id', id); }, []);
   const debouncedSavePagina = useDebouncedSave(persistPagina);
 
   const updateLocutor = (id: string, updates: any) => { setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l)); debouncedSaveLocutor(id, updates); };
-  const updateLocutorImmediate = async (id: string, updates: any) => { setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l)); await supabase.from('locutores').update(updates).eq('id', id); };
+  const updateLocutorImmediate = async (id: string, updates: any) => { setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l)); await supabaseAdmin.from('locutores').update(updates).eq('id', id); };
   const updatePrograma = (id: string, updates: any) => { setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePrograma(id, updates); };
-  const updateProgramaImmediate = async (id: string, updates: any) => { setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('programas').update(updates).eq('id', id); };
+  const updateProgramaImmediate = async (id: string, updates: any) => { setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabaseAdmin.from('programas').update(updates).eq('id', id); };
   const updateMusica = (id: string, updates: any) => { setMusicas(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m)); debouncedSaveMusica(id, updates); };
   const updateNoticia = (id: string, updates: any) => { setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n)); debouncedSaveNoticia(id, updates); };
   const updateNoticiaImmediate = async (id: string, updates: any) => {
     setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
-    const { error } = await supabase.from('noticias').update(updates).eq('id', id);
+    const { error } = await supabaseAdmin.from('noticias').update(updates).eq('id', id);
     if (error) {
       toast.error(`Erro ao salvar notícia: ${error.message}`);
       return;
@@ -291,32 +264,32 @@ const AdminPanel = () => {
     try { await refreshData(); } catch (e) { /* ignore refresh errors */ }
   };
   const updatePatrocinador = (id: string, updates: any) => { setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePatrocinador(id, updates); };
-  const updatePatrocinadorImmediate = async (id: string, updates: any) => { setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('patrocinadores').update(updates).eq('id', id); };
+  const updatePatrocinadorImmediate = async (id: string, updates: any) => { setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabaseAdmin.from('patrocinadores').update(updates).eq('id', id); };
   const updateSlide = (id: string, updates: any) => { setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); debouncedSaveSlide(id, updates); };
-  const updateSlideImmediate = async (id: string, updates: any) => { setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); await supabase.from('slide_imagens').update(updates).eq('id', id); };
+  const updateSlideImmediate = async (id: string, updates: any) => { setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); await supabaseAdmin.from('slide_imagens').update(updates).eq('id', id); };
   const updatePagina = (id: string, updates: any) => { setPaginas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePagina(id, updates); };
-  const updatePaginaImmediate = async (id: string, updates: any) => { setPaginas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabase.from('paginas').update(updates).eq('id', id); };
+  const updatePaginaImmediate = async (id: string, updates: any) => { setPaginas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); await supabaseAdmin.from('paginas').update(updates).eq('id', id); };
 
   // CRUD
-  const addLocutor = async () => { const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor' }).select().single(); if (!error && data) setLocutores(prev => [...prev, data]); };
-  const deleteLocutor = async (id: string) => { await supabase.from('locutores').delete().eq('id', id); setLocutores(prev => prev.filter(l => l.id !== id)); };
-  const addPrograma = async () => { const { data, error } = await supabase.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5] }).select('*, locutores(*)').single(); if (!error && data) setProgramas(prev => [...prev, data]); };
-  const deletePrograma = async (id: string) => { await supabase.from('programas').delete().eq('id', id); setProgramas(prev => prev.filter(p => p.id !== id)); };
-  const addMusica = async () => { const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '' }).select().single(); if (!error && data) setMusicas(prev => [data, ...prev]); };
-  const deleteMusica = async (id: string) => { await supabase.from('musicas_recentes').delete().eq('id', id); setMusicas(prev => prev.filter(m => m.id !== id)); };
-  const addNoticia = async () => { const { data, error } = await supabase.from('noticias').insert({ titulo: '', resumo: '', link_completo: '' }).select().single(); if (!error && data) setNoticias(prev => [data, ...prev]); };
-  const deleteNoticia = async (id: string) => { await supabase.from('noticias').delete().eq('id', id); setNoticias(prev => prev.filter(n => n.id !== id)); };
-  const addPatrocinador = async () => { const { data, error } = await supabase.from('patrocinadores').insert({ nome: '', tipo: 'normal', posicao: 'rodape' }).select().single(); if (!error && data) setPatrocinadores(prev => [...prev, data]); };
-  const deletePatrocinador = async (id: string) => { await supabase.from('patrocinadores').delete().eq('id', id); setPatrocinadores(prev => prev.filter(p => p.id !== id)); };
-  const addSlide = async () => { const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single(); if (!error && data) setSlides(prev => [...prev, data]); };
-  const deleteSlide = async (id: string) => { await supabase.from('slide_imagens').delete().eq('id', id); setSlides(prev => prev.filter(s => s.id !== id)); };
+  const addLocutor = async () => { const { data, error } = await supabaseAdmin.from('locutores').insert({ nome: 'Novo Locutor' }).select().single(); if (!error && data) setLocutores(prev => [...prev, data]); };
+  const deleteLocutor = async (id: string) => { await supabaseAdmin.from('locutores').delete().eq('id', id); setLocutores(prev => prev.filter(l => l.id !== id)); };
+  const addPrograma = async () => { const { data, error } = await supabaseAdmin.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5] }).select('*, locutores(*)').single(); if (!error && data) setProgramas(prev => [...prev, data]); };
+  const deletePrograma = async (id: string) => { await supabaseAdmin.from('programas').delete().eq('id', id); setProgramas(prev => prev.filter(p => p.id !== id)); };
+  const addMusica = async () => { const { data, error } = await supabaseAdmin.from('musicas_recentes').insert({ titulo: '', artista: '', hora_execucao: '' }).select().single(); if (!error && data) setMusicas(prev => [data, ...prev]); };
+  const deleteMusica = async (id: string) => { await supabaseAdmin.from('musicas_recentes').delete().eq('id', id); setMusicas(prev => prev.filter(m => m.id !== id)); };
+  const addNoticia = async () => { const { data, error } = await supabaseAdmin.from('noticias').insert({ titulo: '', resumo: '', link_completo: '' }).select().single(); if (!error && data) setNoticias(prev => [data, ...prev]); };
+  const deleteNoticia = async (id: string) => { await supabaseAdmin.from('noticias').delete().eq('id', id); setNoticias(prev => prev.filter(n => n.id !== id)); };
+  const addPatrocinador = async () => { const { data, error } = await supabaseAdmin.from('patrocinadores').insert({ nome: '', tipo: 'normal', posicao: 'rodape' }).select().single(); if (!error && data) setPatrocinadores(prev => [...prev, data]); };
+  const deletePatrocinador = async (id: string) => { await supabaseAdmin.from('patrocinadores').delete().eq('id', id); setPatrocinadores(prev => prev.filter(p => p.id !== id)); };
+  const addSlide = async () => { const { data, error } = await supabaseAdmin.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single(); if (!error && data) setSlides(prev => [...prev, data]); };
+  const deleteSlide = async (id: string) => { await supabaseAdmin.from('slide_imagens').delete().eq('id', id); setSlides(prev => prev.filter(s => s.id !== id)); };
 
-  const addSocialLink = async () => { const { data, error } = await supabase.from('social_links').insert({ nome: 'Novo Link', url: '', icone: 'link', ordem: socialLinks.length, ativo: false }).select().single(); if (!error && data) setSocialLinks(prev => [...prev, data]); };
-  const deleteSocialLink = async (id: string) => { await supabase.from('social_links').delete().eq('id', id); setSocialLinks(prev => prev.filter(s => s.id !== id)); };
-  const persistSocialLink = useCallback(async (id: string, updates: any) => { await supabase.from('social_links').update(updates).eq('id', id); }, []);
+  const addSocialLink = async () => { const { data, error } = await supabaseAdmin.from('social_links').insert({ nome: 'Novo Link', url: '', icone: 'link', ordem: socialLinks.length, ativo: false }).select().single(); if (!error && data) setSocialLinks(prev => [...prev, data]); };
+  const deleteSocialLink = async (id: string) => { await supabaseAdmin.from('social_links').delete().eq('id', id); setSocialLinks(prev => prev.filter(s => s.id !== id)); };
+  const persistSocialLink = useCallback(async (id: string, updates: any) => { await supabaseAdmin.from('social_links').update(updates).eq('id', id); }, []);
   const debouncedSaveSocialLink = useDebouncedSave(persistSocialLink);
   const updateSocialLink = (id: string, updates: any) => { setSocialLinks(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); debouncedSaveSocialLink(id, updates); };
-  const updateSocialLinkImmediate = async (id: string, updates: any) => { setSocialLinks(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); await supabase.from('social_links').update(updates).eq('id', id); };
+  const updateSocialLinkImmediate = async (id: string, updates: any) => { setSocialLinks(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); await supabaseAdmin.from('social_links').update(updates).eq('id', id); };
 
   const createUser = async () => {
     if (!newUserEmail || !newUserPassword) { toast.error('Preencha e-mail e senha.'); return; }
@@ -328,21 +301,21 @@ const AdminPanel = () => {
     toast.success('Usuário criado! (Verifique o e-mail para confirmar)');
     if (signUpData?.user && newUserPerms.length > 0) {
       const permsToInsert = newUserPerms.map(p => ({ user_id: signUpData.user!.id, permission: p }));
-      await supabase.from('user_permissions').insert(permsToInsert);
+      await supabaseAdmin.from('user_permissions').insert(permsToInsert);
     }
     setNewUserEmail(''); setNewUserPassword(''); setNewUserName(''); setNewUserPerms([]);
     setTimeout(loadAll, 2000);
   };
 
   const toggleUserRole = async (userId: string, currentIsAdmin: boolean) => {
-    if (currentIsAdmin) { await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', 'admin'); }
-    else { await supabase.from('user_roles').insert({ user_id: userId, role: 'admin' }); }
+    if (currentIsAdmin) { await supabaseAdmin.from('user_roles').delete().eq('user_id', userId).eq('role', 'admin'); }
+    else { await supabaseAdmin.from('user_roles').insert({ user_id: userId, role: 'admin' }); }
     loadAll();
   };
 
   const toggleUserPermission = async (userId: string, perm: string, has: boolean) => {
-    if (has) { await supabase.from('user_permissions').delete().eq('user_id', userId).eq('permission', perm); }
-    else { await supabase.from('user_permissions').insert({ user_id: userId, permission: perm }); }
+    if (has) { await supabaseAdmin.from('user_permissions').delete().eq('user_id', userId).eq('permission', perm); }
+    else { await supabaseAdmin.from('user_permissions').insert({ user_id: userId, permission: perm }); }
     loadAll();
   };
 
@@ -362,13 +335,11 @@ const AdminPanel = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard': return renderDashboard();
-      case 'analytics': return <AnalyticsDashboard />;
       case 'geral': return renderGeral();
       case 'locutores': return renderLocutores();
       case 'programas': return renderProgramas();
       case 'musicas': return renderMusicas();
       case 'noticias': return renderNoticias();
-      case 'publicidade_noticias': return renderPublicidadeNoticias();
       case 'promocoes': return renderPromocoes();
       case 'patrocinadores': return renderPatrocinadores();
       case 'slides': return renderSlides();
@@ -389,14 +360,7 @@ const AdminPanel = () => {
   const renderDashboard = () => (
     <div className="space-y-6">
       <h2 className="font-display font-bold text-xl text-foreground">Dashboard</h2>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow bg-primary/5" onClick={() => setActiveSection('analytics')}>
-          <CardContent className="pt-6 text-center">
-            <Eye className="w-8 h-8 mx-auto text-primary mb-2" />
-            <p className="text-2xl font-bold text-foreground">{stats.today}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Visitas Hoje</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection('noticias')}>
           <CardContent className="pt-6 text-center">
             <Newspaper className="w-8 h-8 mx-auto text-primary mb-2" />
@@ -418,14 +382,7 @@ const AdminPanel = () => {
             <p className="text-xs text-muted-foreground">Locutores</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow bg-secondary/5" onClick={() => setActiveSection('analytics')}>
-          <CardContent className="pt-6 text-center">
-            <Users className="w-8 h-8 mx-auto text-secondary mb-2" />
-            <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total de Visitas</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection('noticias')}>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection('patrocinadores')}>
           <CardContent className="pt-6 text-center">
             <Users className="w-8 h-8 mx-auto text-primary mb-2" />
             <p className="text-2xl font-bold text-foreground">{patrocinadores.length}</p>
@@ -635,12 +592,9 @@ const AdminPanel = () => {
 
   const renderNoticias = () => (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-display font-bold text-xl text-foreground">Notícias</h2>
-        <div className="flex gap-2">
-          <AddNoticiaByUrl onNoticiaAdded={loadAll} existingUrls={noticias.map((n: any) => n.link_completo).filter(Boolean)} />
-          <Button onClick={addNoticia} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Manual</Button>
-        </div>
+        <Button onClick={addNoticia} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
       </div>
 
       {/* Posição das notícias */}
@@ -676,50 +630,6 @@ const AdminPanel = () => {
                   <Textarea placeholder="Conteúdo completo da matéria (separe parágrafos com linhas em branco)" value={n.conteudo || ''} onChange={e => updateNoticia(n.id, { conteudo: e.target.value })} rows={8} />
                   <Input placeholder="Link externo (opcional - ex: Acesse a matéria completa)" value={n.link_completo || ''} onChange={e => updateNoticia(n.id, { link_completo: e.target.value })} />
 
-                  {/* Publicidade na matéria */}
-                  <div className="p-3 bg-muted rounded-lg space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">📢 Publicidade no texto</span>
-                      <Switch checked={n.publicidade_ativa || false} onCheckedChange={checked => updateNoticiaImmediate(n.id, { publicidade_ativa: checked })} />
-                    </div>
-                    {n.publicidade_ativa && (
-                      <>
-                        <Select
-                          value={n.publicidade_id || n.promocao_id || 'none'}
-                          onValueChange={async (v) => {
-                            if (v === 'none') {
-                              updateNoticiaImmediate(n.id, { publicidade_id: null, promocao_id: null });
-                            } else {
-                              const selectedPromo = promocoes.find((p) => p.id === v);
-                              if (selectedPromo) {
-                                // Vincula diretamente como promoção
-                                updateNoticiaImmediate(n.id, { promocao_id: v, publicidade_id: null });
-                                toast.success('Promoção vinculada!');
-                              } else {
-                                // Vincula como publicidade normal
-                                updateNoticiaImmediate(n.id, { publicidade_id: v, promocao_id: null });
-                              }
-                            }
-                          }}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Selecionar publicidade ou promoção..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhuma</SelectItem>
-                            <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground bg-muted/50">PUBLICIDADES</div>
-                            {publicidades.filter(p => p.ativo).map(p => (
-                              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                            ))}
-                            <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground bg-muted/50 mt-1">PROMOÇÕES</div>
-                            {promocoes.filter(p => p.ativo).map(p => (
-                              <SelectItem key={p.id} value={p.id}>🎁 {p.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-[10px] text-muted-foreground">Escolha uma publicidade ou promoção para aparecer no meio do texto.</p>
-                      </>
-                    )}
-                  </div>
-
                   <div>
                     <ImageUpload value={n.imagem_url} onChange={url => updateNoticiaImmediate(n.id, { imagem_url: url })} folder="noticias" />
                     <ImageHint text="1200×630 px (paisagem)" />
@@ -742,54 +652,9 @@ const AdminPanel = () => {
     </div>
   );
 
-  // Publicidade CRUD helpers (via backend function para evitar bloqueio de navegador)
-  const addPublicidade = async () => {
-    try {
-      const data = await invokeNewsContentAdmin({ action: 'create', payload: { nome: 'Nova Publicidade', texto: '', ativo: true } });
-      if (data?.item) setPublicidades(prev => [data.item, ...prev]);
-      toast.success('Publicidade criada!');
-    } catch (error: any) {
-      toast.error(`Erro ao criar publicidade: ${error?.message || 'Falha na requisição'}`);
-    }
-  };
-
-  const deletePublicidade = async (id: string) => {
-    try {
-      await invokeNewsContentAdmin({ action: 'delete', id });
-      setPublicidades(prev => prev.filter(p => p.id !== id));
-      toast.success('Publicidade removida.');
-    } catch (error: any) {
-      toast.error(`Erro ao remover publicidade: ${error?.message || 'Falha na requisição'}`);
-    }
-  };
-
-  const persistPublicidade = useCallback(async (id: string, updates: any) => {
-    try {
-      await invokeNewsContentAdmin({ action: 'update', id, payload: updates });
-    } catch (error: any) {
-      toast.error(`Erro ao atualizar publicidade: ${error?.message || 'Falha na requisição'}`);
-    }
-  }, []);
-
-  const debouncedSavePublicidade = useDebouncedSave(persistPublicidade);
-
-  const updatePublicidade = (id: string, updates: any) => {
-    setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    debouncedSavePublicidade(id, updates);
-  };
-
-  const updatePublicidadeImmediate = async (id: string, updates: any) => {
-    setPublicidades(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    try {
-      await invokeNewsContentAdmin({ action: 'update', id, payload: updates });
-    } catch (error: any) {
-      toast.error(`Erro ao salvar publicidade: ${error?.message || 'Falha na requisição'}`);
-    }
-  };
-
   // Promoções CRUD helpers
   const addPromocao = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('promocoes')
       .insert({ nome: 'Nova Promoção', texto: '', ativo: true })
       .select()
@@ -805,7 +670,7 @@ const AdminPanel = () => {
   };
 
   const deletePromocao = async (id: string) => {
-    const { error } = await supabase.from('promocoes').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('promocoes').delete().eq('id', id);
     if (error) {
       toast.error(`Erro ao remover promoção: ${error.message}`);
       return;
@@ -815,7 +680,7 @@ const AdminPanel = () => {
   };
 
   const persistPromocao = useCallback(async (id: string, updates: any) => {
-    const { error } = await supabase.from('promocoes').update(updates).eq('id', id);
+    const { error } = await supabaseAdmin.from('promocoes').update(updates).eq('id', id);
     if (error) toast.error(`Erro ao atualizar promoção: ${error.message}`);
   }, []);
 
@@ -828,65 +693,8 @@ const AdminPanel = () => {
 
   const updatePromocaoImmediate = async (id: string, updates: any) => {
     setPromocoes(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    const { error } = await supabase.from('promocoes').update(updates).eq('id', id);
+    const { error } = await supabaseAdmin.from('promocoes').update(updates).eq('id', id);
     if (error) toast.error(`Erro ao salvar promoção: ${error.message}`);
-  };
-
-  const renderPublicidadeNoticias = () => {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold text-xl text-foreground">Publicidade em Notícias</h2>
-          <Button onClick={addPublicidade} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Cadastre publicidades aqui. Basta ativar para que apareçam aleatoriamente nas notícias ou vinculá-las manualmente.
-        </p>
-        <div className="space-y-4">
-          {publicidades.map(p => (
-            <Card key={p.id}>
-              <CardContent className="pt-4 space-y-3">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <Input placeholder="Nome da publicidade" value={p.nome || ''} onChange={e => updatePublicidade(p.id, { nome: e.target.value })} className="flex-1 min-w-[200px]" />
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-medium">{p.ativo ? '✅ Ativa' : '❌ Inativa'}</span>
-                        <label className="flex items-center gap-2 whitespace-nowrap text-xs">
-                          <Switch checked={p.ativo ?? true} onCheckedChange={checked => updatePublicidadeImmediate(p.id, { ativo: checked })} />
-                          {p.ativo ? 'Ativo' : 'Inativo'}
-                        </label>
-                      </div>
-                    </div>
-
-                    <Textarea placeholder="Texto da publicidade" value={p.texto || ''} onChange={e => updatePublicidade(p.id, { texto: e.target.value })} rows={3} />
-                    <Input placeholder="Link (URL destino ao clicar)" value={p.link || ''} onChange={e => updatePublicidade(p.id, { link: e.target.value })} />
-
-                    <div>
-                      <Label className="text-xs">Imagem</Label>
-                      {p.imagem_url && (
-                        <div className="relative inline-block mb-2">
-                          <img src={p.imagem_url} alt="Preview" className="h-20 object-contain rounded border" />
-                          <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => updatePublicidadeImmediate(p.id, { imagem_url: null })}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
-                      <ImageUpload value={p.imagem_url} onChange={url => updatePublicidadeImmediate(p.id, { imagem_url: url })} folder="midia" />
-                      <ImageHint text="728×90 px ou 300×250 px" />
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => deletePublicidade(p.id)} className="text-destructive flex-shrink-0"><Trash2 className="w-4 h-4" /></Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {publicidades.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma publicidade cadastrada.</p>
-          )}
-        </div>
-      </div>
-    );
   };
 
   const renderPromocoes = () => {
@@ -1085,7 +893,7 @@ const AdminPanel = () => {
         <h2 className="font-display font-bold text-xl text-foreground">Páginas</h2>
         <Button onClick={async () => {
           const slug = `pagina-${Date.now()}`;
-          const { data, error } = await supabase.from('paginas').insert({ slug, titulo: 'Nova Página', conteudo: '' }).select().single();
+          const { data, error } = await supabaseAdmin.from('paginas').insert({ slug, titulo: 'Nova Página', conteudo: '' }).select().single();
           if (!error && data) { setPaginas(prev => [...prev, data]); toast.success('Página criada!'); }
           else toast.error('Erro ao criar página.');
         }} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Nova Página</Button>
@@ -1097,7 +905,7 @@ const AdminPanel = () => {
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground font-mono">/{p.slug}</p>
                 <Button variant="ghost" size="icon" onClick={async () => {
-                  await supabase.from('paginas').delete().eq('id', p.id);
+                  await supabaseAdmin.from('paginas').delete().eq('id', p.id);
                   setPaginas(prev => prev.filter(pg => pg.id !== p.id));
                   toast.success('Página removida.');
                 }} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>

@@ -21,8 +21,8 @@ const FeaturedNewsModule = () => {
   if (!destaque) return null;
 
   const openNoticia = async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data } = await supabase.from('noticias').select('conteudo').eq('id', destaque.id).single();
+    const { supabaseAdmin } = await import('@/integrations/supabase/client');
+    const { data } = await supabaseAdmin.from('noticias').select('conteudo').eq('id', destaque.id).single();
     setSelected({ ...destaque, conteudo: data?.conteudo || destaque.resumo });
   };
 
@@ -70,8 +70,8 @@ const NextProgramModule = () => {
 
   useEffect(() => {
     const findNext = async () => {
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { data: progs } = await supabase
+      const { supabaseAdmin } = await import('@/integrations/supabase/client');
+      const { data: progs } = await supabaseAdmin
         .from('programas')
         .select('*, locutores(*)')
         .eq('ativo', true);

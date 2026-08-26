@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 import { Newspaper, ArrowRight, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseAdmin } from '@/integrations/supabase/client';
 import ShareButtons from '@/components/radio/ShareButtons';
 import InlineAd from '@/components/radio/InlineAd';
 
@@ -40,25 +40,11 @@ const NewsSection = () => {
   const isHorizontalGrid = posicao === 'centro' && !hasOtherBlocks;
 
   const openNoticia = async (n: any) => {
-    const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
-
-    let foundAd = null;
-    try {
-      const { data: resolved } = await supabase.functions.invoke('news-content-admin', {
-        body: { action: 'resolve_for_news', noticia_id: n.id },
-      });
-      foundAd = resolved?.ad || null;
-    } catch {
-      foundAd = null;
-    }
-
+    const { data } = await supabaseAdmin.from('noticias').select('*').eq('id', n.id).single();
     setSelected({
       ...n,
       conteudo: data?.conteudo || n.resumo,
       link_completo: data?.link_completo || n.link_completo,
-      patrocinador: foundAd,
-      publicidade_ativa: data?.publicidade_ativa || !!foundAd,
-      patrocinador_id: foundAd?.id || data?.publicidade_id || data?.promocao_id,
     });
   };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseAdmin } from '@/integrations/supabase/client';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import RadioHeader from '@/components/radio/RadioHeader';
 import RadioFooter from '@/components/radio/RadioFooter';
@@ -16,29 +16,13 @@ const formatDate = (dateStr?: string) => {
 const NoticiaDetalhe = () => {
   const { id } = useParams<{ id: string }>();
   const [noticia, setNoticia] = useState<any>(null);
-  const [patrocinador, setPatrocinador] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
-      const { data } = await supabase.from('noticias').select('*').eq('id', id).single();
+      const { data } = await supabaseAdmin.from('noticias').select('*').eq('id', id).single();
       setNoticia(data);
-
-      let foundAd = null;
-
-      try {
-        const { data: resolved } = await supabase.functions.invoke('news-content-admin', {
-          body: { action: 'resolve_for_news', noticia_id: id },
-        });
-        foundAd = resolved?.ad || null;
-      } catch {
-        foundAd = null;
-      }
-
-      if (foundAd) {
-        setPatrocinador(foundAd);
-      }
       setLoading(false);
     };
     fetchData();
@@ -56,54 +40,11 @@ const NoticiaDetalhe = () => {
   // Prepare and split content, then inject sponsor block in the middle
   const renderContent = () => {
     const text = noticia.conteudo || noticia.resumo || '';
-    // try split by blank line first, fallback to single-line split later
-    let paragraphs = text.split(/\n\s*\n/).filter((p: string) => p.trim());
-
-    if (!patrocinador) {
-      return (
-        <div className="space-y-3">
-          <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
-            {text}
-          </div>
-        </div>
-      );
-    }
-
-    // If there are multiple paragraphs, insert between them.
-    // For single-paragraph articles, split the text in the middle (by nearest space) to ensure the ad divides the content.
-    let before = '';
-    let after = '';
-
-    if (paragraphs.length >= 2) {
-      const midpoint = Math.floor(paragraphs.length / 2);
-      before = paragraphs.slice(0, midpoint).join('\n\n');
-      after = paragraphs.slice(midpoint).join('\n\n');
-    } else {
-      const full = paragraphs[0] || text || '';
-      const mid = Math.floor(full.length / 2);
-      // find nearest space around midpoint
-      const leftSpace = full.lastIndexOf(' ', mid);
-      const rightSpace = full.indexOf(' ', mid + 1);
-      let splitAt = -1;
-      if (leftSpace > 50) splitAt = leftSpace; // prefer a reasonable left break
-      else if (rightSpace !== -1) splitAt = rightSpace;
-      else splitAt = mid;
-
-      before = full.slice(0, splitAt).trim();
-      after = full.slice(splitAt).trim();
-    }
-
     return (
-      <div className="space-y-4">
-        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{before}</div>
-
-        {/* Ad block (full-width, similar to design screenshot) */}
-        <div className="my-6 p-6 bg-muted/60 rounded-xl border border-border text-center w-full">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Publicidade</p>
-          <InlineAd patrocinador={patrocinador} />
+      <div className="space-y-3">
+        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+          {text}
         </div>
-
-        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{after}</div>
       </div>
     );
   };

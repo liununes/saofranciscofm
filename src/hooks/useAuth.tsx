@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseAdmin } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchRoleAndPermissions = async (userId: string) => {
     try {
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
-      const query = supabase
+      const query = supabaseAdmin
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAdmin(admin);
 
       if (!admin) {
-        const { data: perms } = await supabase
+        const { data: perms } = await supabaseAdmin
           .from('user_permissions')
           .select('permission')
           .eq('user_id', userId);

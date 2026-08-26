@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseAdmin } from '@/integrations/supabase/client';
 
 export interface Musica {
   id: string;
@@ -211,14 +211,14 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
   const fetchData = async () => {
     try {
       const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes] = await Promise.allSettled([
-        supabase.from('radio_config').select('*').limit(1).single(),
-        supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
-        supabase.from('noticias').select('*').order('created_at', { ascending: false }),
-        supabase.from('patrocinadores').select('*'),
-        supabase.from('slide_imagens').select('*').order('ordem', { ascending: true }),
-        supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
-        supabase.from('social_links').select('*').order('ordem', { ascending: true }),
-        supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('radio_config').select('*').limit(1).single(),
+        supabaseAdmin.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
+        supabaseAdmin.from('noticias').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('patrocinadores').select('*'),
+        supabaseAdmin.from('slide_imagens').select('*').order('ordem', { ascending: true }),
+        supabaseAdmin.from('programas').select('*, locutores(*)').eq('ativo', true),
+        supabaseAdmin.from('social_links').select('*').order('ordem', { ascending: true }),
+        supabaseAdmin.from('promocoes').select('*').order('created_at', { ascending: false }),
       ]);
 
       const rc = rcRes.status === 'fulfilled' ? rcRes.value.data : null;
