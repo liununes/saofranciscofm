@@ -204,6 +204,7 @@ const AdminPanel = () => {
   };
 
   const saveConfig = async () => {
+    if (!rc?.id) { toast.error('Configuração não carregada.'); return; }
     setSaving(true);
     const { error } = await supabase.from('radio_config').update({
       nome_radio: rc.nome_radio,
