@@ -74,18 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchRoleAndPermissions(session.user.id);
-      }
-      if (mounted) setLoading(false);
-    }).catch(() => {
-      if (mounted) setLoading(false);
-    });
-
     // Safety timeout — always resolve loading after 3s
     const fallback = setTimeout(() => {
       if (mounted) setLoading(false);
