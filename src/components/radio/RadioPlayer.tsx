@@ -17,11 +17,12 @@ const RadioPlayer = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const attemptedAutoplay = useRef(false);
+  const prevUrlRef = useRef<string>('');
 
   useEffect(() => {
-    if (attemptedAutoplay.current || !audioRef.current) return;
-    attemptedAutoplay.current = true;
+    if (!audioRef.current || !config.streaming_url) return;
+    if (prevUrlRef.current === config.streaming_url) return;
+    prevUrlRef.current = config.streaming_url;
     const audio = audioRef.current;
     audio.src = config.streaming_url;
     audio.volume = volume / 100;
@@ -29,7 +30,7 @@ const RadioPlayer = () => {
       setIsPlaying(true);
       setIsListening(true);
     }).catch(() => setAutoplayBlocked(true));
-  }, [config.streaming_url]);
+  }, [config.streaming_url, volume, setIsListening]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
