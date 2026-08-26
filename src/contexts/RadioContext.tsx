@@ -353,12 +353,14 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchData();
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        if (data.city) setLocationInfo({ city: data.city, region: data.region });
-      })
-      .catch(() => { });
+    setTimeout(() => {
+      fetch('https://ipapi.co/json/')
+        .then(res => res.json())
+        .then(data => {
+          if (data.city) setLocationInfo({ city: data.city, region: data.region });
+        })
+        .catch(() => { });
+    }, 2000);
   }, []);
 
   useEffect(() => {

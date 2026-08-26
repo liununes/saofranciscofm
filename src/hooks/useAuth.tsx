@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -23,10 +23,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const rolesFetched = useRef<string | null>(null);
 
   const fetchRoleAndPermissions = async (userId: string) => {
+    if (rolesFetched.current === userId) return;
+    rolesFetched.current = userId;
     try {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
       const query = supabase
         .from('user_roles')
         .select('role')
@@ -83,10 +86,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (mounted) setLoading(false);
     });
 
-    // Safety timeout — always resolve loading after 8s
+    // Safety timeout — always resolve loading after 3s
     const fallback = setTimeout(() => {
       if (mounted) setLoading(false);
-    }, 8000);
+    }, 3000);
 
     return () => {
       mounted = false;
