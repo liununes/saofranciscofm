@@ -181,9 +181,8 @@ const AdminPanel = () => {
   };
 
   const saveConfig = async () => {
-    if (!rc?.id) { toast.error('Configuração não carregada.'); return; }
     setSaving(true);
-    const { error } = await supabase.from('radio_config').update({
+    const payload = {
       nome_radio: rc.nome_radio,
       logo_principal: rc.logo_principal,
       logo_extra: rc.logo_extra,
@@ -225,7 +224,16 @@ const AdminPanel = () => {
       ads_rodape_codigo: rc.ads_rodape_codigo,
       ads_rodape_ativo: rc.ads_rodape_ativo,
       noticias_posicao: rc.noticias_posicao || 'centro',
-    }).eq('id', rc.id);
+    };
+    let error;
+    if (rc?.id) {
+      const res = await supabase.from('radio_config').update(payload).eq('id', rc.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from('radio_config').insert(payload).select().single();
+      if (!res.error && res.data) setRc(res.data);
+      error = res.error;
+    }
     setSaving(false);
     if (error) toast.error('Erro ao salvar.');
     else { toast.success('Salvo com sucesso!'); refreshData(); }
