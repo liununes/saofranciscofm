@@ -5,8 +5,8 @@ node <<'NODE'
 const fs = require('node:fs');
 
 const config = {
-  supabaseUrl: process.env.VITE_SUPABASE_URL || '',
-  supabasePublishableKey: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://axtzvyybrmujrpuznbxd.supabase.co',
+  supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_yGjuNw4ZND4eSYfuNTsx4Q_WEoRYanh',
 };
 
 fs.writeFileSync(

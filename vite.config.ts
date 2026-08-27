@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: ["saofranciscofm.com.br", "www.saofranciscofm.com.br"],
     proxy: {
       '/supabase': {
-        target: 'https://appliu-supabase.ceip2y.easypanel.host',
+        target: 'https://axtzvyybrmujrpuznbxd.supabase.co',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/supabase/, ''),
