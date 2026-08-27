@@ -21,15 +21,9 @@ const RadioPlayer = () => {
 
   useEffect(() => {
     if (!audioRef.current || !config.streaming_url) return;
-    if (prevUrlRef.current === config.streaming_url) return;
-    prevUrlRef.current = config.streaming_url;
     const audio = audioRef.current;
     audio.src = config.streaming_url;
     audio.volume = volume / 100;
-    audio.play().then(() => {
-      setIsPlaying(true);
-      setIsListening(true);
-    }).catch(() => setAutoplayBlocked(true));
   }, [config.streaming_url]);
 
   const togglePlay = () => {
