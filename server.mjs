@@ -8,9 +8,12 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const publicDir = join(__dirname, 'dist');
 const port = Number(process.env.PORT || 80);
 const defaultStreamUrl = process.env.STREAM_SOURCE_URL || 'https://stm28.srvaudio.com.br:10884/';
+const defaultAllowedHosts = [
+  new URL(defaultStreamUrl).hostname,
+  'streaming.liurecord.com.br',
+];
 const allowedHosts = new Set(
-  (process.env.STREAM_ALLOWED_HOSTS || new URL(defaultStreamUrl).hostname)
-    .split(',')
+  [...defaultAllowedHosts, ...(process.env.STREAM_ALLOWED_HOSTS || '').split(',')]
     .map(host => host.trim().toLowerCase())
     .filter(Boolean)
 );
@@ -34,6 +37,13 @@ function getStreamSource(requestUrl) {
   const parsed = new URL(source);
   if (!['http:', 'https:'].includes(parsed.protocol) || !allowedHosts.has(parsed.hostname.toLowerCase())) {
     throw new Error('Stream host is not allowed');
+  }
+  if (
+    parsed.hostname.toLowerCase() === 'streaming.liurecord.com.br'
+    && parsed.port === '8015'
+    && (parsed.pathname === '' || parsed.pathname === '/')
+  ) {
+    parsed.pathname = '/stream';
   }
   return parsed.toString();
 }

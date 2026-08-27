@@ -41,14 +41,29 @@ export function normalizeStreamingUrl(value: string, options: { allowHttpOnHttps
   return parsed.toString();
 }
 
+function resolveKnownStreamMount(value: string) {
+  const parsed = new URL(value);
+  if (
+    parsed.hostname.toLowerCase() === 'streaming.liurecord.com.br'
+    && parsed.port === '8015'
+    && (parsed.pathname === '' || parsed.pathname === '/')
+  ) {
+    parsed.pathname = '/stream';
+  }
+  return parsed.toString();
+}
+
 export function getPlayableStreamingUrl(value: string) {
   const normalized = normalizeStreamingUrl(value, { allowHttpOnHttps: true });
-  if (!normalized || typeof window === 'undefined') return normalized;
+  if (!normalized) return normalized;
+
+  const resolved = resolveKnownStreamMount(normalized);
+  if (typeof window === 'undefined') return resolved;
 
   const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
-  if (localHosts.has(window.location.hostname)) return normalized;
+  if (localHosts.has(window.location.hostname)) return resolved;
 
   // The production Node server transcodes AAC+ to browser-friendly MP3 and
   // keeps the provider URL off the page's media request.
-  return `/stream.mp3?url=${encodeURIComponent(normalized)}`;
+  return `/stream.mp3?url=${encodeURIComponent(resolved)}`;
 }

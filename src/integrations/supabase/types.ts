@@ -406,6 +406,10 @@ export type Database = {
           patrocinador_alinhamento: string
           player_posicao: string
           streaming_url: string
+          streaming_url_backup: string | null
+          streaming_backup_enabled: boolean
+          streaming_failover_mode: string
+          streaming_active_source: string
           telefone_contato: string
           telefone_link: string
           telefone_posicao: string
@@ -451,6 +455,10 @@ export type Database = {
           patrocinador_alinhamento?: string
           player_posicao?: string
           streaming_url?: string
+          streaming_url_backup?: string | null
+          streaming_backup_enabled?: boolean
+          streaming_failover_mode?: string
+          streaming_active_source?: string
           telefone_contato?: string
           telefone_link?: string
           telefone_posicao?: string
@@ -496,6 +504,10 @@ export type Database = {
           patrocinador_alinhamento?: string
           player_posicao?: string
           streaming_url?: string
+          streaming_url_backup?: string | null
+          streaming_backup_enabled?: boolean
+          streaming_failover_mode?: string
+          streaming_active_source?: string
           telefone_contato?: string
           telefone_link?: string
           telefone_posicao?: string

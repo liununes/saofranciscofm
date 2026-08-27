@@ -12,19 +12,64 @@ import {
 import { toast } from 'sonner';
 import { getPlayableStreamingUrl, getSupabaseErrorMessage } from '@/lib/supabaseUtils';
 
+type StreamSource = 'primary' | 'backup';
+
 const RadioPlayer = () => {
   const { config, isLive, setIsListening } = useRadio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const [activeSource, setActiveSource] = useState<StreamSource>('primary');
   const audioRef = useRef<HTMLAudioElement>(null);
   const previousUrlRef = useRef('');
+  const activeSourceRef = useRef<StreamSource>('primary');
+  const requestedPlaybackRef = useRef(false);
+  const failoverAttemptedRef = useRef(false);
 
   const stopPlaybackState = useCallback(() => {
     setIsPlaying(false);
     setIsListening(false);
   }, [setIsListening]);
+
+  const setSource = useCallback((source: StreamSource) => {
+    activeSourceRef.current = source;
+    setActiveSource(source);
+  }, []);
+
+  const primaryStreamUrl = config.streaming_url?.trim() || '';
+  const backupStreamUrl = config.streaming_url_backup?.trim() || '';
+  const getSourceUrl = useCallback((source: StreamSource) => {
+    const url = source === 'backup' ? backupStreamUrl : primaryStreamUrl;
+    return url ? getPlayableStreamingUrl(url) : '';
+  }, [backupStreamUrl, primaryStreamUrl]);
+
+  const tryAutomaticFailover = useCallback(() => {
+    const canFailover = requestedPlaybackRef.current
+      && activeSourceRef.current === 'primary'
+      && config.streaming_backup_enabled
+      && config.streaming_failover_mode === 'automatic'
+      && Boolean(backupStreamUrl)
+      && !failoverAttemptedRef.current;
+
+    if (!canFailover) return false;
+
+    failoverAttemptedRef.current = true;
+    setSource('backup');
+    setIsPlaying(false);
+    setIsListening(false);
+    setAutoplayBlocked(false);
+    toast.info('A fonte principal falhou. Conectando ao streaming reserva…');
+    return true;
+  }, [backupStreamUrl, config.streaming_backup_enabled, config.streaming_failover_mode, setIsListening, setSource]);
+
+  useEffect(() => {
+    const configuredSource: StreamSource = config.streaming_backup_enabled && config.streaming_active_source === 'backup' && backupStreamUrl
+      ? 'backup'
+      : 'primary';
+    failoverAttemptedRef.current = false;
+    if (activeSourceRef.current !== configuredSource) setSource(configuredSource);
+  }, [backupStreamUrl, config.streaming_active_source, config.streaming_backup_enabled, setSource]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -36,11 +81,19 @@ const RadioPlayer = () => {
       setAutoplayBlocked(false);
     };
     const handlePause = () => stopPlaybackState();
-    const handleEnded = () => stopPlaybackState();
+    const handleEnded = () => {
+      requestedPlaybackRef.current = false;
+      stopPlaybackState();
+    };
     const handleError = () => {
+      if (tryAutomaticFailover()) return;
+
+      requestedPlaybackRef.current = false;
       stopPlaybackState();
       if (audio.src) {
-        toast.error('Não foi possível conectar ao streaming. Verifique a URL ou tente novamente.');
+        toast.error(activeSourceRef.current === 'backup'
+          ? 'Não foi possível conectar ao streaming reserva. Tente novamente mais tarde.'
+          : 'Não foi possível conectar ao streaming. Verifique a URL ou tente novamente.');
       }
     };
 
@@ -55,40 +108,43 @@ const RadioPlayer = () => {
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
-  }, [setIsListening, stopPlaybackState]);
+  }, [setIsListening, stopPlaybackState, tryAutomaticFailover]);
 
   useEffect(() => {
     const audio = audioRef.current;
-    const streamUrl = config.streaming_url?.trim() || '';
-    const playableUrl = streamUrl ? getPlayableStreamingUrl(streamUrl) : '';
+    const source = activeSourceRef.current;
+    const playableUrl = getSourceUrl(source);
     if (!audio) return;
 
-    if (!streamUrl) {
+    if (!playableUrl) {
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
       previousUrlRef.current = '';
+      requestedPlaybackRef.current = false;
       stopPlaybackState();
       return;
     }
 
     if (previousUrlRef.current === playableUrl) return;
 
-    const wasPlaying = !audio.paused && !audio.ended;
+    const shouldResume = requestedPlaybackRef.current;
     previousUrlRef.current = playableUrl;
     audio.pause();
     audio.src = playableUrl;
     audio.volume = volume / 100;
     audio.load();
 
-    if (wasPlaying) {
+    if (shouldResume) {
       void audio.play().catch((error: unknown) => {
+        if (tryAutomaticFailover()) return;
+        requestedPlaybackRef.current = false;
         stopPlaybackState();
         setAutoplayBlocked(true);
         console.error('[RadioPlayer] Falha ao retomar streaming:', error);
       });
     }
-  }, [config.streaming_url, stopPlaybackState, volume]);
+  }, [activeSource, getSourceUrl, stopPlaybackState, tryAutomaticFailover, volume]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume / 100;
@@ -96,25 +152,32 @@ const RadioPlayer = () => {
 
   const startPlayback = async () => {
     const audio = audioRef.current;
-    const streamUrl = config.streaming_url?.trim() || '';
-    const playableUrl = streamUrl ? getPlayableStreamingUrl(streamUrl) : '';
+    const source = activeSourceRef.current;
+    const playableUrl = getSourceUrl(source);
     if (!audio) return;
 
-    if (!streamUrl) {
-      toast.error('O streaming ainda não foi configurado no painel administrativo.');
+    if (!playableUrl) {
+      toast.error(source === 'backup'
+        ? 'Configure a URL do streaming reserva no painel administrativo.'
+        : 'O streaming ainda não foi configurado no painel administrativo.');
       return;
     }
 
     if (previousUrlRef.current !== playableUrl) {
       previousUrlRef.current = playableUrl;
       audio.src = playableUrl;
+      audio.volume = volume / 100;
       audio.load();
     }
 
     try {
+      requestedPlaybackRef.current = true;
+      failoverAttemptedRef.current = false;
       setAutoplayBlocked(false);
       await audio.play();
     } catch (error: unknown) {
+      if (tryAutomaticFailover()) return;
+      requestedPlaybackRef.current = false;
       stopPlaybackState();
       const browserBlocked = error instanceof DOMException && error.name === 'NotAllowedError';
       setAutoplayBlocked(browserBlocked);
@@ -129,6 +192,7 @@ const RadioPlayer = () => {
     if (!audio) return;
 
     if (isPlaying) {
+      requestedPlaybackRef.current = false;
       audio.pause();
       return;
     }
@@ -243,6 +307,7 @@ const RadioPlayer = () => {
                 <p className="text-primary-foreground font-display font-semibold text-sm truncate">{config.nome_radio}</p>
               )}
               {config.musica_atual && <p className="text-secondary text-xs font-medium truncate mt-0.5">♪ {config.musica_atual}</p>}
+              {activeSource === 'backup' && <p className="text-amber-200 text-[10px] font-semibold uppercase tracking-wide truncate mt-0.5">Fonte reserva em uso</p>}
             </div>
 
             <div className="hidden sm:flex items-center gap-2 flex-shrink-0">

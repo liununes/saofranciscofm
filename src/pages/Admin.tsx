@@ -217,9 +217,15 @@ const AdminPanel = () => {
     }
 
     let streamingUrl: string;
+    let backupStreamingUrl: string | null = null;
     try {
       streamingUrl = normalizeStreamingUrl(String(rc.streaming_url || ''), { allowHttpOnHttps: true });
-      if (!streamingUrl) throw new Error('Informe a URL do streaming antes de salvar.');
+      if (!streamingUrl) throw new Error('Informe a URL do streaming principal antes de salvar.');
+      const rawBackupUrl = String(rc.streaming_url_backup || '').trim();
+      if (rawBackupUrl) backupStreamingUrl = normalizeStreamingUrl(rawBackupUrl, { allowHttpOnHttps: true });
+      if (rc.streaming_backup_enabled && !backupStreamingUrl) {
+        throw new Error('Informe a URL da fonte reserva ou desative a reserva.');
+      }
     } catch (error) {
       toast.error(getSupabaseErrorMessage(error));
       return;
@@ -232,6 +238,10 @@ const AdminPanel = () => {
       logo_extra: rc.logo_extra,
       logo_extra_posicao: rc.logo_extra_posicao,
       streaming_url: streamingUrl,
+      streaming_url_backup: backupStreamingUrl,
+      streaming_backup_enabled: Boolean(rc.streaming_backup_enabled && backupStreamingUrl),
+      streaming_failover_mode: rc.streaming_failover_mode === 'automatic' ? 'automatic' : 'manual',
+      streaming_active_source: rc.streaming_active_source === 'backup' && backupStreamingUrl ? 'backup' : 'primary',
       player_posicao: rc.player_posicao,
       logo_posicao: rc.logo_posicao,
       logo_tamanho: rc.logo_tamanho,
@@ -673,7 +683,39 @@ const AdminPanel = () => {
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><Label>Nome da Rádio</Label><Input value={rc.nome_radio || ''} onChange={e => setRc({ ...rc, nome_radio: e.target.value })} /></div>
-            <div><Label>URL do Streaming</Label><Input value={rc.streaming_url || ''} onChange={e => setRc({ ...rc, streaming_url: e.target.value })} placeholder="https://stm28.srvaudio.com.br:10884/" /></div>
+            <div><Label>URL do Streaming Principal</Label><Input value={rc.streaming_url || ''} onChange={e => setRc({ ...rc, streaming_url: e.target.value })} placeholder="https://stm28.srvaudio.com.br:10884/" /></div>
+            <div>
+              <Label>URL do Streaming Reserva</Label>
+              <Input value={rc.streaming_url_backup || ''} onChange={e => setRc({ ...rc, streaming_url_backup: e.target.value })} placeholder="http://streaming.liurecord.com.br:8015/" />
+              <p className="text-[11px] text-muted-foreground mt-1">A reserva fica cadastrada, mas começa desativada para não interromper a fonte principal.</p>
+            </div>
+            <div>
+              <Label>Fonte ativa</Label>
+              <Select value={rc.streaming_active_source || 'primary'} onValueChange={v => setRc({ ...rc, streaming_active_source: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="primary">Principal</SelectItem>
+                  <SelectItem value="backup" disabled={!rc.streaming_backup_enabled}>Reserva</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Modo de troca</Label>
+              <Select value={rc.streaming_failover_mode || 'manual'} onValueChange={v => setRc({ ...rc, streaming_failover_mode: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="automatic">Automático em caso de falha</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3 pt-6">
+              <Switch checked={Boolean(rc.streaming_backup_enabled)} onCheckedChange={checked => setRc({ ...rc, streaming_backup_enabled: checked, streaming_active_source: checked ? (rc.streaming_active_source || 'primary') : 'primary' })} />
+              <div>
+                <Label>Ativar fonte reserva</Label>
+                <p className="text-[11px] text-muted-foreground">Permite uso manual e/ou failover automático.</p>
+              </div>
+            </div>
             <div>
               <Label>Logo Principal</Label>
               <ImageHint text="Recomendado: 300×120 px (PNG/JPG)" />

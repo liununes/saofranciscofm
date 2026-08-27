@@ -79,6 +79,10 @@ export interface RadioConfig {
   logo_extra: string;
   logo_extra_posicao: 'left' | 'right' | 'above';
   streaming_url: string;
+  streaming_url_backup?: string;
+  streaming_backup_enabled: boolean;
+  streaming_failover_mode: 'manual' | 'automatic';
+  streaming_active_source: 'primary' | 'backup';
   player_posicao: 'left' | 'center' | 'right';
   logo_posicao: 'left' | 'right' | 'above';
   logo_tamanho: number;
@@ -135,6 +139,10 @@ const defaultConfig: RadioConfig = {
   logo_extra: '',
   logo_extra_posicao: 'right',
   streaming_url: 'https://stm28.srvaudio.com.br:10884/',
+  streaming_url_backup: 'http://streaming.liurecord.com.br:8015/',
+  streaming_backup_enabled: false,
+  streaming_failover_mode: 'manual',
+  streaming_active_source: 'primary',
   player_posicao: 'center',
   logo_posicao: 'left',
   logo_tamanho: 80,
@@ -252,6 +260,10 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
         logo_extra: fromDatabase(rc?.logo_extra, ''),
         logo_extra_posicao: fromDatabase(rc?.logo_extra_posicao as any, 'right'),
         streaming_url: rc?.streaming_url || prev.streaming_url,
+        streaming_url_backup: fromDatabase(rc?.streaming_url_backup, prev.streaming_url_backup || ''),
+        streaming_backup_enabled: fromDatabase(rc?.streaming_backup_enabled, prev.streaming_backup_enabled),
+        streaming_failover_mode: fromDatabase(rc?.streaming_failover_mode as any, prev.streaming_failover_mode),
+        streaming_active_source: fromDatabase(rc?.streaming_active_source as any, prev.streaming_active_source),
         player_posicao: fromDatabase(rc?.player_posicao as any, 'center'),
         logo_posicao: fromDatabase(rc?.logo_posicao as any, 'left'),
         logo_tamanho: fromDatabase(rc?.logo_tamanho, 80),
