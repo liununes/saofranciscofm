@@ -74,8 +74,8 @@ Read more here: [Setting up a custom domain](#custom-domain)
 
 ## Configuração de produção
 
-O frontend usa exclusivamente a chave pública (anon/publishable) do Supabase. No serviço do Easypanel, configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` como variáveis de ambiente e reinicie o contêiner. O entrypoint gera `runtime-config.js` na inicialização, portanto essas variáveis também funcionam quando a imagem Docker já foi construída.
+O frontend usa exclusivamente a chave pública (anon/publishable) do Supabase da São Francisco FM. No serviço de produção, configure `NEXT_PUBLIC_SUPABASE_URL=https://axtzvyybrmujrpuznbxd.supabase.co` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` com a chave pública fornecida, depois recrie o contêiner. O entrypoint gera `runtime-config.js` na inicialização e não aceita mais a configuração antiga da Rádio Impacto.
 
-Aplique a migração `supabase/migrations/20260827000000_restore_admin_crud_permissions.sql` no banco Supabase antes de usar o painel. Ela restaura o CRUD com RLS seguro, usando a role `admin` ou a permissão específica de cada seção, e garante a role administrativa da conta mestre configurada. Não use uma chave `service_role` em variáveis `VITE_*` nem no navegador.
+Aplique no SQL Editor do projeto correto as migrações `supabase/migrations/20260827000000_restore_admin_crud_permissions.sql` e `supabase/migrations/20260827120000_bootstrap_sao_francisco_admin.sql`. A segunda concede a role `admin` à conta `liununes06@gmail.com` se ela já existir em Authentication > Users; se a conta ainda não existir, crie-a primeiro e execute novamente. Não use uma chave `service_role` no navegador.
 
 O contêiner também expõe `/stream.mp3`: ele faz relay/transcodificação AAC+ para MP3 usando FFmpeg, evitando a limitação de decodificação de `audio/aacp` em alguns navegadores. Por padrão, o relay permite o host atual `stm28.srvaudio.com.br`; se a URL do painel apontar para outro provedor, informe uma lista explícita em `STREAM_ALLOWED_HOSTS` (separada por vírgulas) no serviço do Easypanel.
