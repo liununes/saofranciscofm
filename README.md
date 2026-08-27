@@ -71,3 +71,11 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](#custom-domain)
+
+## Configuração de produção
+
+O frontend usa exclusivamente a chave pública (anon/publishable) do Supabase. No serviço do Easypanel, configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` como variáveis de ambiente e reinicie o contêiner. O entrypoint gera `runtime-config.js` na inicialização, portanto essas variáveis também funcionam quando a imagem Docker já foi construída.
+
+Aplique a migração `supabase/migrations/20260827000000_restore_admin_crud_permissions.sql` no banco Supabase antes de usar o painel. Ela restaura o CRUD com RLS seguro, usando a role `admin` ou a permissão específica de cada seção, e garante a role administrativa da conta mestre configurada. Não use uma chave `service_role` em variáveis `VITE_*` nem no navegador.
+
+O contêiner também expõe `/stream.mp3`: ele faz relay/transcodificação AAC+ para MP3 usando FFmpeg, evitando a limitação de decodificação de `audio/aacp` em alguns navegadores. Por padrão, o relay permite o host atual `stm28.srvaudio.com.br`; se a URL do painel apontar para outro provedor, informe uma lista explícita em `STREAM_ALLOWED_HOSTS` (separada por vírgulas) no serviço do Easypanel.

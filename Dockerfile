@@ -1,5 +1,5 @@
 FROM node:18-alpine
-
+RUN apk add --no-cache ffmpeg
 WORKDIR /app
 
 COPY package*.json ./
@@ -10,8 +10,9 @@ COPY . .
 
 RUN npm run build
 
-RUN npm install -g serve
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 80
 
-CMD ["serve", "dist", "-l", "80", "-s"]
+CMD ["/usr/local/bin/docker-entrypoint.sh"]

@@ -4,14 +4,24 @@
 # ============================================================
 
 # === CREDENCIAIS ===
+# Configure these variables in the shell before running the migration.
+# The VPS key must be a service-role key and must never be committed.
+$CLOUD_URL = $env:SAO_CLOUD_SUPABASE_URL
+$CLOUD_KEY = $env:SAO_CLOUD_SUPABASE_KEY
+$VPS_URL = $env:SAO_VPS_SUPABASE_URL
+$VPS_KEY = $env:SAO_VPS_SUPABASE_SERVICE_KEY
 
-# Supabase CLOUD (onde os dados estão)
-$CLOUD_URL = "https://pptriikhyejjzuelwuge.supabase.co"
-$CLOUD_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwdHJpaWtoeWVqanp1ZWx3dWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NjM5NzksImV4cCI6MjA4ODAzOTk3OX0.yH0fLIuLOBip5IN5xRJYBxHBuRORmSnyGh8dyVAG55M"
-
-# Supabase VPS (onde vamos importar) - SERVICE_ROLE para bypass RLS
-$VPS_URL = "https://appliu-supabase.ceip2y.easypanel.host"
-$VPS_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
+$requiredCredentials = @{
+    "SAO_CLOUD_SUPABASE_URL" = $CLOUD_URL
+    "SAO_CLOUD_SUPABASE_KEY" = $CLOUD_KEY
+    "SAO_VPS_SUPABASE_URL" = $VPS_URL
+    "SAO_VPS_SUPABASE_SERVICE_KEY" = $VPS_KEY
+}
+foreach ($credential in $requiredCredentials.GetEnumerator()) {
+    if ([string]::IsNullOrWhiteSpace($credential.Value)) {
+        throw "Defina a variável de ambiente $($credential.Key) antes de executar este script."
+    }
+}
 
 $cloudHeaders = @{ "apikey" = $CLOUD_KEY; "Authorization" = "Bearer $CLOUD_KEY" }
 $vpsHeaders   = @{ "apikey" = $VPS_KEY;   "Authorization" = "Bearer $VPS_KEY"; "Content-Type" = "application/json" }

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -8,11 +9,40 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   permissions: string[];
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: unknown }>;
+  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<{ error: any }>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
+  updatePassword: (newPassword: string) => Promise<{ error: unknown }>;
+  resetPassword: (email: string) => Promise<{ error: unknown }>;
+}
+
+async function readUserAccess(userId: string) {
+  const { data: roles, error: rolesError } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId);
+
+  if (rolesError) {
+    console.error('[Auth] Não foi possível carregar as roles do usuário:', rolesError);
+    return { isAdmin: false, permissions: [] as string[] };
+  }
+
+  const isAdmin = roles?.some(role => role.role === 'admin') ?? false;
+  if (isAdmin) return { isAdmin: true, permissions: [] as string[] };
+
+  const { data: permissions, error: permissionsError } = await supabase
+    .from('user_permissions')
+    .select('permission')
+    .eq('user_id', userId);
+
+  if (permissionsError) {
+    console.error('[Auth] Não foi possível carregar as permissões do usuário:', permissionsError);
+  }
+
+  return {
+    isAdmin: false,
+    permissions: permissions?.map(permission => permission.permission) ?? [],
+  };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,88 +53,92 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [permissions, setPermissions] = useState<string[]>([]);
-  const rolesFetched = useRef<string | null>(null);
+  const sessionVersion = useRef(0);
 
-  const fetchRoleAndPermissions = async (userId: string) => {
-    if (rolesFetched.current === userId) return;
-    rolesFetched.current = userId;
-    try {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
-      const query = supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
+  const applySession = useCallback(async (nextSession: Session | null) => {
+    const version = ++sessionVersion.current;
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
 
-      const result = await Promise.race([query, timeout]) as any;
-      const roles = result?.data;
-
-      const admin = roles?.some((r: any) => r.role === 'admin') ?? false;
-      setIsAdmin(admin);
-
-      if (!admin) {
-        const { data: perms } = await supabase
-          .from('user_permissions')
-          .select('permission')
-          .eq('user_id', userId);
-        setPermissions(perms?.map(p => p.permission) ?? []);
-      } else {
-        setPermissions([]);
-      }
-    } catch {
+    if (!nextSession?.user) {
       setIsAdmin(false);
       setPermissions([]);
+      setLoading(false);
+      return;
     }
-  };
+
+    const access = await readUserAccess(nextSession.user.id);
+    if (version !== sessionVersion.current) return;
+
+    setIsAdmin(access.isAdmin);
+    setPermissions(access.permissions);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!mounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchRoleAndPermissions(session.user.id);
-        } else {
+    const initialize = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) console.error('[Auth] Não foi possível restaurar a sessão:', error);
+        if (mounted) await applySession(data.session);
+      } catch (error) {
+        console.error('[Auth] Falha ao inicializar autenticação:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
           setIsAdmin(false);
           setPermissions([]);
+          setLoading(false);
         }
-        if (mounted) setLoading(false);
       }
-    );
+    };
 
-    // Safety timeout — always resolve loading after 3s
-    const fallback = setTimeout(() => {
+    const { data: authState } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      // Do not await database queries inside Supabase's auth callback. Running
+      // the access lookup in a separate task avoids deadlocks in self-hosted Auth.
+      window.setTimeout(() => {
+        if (mounted) void applySession(nextSession);
+      }, 0);
+    });
+
+    void initialize();
+
+    const fallback = window.setTimeout(() => {
       if (mounted) setLoading(false);
-    }, 3000);
+    }, 5000);
 
     return () => {
       mounted = false;
-      clearTimeout(fallback);
-      subscription.unsubscribe();
+      window.clearTimeout(fallback);
+      authState.subscription.unsubscribe();
     };
-  }, []);
+  }, [applySession]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     return { error };
   };
 
   const signUp = async (email: string, password: string, displayName?: string) => {
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
-        data: { display_name: displayName || email },
-        emailRedirectTo: window.location.origin,
+        data: { display_name: displayName?.trim() || email.trim() },
+        emailRedirectTo: `${window.location.origin}/admin`,
       },
     });
     return { error };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error('[Auth] Falha ao sair:', error);
   };
 
   const updatePassword = async (newPassword: string) => {
@@ -113,21 +147,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     return { error };
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, permissions, signIn, signUp, signOut, updatePassword, resetPassword }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        isAdmin,
+        permissions,
+        signIn,
+        signUp,
+        signOut,
+        updatePassword,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
 };
