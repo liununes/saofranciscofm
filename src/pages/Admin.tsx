@@ -16,7 +16,6 @@ import ImageUpload from '@/components/admin/ImageUpload';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSupabaseErrorMessage, normalizeStreamingUrl } from '@/lib/supabaseUtils';
-import { isLegacyPermissionRow, normalizeNoticia, normalizePrograma, permissionNamesFromRows, toNoticiaDbUpdates, toProgramaDbUpdates } from '@/lib/databaseCompatibility';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -110,36 +109,6 @@ const notifyPublicDataUpdated = () => {
   }
 };
 
-const saveUserPermissions = async (userId: string, permissionNames: string[]) => {
-  const { data: rows, error: readError } = await supabase
-    .from('user_permissions' as any)
-    .select('*')
-    .eq('user_id', userId);
-  if (readError) throw readError;
-
-  const legacyRow = rows?.find(isLegacyPermissionRow);
-  const { error: legacySchemaError } = await supabase
-    .from('user_permissions' as any)
-    .select('permissions')
-    .limit(1);
-  if (legacyRow || !legacySchemaError) {
-    const payload = { user_id: userId, permissions: [...new Set(permissionNames)] };
-    const result = rows && rows.length > 0
-      ? await supabase.from('user_permissions' as any).update({ permissions: payload.permissions }).eq('user_id', userId)
-      : await supabase.from('user_permissions' as any).insert(payload);
-    if (result.error) throw result.error;
-    return;
-  }
-
-  await supabase.from('user_permissions' as any).delete().eq('user_id', userId);
-  if (permissionNames.length > 0) {
-    const { error } = await supabase
-      .from('user_permissions' as any)
-      .insert(permissionNames.map(permission => ({ user_id: userId, permission })));
-    if (error) throw error;
-  }
-};
-
 const AdminPanel = () => {
   const { refreshData } = useRadio();
   const { user, isAdmin, permissions, signOut, updatePassword } = useAuth();
@@ -181,9 +150,9 @@ const AdminPanel = () => {
       const [rcRes, locRes, progRes, musRes, notRes, patRes, slidRes, pagRes, socialRes, promoRes] = await Promise.allSettled([
         supabase.from('radio_config').select('*').limit(1).single(),
         supabase.from('locutores').select('*').order('created_at'),
-        supabase.from('programas' as any).select('*, locutores(*)').order('hora_inicio'),
+        supabase.from('programas').select('*, locutores(*)').order('horario_inicio'),
         supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }),
-        supabase.from('noticias' as any).select('*').order('data_postagem', { ascending: false }),
+        supabase.from('noticias').select('*').order('created_at', { ascending: false }),
         supabase.from('patrocinadores').select('*').order('created_at'),
         supabase.from('slide_imagens').select('*').order('ordem'),
         supabase.from('paginas').select('*').order('slug'),
@@ -204,9 +173,9 @@ const AdminPanel = () => {
 
       setRc(rcRes.status === 'fulfilled' ? rcRes.value.data || {} : {});
       setLocutores(locRes.status === 'fulfilled' ? locRes.value.data || [] : []);
-      setProgramas(progRes.status === 'fulfilled' ? (progRes.value.data || []).map(normalizePrograma) : []);
+      setProgramas(progRes.status === 'fulfilled' ? progRes.value.data || [] : []);
       setMusicas(musRes.status === 'fulfilled' ? musRes.value.data || [] : []);
-      setNoticias(notRes.status === 'fulfilled' ? (notRes.value.data || []).map(normalizeNoticia) : []);
+      setNoticias(notRes.status === 'fulfilled' ? notRes.value.data || [] : []);
       setPatrocinadores(patRes.status === 'fulfilled' ? patRes.value.data || [] : []);
       setSlides(slidRes.status === 'fulfilled' ? slidRes.value.data || [] : []);
       setPaginas(pagRes.status === 'fulfilled' ? pagRes.value.data || [] : []);
@@ -220,21 +189,12 @@ const AdminPanel = () => {
           const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
           if (profilesError) throw profilesError;
           if (profiles) {
-            const usersWithRoles = await Promise.all(profiles.map(async (p: any) => {
-              const profileUserId = p.user_id || p.id;
-              const { data: roles, error: rolesError } = await supabase.from('user_roles').select('role').eq('user_id', profileUserId);
-              const { data: perms, error: permsError } = await supabase.from('user_permissions' as any).select('*').eq('user_id', profileUserId);
+            const usersWithRoles = await Promise.all(profiles.map(async (p) => {
+              const { data: roles, error: rolesError } = await supabase.from('user_roles').select('role').eq('user_id', p.user_id);
+              const { data: perms, error: permsError } = await supabase.from('user_permissions').select('permission').eq('user_id', p.user_id);
               if (rolesError) throw rolesError;
               if (permsError) throw permsError;
-              const legacyPermissionRow = (perms as any[] | null)?.[0];
-              return {
-                ...p,
-                user_id: profileUserId,
-                display_name: p.display_name || p.name || legacyPermissionRow?.display_name || '',
-                email: legacyPermissionRow?.email_real || p.email || '',
-                roles: roles || [],
-                permissions: permissionNamesFromRows(perms as any[] | null),
-              };
+              return { ...p, roles: roles || [], permissions: perms?.map(pp => pp.permission) || [] };
             }));
             setUsers(usersWithRoles);
           }
@@ -316,11 +276,12 @@ const AdminPanel = () => {
           .from('radio_config')
           .update(payload)
           .eq('id', rc.id)
-          .select()
-          .maybeSingle();
+          .select('*');
         if (error) throw error;
-        if (!data) throw new Error('A configuração não foi encontrada no banco de dados.');
-        setRc(data);
+        if (!data || data.length === 0) {
+          throw new Error('Nenhuma configuração foi atualizada. Verifique se sua conta possui a role admin e se o registro existe.');
+        }
+        setRc(data[0]);
       } else {
         const { data, error } = await supabase
           .from('radio_config')
@@ -351,7 +312,7 @@ const AdminPanel = () => {
   const debouncedSaveLocutor = useDebouncedSave(persistLocutor);
 
   const persistPrograma = useCallback(async (id: string, updates: any) => {
-    const { error } = await supabase.from('programas' as any).update(toProgramaDbUpdates(updates)).eq('id', id);
+    const { error } = await supabase.from('programas').update(updates).eq('id', id);
     if (error) throw error;
     notifyPublicDataUpdated();
   }, []);
@@ -365,7 +326,7 @@ const AdminPanel = () => {
   const debouncedSaveMusica = useDebouncedSave(persistMusica);
 
   const persistNoticia = useCallback(async (id: string, updates: any) => {
-    const { error } = await supabase.from('noticias' as any).update(toNoticiaDbUpdates(updates)).eq('id', id);
+    const { error } = await supabase.from('noticias').update(updates).eq('id', id);
     if (error) throw error;
     notifyPublicDataUpdated();
   }, []);
@@ -401,7 +362,7 @@ const AdminPanel = () => {
   };
   const updatePrograma = (id: string, updates: any) => { setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePrograma(id, updates); };
   const updateProgramaImmediate = async (id: string, updates: any) => {
-    const { error } = await supabase.from('programas' as any).update(toProgramaDbUpdates(updates)).eq('id', id);
+    const { error } = await supabase.from('programas').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar programa: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
     notifyPublicDataUpdated();
@@ -409,7 +370,7 @@ const AdminPanel = () => {
   const updateMusica = (id: string, updates: any) => { setMusicas(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m)); debouncedSaveMusica(id, updates); };
   const updateNoticia = (id: string, updates: any) => { setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n)); debouncedSaveNoticia(id, updates); };
   const updateNoticiaImmediate = async (id: string, updates: any) => {
-    const { error } = await supabase.from('noticias' as any).update(toNoticiaDbUpdates(updates)).eq('id', id);
+    const { error } = await supabase.from('noticias').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar notícia: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
     notifyPublicDataUpdated();
@@ -457,9 +418,9 @@ const AdminPanel = () => {
   };
   const addPrograma = async () => {
     try {
-      const { data, error } = await supabase.from('programas' as any).insert({ nome: 'Novo Programa', hora_inicio: '06:00', hora_fim: '10:00', dias_semana: [1, 2, 3, 4, 5], foto: '' }).select('*, locutores(*)').single();
+      const { data, error } = await supabase.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5] }).select('*, locutores(*)').single();
       if (error) throw error;
-      if (data) setProgramas(prev => [...prev, normalizePrograma(data)]);
+      if (data) setProgramas(prev => [...prev, data]);
       notifyPublicDataUpdated();
       toast.success('Programa criado.');
     } catch (error) { toast.error(`Erro ao criar programa: ${getSupabaseErrorMessage(error)}`); }
@@ -493,9 +454,9 @@ const AdminPanel = () => {
   };
   const addNoticia = async () => {
     try {
-      const { data, error } = await supabase.from('noticias' as any).insert({ titulo: 'Nova notícia', resumo: '', conteudo: '', imagem: '', url: '', destaque: false }).select().single();
+      const { data, error } = await supabase.from('noticias').insert({ titulo: 'Nova notícia', resumo: '', link_completo: '' }).select().single();
       if (error) throw error;
-      if (data) setNoticias(prev => [normalizeNoticia(data), ...prev]);
+      if (data) setNoticias(prev => [data, ...prev]);
       notifyPublicDataUpdated();
       toast.success('Notícia criada.');
     } catch (error) { toast.error(`Erro ao criar notícia: ${getSupabaseErrorMessage(error)}`); }
@@ -587,11 +548,8 @@ const AdminPanel = () => {
     if (error) { toast.error(error.message); return; }
     toast.success('Usuário criado! (Verifique o e-mail para confirmar)');
     if (signUpData?.user && newUserPerms.length > 0) {
-      try {
-        await saveUserPermissions(signUpData.user.id, newUserPerms);
-      } catch (permissionError) {
-        toast.error(`Usuário criado, mas as permissões não foram salvas: ${getSupabaseErrorMessage(permissionError)}`);
-      }
+      const permsToInsert = newUserPerms.map(p => ({ user_id: signUpData.user!.id, permission: p }));
+      await supabase.from('user_permissions').insert(permsToInsert);
     }
     setNewUserEmail(''); setNewUserPassword(''); setNewUserName(''); setNewUserPerms([]);
     setTimeout(loadAll, 2000);
@@ -604,19 +562,9 @@ const AdminPanel = () => {
   };
 
   const toggleUserPermission = async (userId: string, perm: string, has: boolean) => {
-    try {
-      const { data: rows, error } = await supabase.from('user_permissions' as any).select('*').eq('user_id', userId);
-      if (error) throw error;
-      const currentPermissions = permissionNamesFromRows(rows as any[] | null);
-      const nextPermissions = has
-        ? currentPermissions.filter(permission => permission !== perm)
-        : [...currentPermissions, perm];
-      await saveUserPermissions(userId, nextPermissions);
-      await loadAll();
-      toast.success('Permissões atualizadas.');
-    } catch (error) {
-      toast.error(`Erro ao atualizar permissões: ${getSupabaseErrorMessage(error)}`);
-    }
+    if (has) { await supabase.from('user_permissions').delete().eq('user_id', userId).eq('permission', perm); }
+    else { await supabase.from('user_permissions').insert({ user_id: userId, permission: perm }); }
+    loadAll();
   };
 
   const handlePasswordChange = async () => {

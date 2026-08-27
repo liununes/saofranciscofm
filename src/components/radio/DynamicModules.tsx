@@ -22,7 +22,7 @@ const FeaturedNewsModule = () => {
 
   const openNoticia = async () => {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data } = await supabase.from('noticias' as any).select('conteudo').eq('id', destaque.id).single();
+    const { data } = await supabase.from('noticias').select('conteudo').eq('id', destaque.id).single();
     setSelected({ ...destaque, conteudo: data?.conteudo || destaque.resumo });
   };
 
@@ -64,27 +64,34 @@ const FeaturedNewsModule = () => {
 
 // Module 2: Next Program
 const NextProgramModule = () => {
-  const { config, currentPrograma, programas } = useRadio();
+  const { config, currentPrograma } = useRadio();
   const [nextProgram, setNextProgram] = useState<any>(null);
   const [countdown, setCountdown] = useState('');
 
   useEffect(() => {
-    const findNext = () => {
-      const activePrograms = programas.filter(programa => programa.ativo);
-      if (activePrograms.length === 0) { setNextProgram(null); return; }
+    const findNext = async () => {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: progs } = await supabase
+        .from('programas')
+        .select('*, locutores(*)')
+        .eq('ativo', true);
+
+      if (!progs || progs.length === 0) { setNextProgram(null); return; }
 
       const now = new Date();
       const dayOfWeek = now.getDay();
       const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
 
-      let next = activePrograms
-        .filter(programa => programa.dias_semana.includes(dayOfWeek) && programa.horario_inicio > currentTime)
+      // Find next program today
+      let next = progs
+        .filter(p => p.dias_semana.includes(dayOfWeek) && p.horario_inicio > currentTime)
         .sort((a, b) => a.horario_inicio.localeCompare(b.horario_inicio))[0];
 
+      // If none today, find first program tomorrow
       if (!next) {
         const tomorrow = (dayOfWeek + 1) % 7;
-        next = activePrograms
-          .filter(programa => programa.dias_semana.includes(tomorrow))
+        next = progs
+          .filter(p => p.dias_semana.includes(tomorrow))
           .sort((a, b) => a.horario_inicio.localeCompare(b.horario_inicio))[0];
       }
 
@@ -94,7 +101,7 @@ const NextProgramModule = () => {
     findNext();
     const interval = setInterval(findNext, 60000);
     return () => clearInterval(interval);
-  }, [programas, currentPrograma]);
+  }, [currentPrograma]);
 
   // Countdown timer
   useEffect(() => {
@@ -125,7 +132,7 @@ const NextProgramModule = () => {
 
   if (!nextProgram) return null;
 
-  const locutor = nextProgram.locutor;
+  const locutor = nextProgram.locutores;
 
   return (
     <div className="bg-card rounded-2xl shadow-card p-5">

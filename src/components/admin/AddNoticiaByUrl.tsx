@@ -77,15 +77,12 @@ const AddNoticiaByUrl = ({ onNoticiaAdded, existingUrls }: Props) => {
       conteudo += `\n\n— Fonte: ${editData.fonte}`;
     }
 
-    const { error } = await supabase.from('noticias' as any).insert({
+    const { error } = await supabase.from('noticias').insert({
       titulo: editData.titulo.trim(),
       resumo: editData.resumo.trim(),
       conteudo,
-      url: editData.link || null,
-      imagem: editData.imagem || null,
-      fonte: editData.fonte || null,
-      data_postagem: extracted?.data_publicacao || new Date().toISOString(),
-      destaque: false,
+      link_completo: editData.link,
+      imagem_url: editData.imagem || null,
     });
 
     if (error) { toast.error('Erro ao salvar notícia.'); return; }

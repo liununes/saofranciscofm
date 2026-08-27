@@ -1,6 +1,5 @@
 import React, { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { normalizeNoticia, normalizePrograma } from '@/lib/databaseCompatibility';
 
 export interface Musica {
   id: string;
@@ -215,10 +214,10 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       const [rcRes, musicasRes, noticiasRes, patRes, slidesRes, progsRes, socialRes, promoRes] = await Promise.allSettled([
         supabase.from('radio_config').select('*').limit(1).single(),
         supabase.from('musicas_recentes').select('*').order('created_at', { ascending: false }).limit(10),
-        supabase.from('noticias' as any).select('*').order('data_postagem', { ascending: false }),
+        supabase.from('noticias').select('*').order('created_at', { ascending: false }),
         supabase.from('patrocinadores').select('*'),
         supabase.from('slide_imagens').select('*').order('ordem', { ascending: true }),
-        supabase.from('programas' as any).select('*, locutores(*)'),
+        supabase.from('programas').select('*, locutores(*)').eq('ativo', true),
         supabase.from('social_links').select('*').order('ordem', { ascending: true }),
         supabase.from('promocoes').select('*').order('created_at', { ascending: false }),
       ]);
@@ -232,20 +231,16 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
       const socialLinks = socialRes.status === 'fulfilled' && !socialRes.value.error ? socialRes.value.data : null;
       const promocoes = promoRes.status === 'fulfilled' && !promoRes.value.error ? promoRes.value.data : null;
 
-    const mappedProgramas: Programa[] = (progs || []).map((rawPrograma: any) => {
-      const p = normalizePrograma(rawPrograma);
-      const locutor = p.locutor;
-      return {
-        id: p.id,
-        nome: p.nome,
-        locutor_id: p.locutor_id,
-        locutor: locutor ? { id: locutor.id, nome: locutor.nome, imagem_url: locutor.imagem_url } : undefined,
-        horario_inicio: p.horario_inicio,
-        horario_fim: p.horario_fim,
-        dias_semana: p.dias_semana || [],
-        ativo: p.ativo,
-      };
-    });
+    const mappedProgramas: Programa[] = (progs || []).map((p: any) => ({
+      id: p.id,
+      nome: p.nome,
+      locutor_id: p.locutor_id,
+      locutor: p.locutores ? { id: p.locutores.id, nome: p.locutores.nome, imagem_url: p.locutores.imagem_url } : undefined,
+      horario_inicio: p.horario_inicio,
+      horario_fim: p.horario_fim,
+      dias_semana: p.dias_semana,
+      ativo: p.ativo,
+    }));
     if (progs !== null) setProgramas(mappedProgramas);
 
     setConfig(prev => {
@@ -295,7 +290,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
         ads_rodape_ativo: fromDatabase(rc?.ads_rodape_ativo, false),
         total_visitas: fromDatabase(prev.total_visitas, 0),
         musicas_recentes: musicas === null ? prev.musicas_recentes : (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
-        noticias: noticias === null ? prev.noticias : (noticias || []).map(normalizeNoticia),
+        noticias: noticias === null ? prev.noticias : (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '', created_at: n.created_at, updated_at: n.updated_at, destaque: (n as any).destaque || false })),
         patrocinadores: patrocinadores === null ? prev.patrocinadores : (patrocinadores || []).map(p => ({
           id: p.id,
           nome: p.nome,
