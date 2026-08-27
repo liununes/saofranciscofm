@@ -3,6 +3,7 @@ import { useRadio } from '@/contexts/RadioContext';
 import { Newspaper, ArrowRight, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeNoticia } from '@/lib/databaseCompatibility';
 import ShareButtons from '@/components/radio/ShareButtons';
 import InlineAd from '@/components/radio/InlineAd';
 
@@ -40,11 +41,13 @@ const NewsSection = () => {
   const isHorizontalGrid = posicao === 'centro' && !hasOtherBlocks;
 
   const openNoticia = async (n: any) => {
-    const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
+    const { data } = await supabase.from('noticias' as any).select('*').eq('id', n.id).single();
+    const fullNews = data ? normalizeNoticia(data) : n;
     setSelected({
       ...n,
-      conteudo: data?.conteudo || n.resumo,
-      link_completo: data?.link_completo || n.link_completo,
+      ...fullNews,
+      conteudo: fullNews.conteudo || n.resumo,
+      link_completo: fullNews.link_completo || n.link_completo,
     });
   };
 

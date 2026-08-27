@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeNoticia } from '@/lib/databaseCompatibility';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import RadioHeader from '@/components/radio/RadioHeader';
 import RadioFooter from '@/components/radio/RadioFooter';
@@ -23,14 +24,14 @@ const NoticiaDetalhe = () => {
 
     const loadNews = async () => {
       if (!id) return;
-      const { data, error } = await supabase.from('noticias').select('*').eq('id', id).single();
+      const { data, error } = await supabase.from('noticias' as any).select('*').eq('id', id).single();
       if (!mounted) return;
       if (error) {
         console.error('[NoticiaDetalhe] Não foi possível carregar a notícia:', error);
         setLoading(false);
         return;
       }
-      setNoticia(data);
+      setNoticia(normalizeNoticia(data));
       setLoading(false);
     };
 

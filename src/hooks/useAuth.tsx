@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { permissionNamesFromRows } from '@/lib/databaseCompatibility';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -31,8 +32,8 @@ async function readUserAccess(userId: string) {
   if (isAdmin) return { isAdmin: true, permissions: [] as string[] };
 
   const { data: permissions, error: permissionsError } = await supabase
-    .from('user_permissions')
-    .select('permission')
+    .from('user_permissions' as any)
+    .select('*')
     .eq('user_id', userId);
 
   if (permissionsError) {
@@ -41,7 +42,7 @@ async function readUserAccess(userId: string) {
 
   return {
     isAdmin: false,
-    permissions: permissions?.map(permission => permission.permission) ?? [],
+    permissions: permissionNamesFromRows(permissions as any[] | null),
   };
 }
 
