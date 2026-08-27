@@ -19,13 +19,43 @@ const NoticiaDetalhe = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    let mounted = true;
+
+    const loadNews = async () => {
       if (!id) return;
-      const { data } = await supabase.from('noticias').select('*').eq('id', id).single();
+      const { data, error } = await supabase.from('noticias').select('*').eq('id', id).single();
+      if (!mounted) return;
+      if (error) {
+        console.error('[NoticiaDetalhe] Não foi possível carregar a notícia:', error);
+        setLoading(false);
+        return;
+      }
       setNoticia(data);
       setLoading(false);
     };
-    fetchData();
+
+    void loadNews();
+    const interval = window.setInterval(() => void loadNews(), 30000);
+    const handleRefresh = () => void loadNews();
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'sao-francisco-fm:data-updated') void loadNews();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') void loadNews();
+    };
+    window.addEventListener('sao-francisco-fm:data-updated', handleRefresh);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener('sao-francisco-fm:data-updated', handleRefresh);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [id]);
 
 

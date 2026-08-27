@@ -11,12 +11,42 @@ const Sobre = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase.from('paginas').select('*').eq('slug', 'sobre').single();
+    let mounted = true;
+
+    const loadPage = async () => {
+      const { data, error } = await supabase.from('paginas').select('*').eq('slug', 'sobre').single();
+      if (!mounted) return;
+      if (error) {
+        console.error('[Sobre] Não foi possível carregar a página:', error);
+        setLoading(false);
+        return;
+      }
       setPagina(data);
       setLoading(false);
     };
-    fetch();
+
+    void loadPage();
+    const interval = window.setInterval(() => void loadPage(), 30000);
+    const handleRefresh = () => void loadPage();
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'sao-francisco-fm:data-updated') void loadPage();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') void loadPage();
+    };
+    window.addEventListener('sao-francisco-fm:data-updated', handleRefresh);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener('sao-francisco-fm:data-updated', handleRefresh);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background">Carregando...</div>;

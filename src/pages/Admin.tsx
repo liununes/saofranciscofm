@@ -99,6 +99,16 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'perfil', label: 'Perfil', icon: User },
 ];
 
+const notifyPublicDataUpdated = () => {
+  const eventName = 'sao-francisco-fm:data-updated';
+  window.dispatchEvent(new Event(eventName));
+  try {
+    window.localStorage.setItem('sao-francisco-fm:data-updated', String(Date.now()));
+  } catch (error) {
+    console.warn('[Admin] Não foi possível registrar o aviso de atualização pública:', error);
+  }
+};
+
 const AdminPanel = () => {
   const { refreshData } = useRadio();
   const { user, isAdmin, permissions, signOut, updatePassword } = useAuth();
@@ -282,6 +292,7 @@ const AdminPanel = () => {
       }
 
       toast.success('Configuração salva com sucesso!');
+      notifyPublicDataUpdated();
       await refreshData();
     } catch (error) {
       console.error('[Admin] Erro ao salvar configuração:', error);
@@ -295,42 +306,49 @@ const AdminPanel = () => {
   const persistLocutor = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('locutores').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
   const debouncedSaveLocutor = useDebouncedSave(persistLocutor);
 
   const persistPrograma = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('programas').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
   const debouncedSavePrograma = useDebouncedSave(persistPrograma);
 
   const persistMusica = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('musicas_recentes').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
   const debouncedSaveMusica = useDebouncedSave(persistMusica);
 
   const persistNoticia = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('noticias').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
   const debouncedSaveNoticia = useDebouncedSave(persistNoticia);
 
   const persistPatrocinador = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('patrocinadores').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
   const debouncedSavePatrocinador = useDebouncedSave(persistPatrocinador);
 
   const persistSlide = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('slide_imagens').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
   const debouncedSaveSlide = useDebouncedSave(persistSlide);
 
   const persistPagina = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('paginas').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
   const debouncedSavePagina = useDebouncedSave(persistPagina);
 
@@ -339,12 +357,14 @@ const AdminPanel = () => {
     const { error } = await supabase.from('locutores').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar locutor: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setLocutores(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+    notifyPublicDataUpdated();
   };
   const updatePrograma = (id: string, updates: any) => { setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePrograma(id, updates); };
   const updateProgramaImmediate = async (id: string, updates: any) => {
     const { error } = await supabase.from('programas').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar programa: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setProgramas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    notifyPublicDataUpdated();
   };
   const updateMusica = (id: string, updates: any) => { setMusicas(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m)); debouncedSaveMusica(id, updates); };
   const updateNoticia = (id: string, updates: any) => { setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n)); debouncedSaveNoticia(id, updates); };
@@ -352,6 +372,7 @@ const AdminPanel = () => {
     const { error } = await supabase.from('noticias').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar notícia: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setNoticias(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+    notifyPublicDataUpdated();
     await refreshData();
   };
   const updatePatrocinador = (id: string, updates: any) => { setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePatrocinador(id, updates); };
@@ -359,18 +380,21 @@ const AdminPanel = () => {
     const { error } = await supabase.from('patrocinadores').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar patrocinador: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setPatrocinadores(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    notifyPublicDataUpdated();
   };
   const updateSlide = (id: string, updates: any) => { setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); debouncedSaveSlide(id, updates); };
   const updateSlideImmediate = async (id: string, updates: any) => {
     const { error } = await supabase.from('slide_imagens').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar slide: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setSlides(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    notifyPublicDataUpdated();
   };
   const updatePagina = (id: string, updates: any) => { setPaginas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p)); debouncedSavePagina(id, updates); };
   const updatePaginaImmediate = async (id: string, updates: any) => {
     const { error } = await supabase.from('paginas').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar página: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setPaginas(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    notifyPublicDataUpdated();
   };
 
   const addLocutor = async () => {
@@ -378,6 +402,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase.from('locutores').insert({ nome: 'Novo Locutor' }).select().single();
       if (error) throw error;
       if (data) setLocutores(prev => [...prev, data]);
+      notifyPublicDataUpdated();
       toast.success('Locutor criado.');
     } catch (error) { toast.error(`Erro ao criar locutor: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -386,6 +411,7 @@ const AdminPanel = () => {
       const { error } = await supabase.from('locutores').delete().eq('id', id);
       if (error) throw error;
       setLocutores(prev => prev.filter(l => l.id !== id));
+      notifyPublicDataUpdated();
       toast.success('Locutor removido.');
     } catch (error) { toast.error(`Erro ao remover locutor: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -394,6 +420,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase.from('programas').insert({ nome: 'Novo Programa', horario_inicio: '06:00', horario_fim: '10:00', dias_semana: [1, 2, 3, 4, 5] }).select('*, locutores(*)').single();
       if (error) throw error;
       if (data) setProgramas(prev => [...prev, data]);
+      notifyPublicDataUpdated();
       toast.success('Programa criado.');
     } catch (error) { toast.error(`Erro ao criar programa: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -402,6 +429,7 @@ const AdminPanel = () => {
       const { error } = await supabase.from('programas').delete().eq('id', id);
       if (error) throw error;
       setProgramas(prev => prev.filter(p => p.id !== id));
+      notifyPublicDataUpdated();
       toast.success('Programa removido.');
     } catch (error) { toast.error(`Erro ao remover programa: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -410,6 +438,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase.from('musicas_recentes').insert({ titulo: 'Nova música', artista: 'Artista', hora_execucao: '' }).select().single();
       if (error) throw error;
       if (data) setMusicas(prev => [data, ...prev]);
+      notifyPublicDataUpdated();
       toast.success('Música criada.');
     } catch (error) { toast.error(`Erro ao criar música: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -418,6 +447,7 @@ const AdminPanel = () => {
       const { error } = await supabase.from('musicas_recentes').delete().eq('id', id);
       if (error) throw error;
       setMusicas(prev => prev.filter(m => m.id !== id));
+      notifyPublicDataUpdated();
       toast.success('Música removida.');
     } catch (error) { toast.error(`Erro ao remover música: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -426,6 +456,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase.from('noticias').insert({ titulo: 'Nova notícia', resumo: '', link_completo: '' }).select().single();
       if (error) throw error;
       if (data) setNoticias(prev => [data, ...prev]);
+      notifyPublicDataUpdated();
       toast.success('Notícia criada.');
     } catch (error) { toast.error(`Erro ao criar notícia: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -434,6 +465,7 @@ const AdminPanel = () => {
       const { error } = await supabase.from('noticias').delete().eq('id', id);
       if (error) throw error;
       setNoticias(prev => prev.filter(n => n.id !== id));
+      notifyPublicDataUpdated();
       toast.success('Notícia removida.');
     } catch (error) { toast.error(`Erro ao remover notícia: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -442,6 +474,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase.from('patrocinadores').insert({ nome: 'Novo patrocinador', tipo: 'normal', posicao: 'rodape' }).select().single();
       if (error) throw error;
       if (data) setPatrocinadores(prev => [...prev, data]);
+      notifyPublicDataUpdated();
       toast.success('Patrocinador criado.');
     } catch (error) { toast.error(`Erro ao criar patrocinador: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -450,6 +483,7 @@ const AdminPanel = () => {
       const { error } = await supabase.from('patrocinadores').delete().eq('id', id);
       if (error) throw error;
       setPatrocinadores(prev => prev.filter(p => p.id !== id));
+      notifyPublicDataUpdated();
       toast.success('Patrocinador removido.');
     } catch (error) { toast.error(`Erro ao remover patrocinador: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -458,6 +492,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase.from('slide_imagens').insert({ imagem_url: '', ordem: slides.length }).select().single();
       if (error) throw error;
       if (data) setSlides(prev => [...prev, data]);
+      notifyPublicDataUpdated();
       toast.success('Slide criado.');
     } catch (error) { toast.error(`Erro ao criar slide: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -466,6 +501,7 @@ const AdminPanel = () => {
       const { error } = await supabase.from('slide_imagens').delete().eq('id', id);
       if (error) throw error;
       setSlides(prev => prev.filter(s => s.id !== id));
+      notifyPublicDataUpdated();
       toast.success('Slide removido.');
     } catch (error) { toast.error(`Erro ao remover slide: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -475,6 +511,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase.from('social_links').insert({ nome: 'Novo Link', url: '', icone: 'link', ordem: socialLinks.length, ativo: false }).select().single();
       if (error) throw error;
       if (data) setSocialLinks(prev => [...prev, data]);
+      notifyPublicDataUpdated();
       toast.success('Link criado.');
     } catch (error) { toast.error(`Erro ao criar link: ${getSupabaseErrorMessage(error)}`); }
   };
@@ -483,12 +520,14 @@ const AdminPanel = () => {
       const { error } = await supabase.from('social_links').delete().eq('id', id);
       if (error) throw error;
       setSocialLinks(prev => prev.filter(s => s.id !== id));
+      notifyPublicDataUpdated();
       toast.success('Link removido.');
     } catch (error) { toast.error(`Erro ao remover link: ${getSupabaseErrorMessage(error)}`); }
   };
   const persistSocialLink = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('social_links').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
   const debouncedSaveSocialLink = useDebouncedSave(persistSocialLink);
   const updateSocialLink = (id: string, updates: any) => { setSocialLinks(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s)); debouncedSaveSocialLink(id, updates); };
@@ -496,6 +535,7 @@ const AdminPanel = () => {
     const { error } = await supabase.from('social_links').update(updates).eq('id', id);
     if (error) { toast.error(`Erro ao salvar link: ${getSupabaseErrorMessage(error)}`); await loadAll(); return; }
     setSocialLinks(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    notifyPublicDataUpdated();
   };
 
   const createUser = async () => {
@@ -878,6 +918,7 @@ const AdminPanel = () => {
     }
 
     setPromocoes(prev => [data, ...prev]);
+    notifyPublicDataUpdated();
     toast.success('Promoção criada!');
   };
 
@@ -888,12 +929,14 @@ const AdminPanel = () => {
       return;
     }
     setPromocoes(prev => prev.filter(p => p.id !== id));
+    notifyPublicDataUpdated();
     toast.success('Promoção removida.');
   };
 
   const persistPromocao = useCallback(async (id: string, updates: any) => {
     const { error } = await supabase.from('promocoes').update(updates).eq('id', id);
     if (error) throw error;
+    notifyPublicDataUpdated();
   }, []);
 
   const debouncedSavePromocao = useDebouncedSave(persistPromocao);
@@ -909,7 +952,9 @@ const AdminPanel = () => {
     if (error) {
       toast.error(`Erro ao salvar promoção: ${getSupabaseErrorMessage(error)}`);
       await loadAll();
+      return;
     }
+    notifyPublicDataUpdated();
   };
 
   const renderPromocoes = () => {
@@ -1109,8 +1154,15 @@ const AdminPanel = () => {
         <Button onClick={async () => {
           const slug = `pagina-${Date.now()}`;
           const { data, error } = await supabase.from('paginas').insert({ slug, titulo: 'Nova Página', conteudo: '' }).select().single();
-          if (!error && data) { setPaginas(prev => [...prev, data]); toast.success('Página criada!'); }
-          else toast.error('Erro ao criar página.');
+          if (error) {
+            toast.error(`Erro ao criar página: ${getSupabaseErrorMessage(error)}`);
+            return;
+          }
+          if (data) {
+            setPaginas(prev => [...prev, data]);
+            notifyPublicDataUpdated();
+            toast.success('Página criada!');
+          }
         }} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Nova Página</Button>
       </div>
       <div className="space-y-4">
@@ -1120,8 +1172,13 @@ const AdminPanel = () => {
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground font-mono">/{p.slug}</p>
                 <Button variant="ghost" size="icon" onClick={async () => {
-                  await supabase.from('paginas').delete().eq('id', p.id);
+                  const { error } = await supabase.from('paginas').delete().eq('id', p.id);
+                  if (error) {
+                    toast.error(`Erro ao remover página: ${getSupabaseErrorMessage(error)}`);
+                    return;
+                  }
                   setPaginas(prev => prev.filter(pg => pg.id !== p.id));
+                  notifyPublicDataUpdated();
                   toast.success('Página removida.');
                 }} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
               </div>

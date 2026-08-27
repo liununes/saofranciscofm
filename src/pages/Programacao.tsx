@@ -2,19 +2,6 @@ import { useRadio } from '@/contexts/RadioContext';
 import RadioHeader from '@/components/radio/RadioHeader';
 import RadioFooter from '@/components/radio/RadioFooter';
 import WhatsAppButton from '@/components/radio/WhatsAppButton';
-
-const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-const Programacao = () => {
-  const { config } = useRadio();
-
-  // Get programas from context - we need to fetch them
-  // We'll use supabase directly here
-  return <ProgramacaoContent />;
-};
-
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Clock, Mic, Radio } from 'lucide-react';
 import {
   Dialog,
@@ -22,33 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
-interface ProgramaData {
-  id: string;
-  nome: string;
-  horario_inicio: string;
-  horario_fim: string;
-  dias_semana: number[];
-  ativo: boolean;
-  locutores: { id: string; nome: string; imagem_url: string | null } | null;
-}
+const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-const ProgramacaoContent = () => {
-  const { config, isLive, currentPrograma } = useRadio();
-  const [programas, setProgramas] = useState<ProgramaData[]>([]);
-
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from('programas')
-        .select('*, locutores(*)')
-        .eq('ativo', true)
-        .order('horario_inicio');
-      setProgramas((data as any) || []);
-    };
-    load();
-  }, []);
+const Programacao = () => {
+  const { programas, currentPrograma } = useRadio();
 
   return (
     <div className="min-h-screen bg-background">
@@ -69,33 +35,33 @@ const ProgramacaoContent = () => {
                 <div
                   key={prog.id}
                   className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${isCurrent
-                      ? 'bg-primary/10 border-primary shadow-md'
-                      : 'bg-card border-border hover:shadow-card'
+                    ? 'bg-primary/10 border-primary shadow-md'
+                    : 'bg-card border-border hover:shadow-card'
                     }`}
                 >
-                  {prog.locutores?.imagem_url ? (
+                  {prog.locutor?.imagem_url ? (
                     <Dialog>
                       <DialogTrigger asChild>
                         <img
-                          src={prog.locutores.imagem_url}
-                          alt={prog.locutores.nome}
+                          src={prog.locutor.imagem_url}
+                          alt={prog.locutor.nome}
                           className="w-14 h-14 rounded-full object-cover border-2 border-secondary cursor-pointer hover:opacity-80 transition-opacity"
                         />
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-transparent border-none shadow-none">
                         <DialogHeader className="sr-only">
-                          <DialogTitle>{prog.locutores.nome}</DialogTitle>
+                          <DialogTitle>{prog.locutor.nome}</DialogTitle>
                         </DialogHeader>
                         <div className="relative flex items-center justify-center">
                           <img
-                            src={prog.locutores.imagem_url}
-                            alt={prog.locutores.nome}
+                            src={prog.locutor.imagem_url}
+                            alt={prog.locutor.nome}
                             className="max-w-full max-h-[80vh] object-contain rounded-lg"
                           />
                         </div>
                         <div className="absolute bottom-4 left-0 right-0 text-center">
                           <span className="bg-black/60 text-white px-4 py-2 rounded-full backdrop-blur-sm font-display font-medium">
-                            {prog.locutores.nome}
+                            {prog.locutor.nome}
                           </span>
                         </div>
                       </DialogContent>
@@ -115,8 +81,8 @@ const ProgramacaoContent = () => {
                         </span>
                       )}
                     </div>
-                    {prog.locutores && (
-                      <p className="text-sm text-muted-foreground">{prog.locutores.nome}</p>
+                    {prog.locutor && (
+                      <p className="text-sm text-muted-foreground">{prog.locutor.nome}</p>
                     )}
                     <div className="flex items-center gap-3 mt-1">
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
