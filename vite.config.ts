@@ -7,7 +7,15 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 80,
-    allowedHosts: ["saofranciscofm.com.br", "www.saofranciscofm.com.br"], // ← ADICIONE ESTA LINHA
+    allowedHosts: ["saofranciscofm.com.br", "www.saofranciscofm.com.br"],
+    proxy: {
+      '/supabase': {
+        target: 'https://appliu-supabase.ceip2y.easypanel.host',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/supabase/, ''),
+      },
+    },
     hmr: {
       overlay: false,
     },
