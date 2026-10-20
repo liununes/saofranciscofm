@@ -48,7 +48,7 @@ function resolveKnownStreamMount(value: string) {
     && parsed.port === '8015'
     && (parsed.pathname === '' || parsed.pathname === '/')
   ) {
-    parsed.pathname = '/stream';
+    parsed.pathname = '/radio.mp3';
   }
   return parsed.toString();
 }
