@@ -11,6 +11,7 @@ const defaultStreamUrl = process.env.STREAM_SOURCE_URL || 'https://stm28.srvaudi
 const defaultAllowedHosts = [
   new URL(defaultStreamUrl).hostname,
   'streaming.liurecord.com.br',
+  'stm4.srvif.com',
 ];
 const allowedHosts = new Set(
   [...defaultAllowedHosts, ...(process.env.STREAM_ALLOWED_HOSTS || '').split(',')]
