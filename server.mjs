@@ -67,8 +67,12 @@ function startTranscoder(source) {
     '-reconnect', '1',
     '-reconnect_streamed', '1',
     '-reconnect_delay_max', '5',
+    // Deixe o FFmpeg detectar resposta/playlist sem presumir extensão ou tipo MIME.
     '-i', source,
+    '-map', '0:a:0',
     '-vn',
+    '-sn',
+    '-dn',
     '-c:a', 'libmp3lame',
     '-b:a', '128k',
     '-f', 'mp3',
