@@ -28,7 +28,7 @@ const FeaturedNewsModule = () => {
 
   return (
     <>
-      <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+      <div className="radio-section rounded-2xl shadow-card overflow-hidden">
         {destaque.imagem && (
           <img src={destaque.imagem} alt={destaque.titulo} className="w-full h-48 sm:h-56 object-cover" loading="lazy" />
         )}
@@ -135,7 +135,7 @@ const NextProgramModule = () => {
   const locutor = nextProgram.locutores;
 
   return (
-    <div className="bg-card rounded-2xl shadow-card p-5">
+    <div className="radio-section rounded-2xl shadow-card p-5">
       <div className="flex items-center gap-2 mb-4">
         <Clock className="w-4 h-4 text-secondary" />
         <span className="text-xs font-bold uppercase tracking-wider text-secondary">Próximo no Ar</span>
