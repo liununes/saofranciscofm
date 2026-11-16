@@ -115,7 +115,20 @@ const NewsSection = () => {
           : "space-y-4"
         }>
           {config.noticias.map(n => (
-            <article key={n.id} className="radio-news__item group cursor-pointer" onClick={() => openNoticia(n)}>
+            <article
+              key={n.id}
+              className="radio-news__item group cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              role="button"
+              tabIndex={0}
+              aria-label={`Ler notícia: ${n.titulo}`}
+              onClick={() => openNoticia(n)}
+              onKeyDown={event => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  void openNoticia(n);
+                }
+              }}
+            >
               <div className={`p-4 rounded-xl hover:bg-muted transition-colors border border-transparent hover:border-border ${isHorizontalGrid ? 'flex flex-col h-full' : ''}`}>
                 {isHorizontalGrid ? (
                   <>
