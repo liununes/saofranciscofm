@@ -223,9 +223,9 @@ const RadioPlayer = () => {
   const anyAbove = logoPos === 'above' || (config.logo_extra && extraPos === 'above');
 
   return (
-    <section className="gradient-hero py-8">
+    <section className="radio-player gradient-hero py-8">
       <audio ref={audioRef} preload="none" />
-      <div className="container mx-auto px-4">
+      <div className="radio-player__inner container mx-auto px-4">
         {anyAbove && (
           <div className="flex items-center justify-center gap-6 mb-4">
             {config.logo_principal && logoPos === 'above' && (
@@ -244,7 +244,7 @@ const RadioPlayer = () => {
             <img src={config.logo_extra} alt="Logo Extra" style={{ height: `${logoSize}px` }} className="object-contain flex-shrink-0 drop-shadow-lg" />
           )}
 
-          <div className="flex items-center gap-4 bg-primary-foreground/5 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-primary-foreground/10 flex-1 w-full max-w-xl">
+          <div className="radio-player__panel flex items-center gap-4 bg-primary-foreground/5 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-primary-foreground/10 flex-1 w-full max-w-xl">
             {isLive && config.locutor_imagem && (
               <Dialog>
                 <DialogTrigger asChild>
