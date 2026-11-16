@@ -7,7 +7,7 @@ const RecentSongs = () => {
   if (config.musicas_recentes.length === 0) return null;
 
   return (
-    <div className="radio-section bg-card rounded-2xl shadow-card p-6">
+    <div className="radio-section radio-recent-songs bg-card rounded-2xl shadow-card p-6">
       <h2 className="font-display font-bold text-xl text-foreground flex items-center gap-2 mb-5">
         <Music className="w-5 h-5 text-secondary" />
         Últimas Músicas
