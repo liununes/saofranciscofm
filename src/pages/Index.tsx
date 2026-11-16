@@ -84,7 +84,7 @@ const Index = () => {
 
       <DynamicModules />
 
-      <main className="radio-page__main radio-home-main container mx-auto px-4 py-8 space-y-8">
+      <main className="radio-page__main radio-home-main container mx-auto px-4 py-8">
         {/* Centro sponsors */}
         {config.visibilidade_patrocinadores && <SponsorBlock sponsors={centroSponsors} align={align} />}
 
