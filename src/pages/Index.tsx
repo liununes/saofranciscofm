@@ -66,7 +66,7 @@ const Index = () => {
   }, [config.cor_fundo, config.cor_texto, config.imagem_fundo, config.imagem_fundo_modo]);
 
   return (
-    <div className="min-h-screen" style={bgStyle}>
+    <div className="radio-page min-h-screen" style={bgStyle}>
       <RadioHeader />
 
       {/* Google Ads - Topo */}
@@ -84,7 +84,7 @@ const Index = () => {
 
       <DynamicModules />
 
-      <main className="container mx-auto px-4 py-8 space-y-8">
+      <main className="radio-page__main radio-home-main container mx-auto px-4 py-8">
         {/* Centro sponsors */}
         {config.visibilidade_patrocinadores && <SponsorBlock sponsors={centroSponsors} align={align} />}
 

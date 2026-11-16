@@ -17,10 +17,10 @@ const Programacao = () => {
   const { programas, currentPrograma } = useRadio();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="radio-page min-h-screen bg-background">
       <RadioHeader />
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
+      <main className="radio-page__main container mx-auto px-4 py-8">
+        <div className="radio-schedule__heading flex items-center gap-3 mb-8">
           <Radio className="w-8 h-8 text-primary" />
           <h1 className="font-display font-bold text-2xl text-foreground">Programação</h1>
         </div>
@@ -34,7 +34,7 @@ const Programacao = () => {
               return (
                 <div
                   key={prog.id}
-                  className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${isCurrent
+                  className={`radio-schedule__item flex items-center gap-4 p-4 rounded-xl border transition-all ${isCurrent
                     ? 'bg-primary/10 border-primary shadow-md'
                     : 'bg-card border-border hover:shadow-card'
                     }`}

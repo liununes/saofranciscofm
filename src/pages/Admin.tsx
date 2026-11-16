@@ -1411,9 +1411,9 @@ const AdminPanel = () => {
   );
 
   return (
-    <div className="min-h-screen bg-muted flex">
+    <div className="radio-admin min-h-screen bg-muted flex">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-56' : 'w-14'} bg-card border-r border-border flex-shrink-0 transition-all duration-200 hidden md:flex flex-col`}>
+      <aside className={`radio-admin__sidebar ${sidebarOpen ? 'w-56' : 'w-14'} bg-card border-r border-border flex-shrink-0 transition-all duration-200 hidden md:flex flex-col`}>
         <div className="p-3 border-b border-border flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="flex-shrink-0">
             <Menu className="w-5 h-5" />
@@ -1446,7 +1446,7 @@ const AdminPanel = () => {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="gradient-primary sticky top-0 z-50">
+        <header className="radio-admin__topbar gradient-primary sticky top-0 z-50">
           <div className="flex items-center justify-between py-3 px-4">
             <div className="flex items-center gap-3">
               {/* Mobile menu */}
@@ -1468,7 +1468,7 @@ const AdminPanel = () => {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+        <main className="radio-admin__content flex-1 p-4 md:p-6 overflow-y-auto">
           {renderContent()}
         </main>
       </div>
@@ -1487,7 +1487,7 @@ const AdminLogin = () => {
 
   if (!isSupabaseConfigured) {
     return (
-      <div className="min-h-screen gradient-hero flex items-center justify-center px-4">
+      <div className="radio-auth min-h-screen gradient-hero flex items-center justify-center px-4">
         <div className="bg-card rounded-xl shadow-elevated p-8 w-full max-w-md text-center space-y-3">
           <Radio className="w-10 h-10 text-primary mx-auto" />
           <h1 className="font-display font-bold text-xl text-foreground">Banco de dados não configurado</h1>
@@ -1519,7 +1519,7 @@ const AdminLogin = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center px-4">
-      <div className="bg-card rounded-xl shadow-elevated p-8 w-full max-w-sm">
+      <div className="radio-auth__card bg-card rounded-xl shadow-elevated p-8 w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-6">
           <Radio className="w-8 h-8 text-primary" />
           <h1 className="font-display font-bold text-xl text-foreground">Acesso Administrativo</h1>

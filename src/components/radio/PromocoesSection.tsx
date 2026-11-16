@@ -20,7 +20,7 @@ const PromocoesSection = () => {
   if (promocoesAtivas.length === 0) return null;
 
   return (
-    <section className="bg-card rounded-2xl shadow-card p-6">
+    <section className="radio-section bg-card rounded-2xl shadow-card p-6">
       <h2 className="font-display font-bold text-xl text-foreground flex items-center gap-2 mb-5">
         <Ticket className="w-5 h-5 text-primary" />
         Promoções
@@ -28,7 +28,7 @@ const PromocoesSection = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {promocoesAtivas.map((p: any) => (
-          <article key={p.id} className="border border-border rounded-xl p-4 bg-background/60 space-y-3">
+          <article key={p.id} className="radio-promo border border-border rounded-xl p-4 bg-background/60 space-y-3">
             {p.imagem_url && (
               <img src={p.imagem_url} alt={p.nome || 'Promoção'} className="w-full h-40 object-cover rounded-lg" loading="lazy" />
             )}

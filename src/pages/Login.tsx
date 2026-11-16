@@ -49,8 +49,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center px-4">
-      <div className="bg-card rounded-xl shadow-elevated p-8 w-full max-w-sm">
+    <div className="radio-auth min-h-screen gradient-hero flex items-center justify-center px-4">
+      <div className="radio-auth__card bg-card rounded-xl shadow-elevated p-8 w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-6">
           <Radio className="w-8 h-8 text-primary" />
           <h1 className="font-display font-bold text-xl text-foreground">Acesso Administrativo</h1>
