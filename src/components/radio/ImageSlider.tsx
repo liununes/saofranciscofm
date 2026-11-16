@@ -26,7 +26,7 @@ const ImageSlider = () => {
   if (images.length === 0) return null;
 
   return (
-    <div className="relative w-full aspect-[21/9] sm:aspect-[3/1] overflow-hidden rounded-xl shadow-card group">
+    <div className="radio-slider relative w-full aspect-[21/9] sm:aspect-[3/1] overflow-hidden rounded-xl shadow-card group">
       {images.map((img, i) => (
         <img
           key={i}
