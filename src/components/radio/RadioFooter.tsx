@@ -7,8 +7,8 @@ const RadioFooter = () => {
   const footerSponsors = config.patrocinadores.filter(p => p.posicao === 'rodape');
 
   return (
-    <footer className="gradient-primary py-8 mt-8">
-      <div className="container mx-auto px-4 text-center">
+    <footer className="radio-footer gradient-primary py-8 mt-8">
+      <div className="radio-footer__inner container mx-auto px-4 text-center">
         <div className="flex items-center justify-center gap-2 mb-3">
           <Radio className="w-5 h-5 text-secondary" />
           <span className="font-display font-bold text-primary-foreground">{config.nome_radio}</span>
