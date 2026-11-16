@@ -105,7 +105,7 @@ const NewsSection = () => {
 
   return (
     <>
-      <div className="bg-card rounded-2xl shadow-card p-6">
+      <div className="radio-section radio-news bg-card rounded-2xl shadow-card p-6">
         <h2 className="font-display font-bold text-xl text-foreground flex items-center gap-2 mb-5">
           <Newspaper className="w-5 h-5 text-secondary" />
           Notícias
@@ -115,7 +115,7 @@ const NewsSection = () => {
           : "space-y-4"
         }>
           {config.noticias.map(n => (
-            <article key={n.id} className="group cursor-pointer" onClick={() => openNoticia(n)}>
+            <article key={n.id} className="radio-news__item group cursor-pointer" onClick={() => openNoticia(n)}>
               <div className={`p-4 rounded-xl hover:bg-muted transition-colors border border-transparent hover:border-border ${isHorizontalGrid ? 'flex flex-col h-full' : ''}`}>
                 {isHorizontalGrid ? (
                   <>
@@ -153,7 +153,7 @@ const NewsSection = () => {
 
       {/* Modal */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="radio-news__modal max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl leading-tight">{selected?.titulo}</DialogTitle>
           </DialogHeader>
