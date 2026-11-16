@@ -10,6 +10,14 @@
   --radio-shadow: 215 38% 18%;
 }
 
+.dark {
+  --radio-canvas: 210 50% 7%;
+  --radio-surface: 210 40% 10%;
+  --radio-line: 210 30% 19%;
+  --radio-shadow: 215 55% 2%;
+  color-scheme: dark;
+}
+
 html { scroll-behavior: smooth; }
 body { background: hsl(var(--radio-canvas)); }
 ::selection { background: hsl(var(--radio-gold) / .28); color: hsl(var(--radio-navy)); }
