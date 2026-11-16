@@ -111,3 +111,12 @@ body { background:hsl(var(--radio-canvas)); }
  .radio-footer { margin-top:2.5rem; padding:3rem 0 2rem; }
 }
 @media(prefers-reduced-motion:reduce) { html{scroll-behavior:auto} *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important} }
+
+.radio-player__eyebrow { display:flex; align-items:center; justify-content:center; gap:.65rem; margin:0 auto 1.2rem; color:#ffffffb8; font-size:.72rem; font-weight:800; letter-spacing:.19em; text-align:center; }
+.radio-player__live-dot { width:.48rem; height:.48rem; border-radius:50%; background:hsl(var(--radio-gold)); box-shadow:0 0 0 5px hsl(var(--radio-gold) / .15); animation:radio-live 1.8s ease-in-out infinite; }
+.radio-player__eyebrow-divider { color:hsl(var(--radio-gold)); }
+@keyframes radio-live { 50% { box-shadow:0 0 0 9px hsl(var(--radio-gold) / 0); } }
+.radio-recent-songs > div:last-child > div { border-radius:.95rem; }
+.radio-recent-songs > div:last-child > div:first-child { background:hsl(var(--radio-blue) / .07); border:1px solid hsl(var(--radio-blue) / .13); }
+.radio-promotions { padding:clamp(1.15rem,2vw,1.8rem); }
+@media(max-width:767px){ .radio-player__eyebrow{font-size:.62rem;letter-spacing:.13em;margin-bottom:.9rem;} }
