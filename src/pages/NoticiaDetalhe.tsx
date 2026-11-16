@@ -72,7 +72,7 @@ const NoticiaDetalhe = () => {
     const text = noticia.conteudo || noticia.resumo || '';
     return (
       <div className="space-y-3">
-        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+        <div className="radio-article__body prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
           {text}
         </div>
       </div>
@@ -80,18 +80,18 @@ const NoticiaDetalhe = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="radio-page min-h-screen bg-background">
       <RadioHeader />
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
+      <main className="radio-page__main radio-article container mx-auto px-4 py-8 max-w-3xl">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-6">
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
 
         {noticia.imagem_url && (
-          <img src={noticia.imagem_url} alt={noticia.titulo} className="w-full h-64 object-cover rounded-xl mb-6" />
+          <img src={noticia.imagem_url} alt={noticia.titulo} className="radio-article__hero w-full h-64 object-cover rounded-xl mb-6" />
         )}
 
-        <h1 className="font-display font-bold text-2xl text-foreground mb-3">{noticia.titulo}</h1>
+        <h1 className="mb-3">{noticia.titulo}</h1>
 
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-4">
           {noticia.created_at && <span>Publicado em: {formatDate(noticia.created_at)}</span>}
