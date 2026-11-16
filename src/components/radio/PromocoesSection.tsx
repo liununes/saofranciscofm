@@ -20,7 +20,7 @@ const PromocoesSection = () => {
   if (promocoesAtivas.length === 0) return null;
 
   return (
-    <section className="radio-section bg-card rounded-2xl shadow-card p-6">
+    <section className="radio-section radio-promotions bg-card rounded-2xl shadow-card p-6">
       <h2 className="font-display font-bold text-xl text-foreground flex items-center gap-2 mb-5">
         <Ticket className="w-5 h-5 text-primary" />
         Promoções

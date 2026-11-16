@@ -45,7 +45,7 @@ const RadioHeader = () => {
   return (
     <header className="radio-header gradient-primary sticky top-0 z-50">
       <div className="radio-header__inner container mx-auto flex items-center justify-between py-3 px-4">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="radio-header__brand flex items-center gap-3">
           {config.visibilidade_logo && config.logo_principal && (
             <img src={config.logo_principal} alt={config.nome_radio} style={{ height: Math.min(config.logo_tamanho || 40, 50) }} className="object-contain" />
           )}
