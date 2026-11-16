@@ -225,7 +225,8 @@ const RadioPlayer = () => {
   return (
     <section className="radio-player gradient-hero py-8">
       <audio ref={audioRef} preload="none" />
-      <div className="radio-player__inner container mx-auto px-4">\n        <div className="radio-player__eyebrow"><span className="radio-player__live-dot" /> RÁDIO SÃO FRANCISCO <span className="radio-player__eyebrow-divider">/</span> 106,3 FM</div>
+      <div className="radio-player__inner container mx-auto px-4">
+        <div className="radio-player__eyebrow"><span className="radio-player__live-dot" /> RÁDIO SÃO FRANCISCO <span className="radio-player__eyebrow-divider">/</span> 106,3 FM</div>
         {anyAbove && (
           <div className="flex items-center justify-center gap-6 mb-4">
             {config.logo_principal && logoPos === 'above' && (
