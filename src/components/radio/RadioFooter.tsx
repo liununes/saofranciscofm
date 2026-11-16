@@ -9,7 +9,7 @@ const RadioFooter = () => {
   return (
     <footer className="radio-footer gradient-primary py-8 mt-8">
       <div className="radio-footer__inner container mx-auto px-4 text-center">
-        <div className="flex items-center justify-center gap-2 mb-3">
+        <div className="radio-footer__brand flex items-center justify-center gap-2 mb-3">
           <Radio className="w-5 h-5 text-secondary" />
           <span className="font-display font-bold text-primary-foreground">{config.nome_radio}</span>
         </div>
