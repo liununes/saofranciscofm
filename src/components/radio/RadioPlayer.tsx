@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 import { Play, Pause, Volume2, VolumeX, Phone } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
@@ -15,7 +15,7 @@ import { getPlayableStreamingUrl, getSupabaseErrorMessage } from '@/lib/supabase
 type StreamSource = 'primary' | 'backup';
 
 const RadioPlayer = () => {
-  const { config, isLive, setIsListening, programas } = useRadio();
+  const { config, isLive, setIsListening } = useRadio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
@@ -217,24 +217,6 @@ const RadioPlayer = () => {
     setIsMuted(audio.muted);
   };
 
-  const nextProgram = useMemo(() => {
-    const now = new Date();
-    const candidates = programas.flatMap(program => {
-      const days = Array.isArray(program.dias_semana) ? program.dias_semana : [];
-      return days.map(day => {
-        const dayOffset = (day - now.getDay() + 7) % 7;
-        const [hours = '0', minutes = '0'] = (program.horario_inicio || '00:00').split(':');
-        const startsAt = new Date(now);
-        startsAt.setDate(now.getDate() + dayOffset);
-        startsAt.setHours(Number(hours), Number(minutes), 0, 0);
-        if (startsAt <= now) startsAt.setDate(startsAt.getDate() + 7);
-        const daysUntil = Math.round((new Date(startsAt.getFullYear(), startsAt.getMonth(), startsAt.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000);
-        return { program, startsAt, dayLabel: daysUntil === 0 ? 'HOJE' : daysUntil === 1 ? 'AMANHÃ' : startsAt.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase() };
-      });
-    });
-    candidates.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
-    return candidates[0] || null;
-  }, [programas]);
   const logoSize = config.logo_tamanho || 80;
   const logoPos = config.logo_posicao || 'left';
   const extraPos = config.logo_extra_posicao || 'right';
@@ -327,22 +309,7 @@ const RadioPlayer = () => {
               )}
               {config.musica_atual && <p className="text-secondary text-xs font-medium truncate mt-0.5">♪ {config.musica_atual}</p>}
               {activeSource === 'backup' && <p className="text-amber-200 text-[10px] font-semibold uppercase tracking-wide truncate mt-0.5">Fonte reserva em uso</p>}
-              {config.visibilidade_proximo_programa && nextProgram && (
-                <div className="mt-2.5 pt-2.5 border-t border-primary-foreground/15 flex items-center gap-2.5 min-w-0">
-                  {nextProgram.program.locutor?.imagem_url ? (
-                    <img src={nextProgram.program.locutor.imagem_url} alt={nextProgram.program.locutor.nome || "Locutor do próximo programa"} className="w-9 h-9 rounded-full object-cover border border-secondary/80 flex-shrink-0" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 flex items-center justify-center text-primary-foreground/70 text-xs font-bold flex-shrink-0">
-                      {nextProgram.program.locutor?.nome?.charAt(0)?.toUpperCase() || "♪"}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-secondary text-[9px] sm:text-[10px] font-extrabold tracking-[0.12em] uppercase leading-tight">Próximo no ar · {nextProgram.dayLabel} {nextProgram.startsAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
-                    <p className="text-primary-foreground/90 text-xs font-semibold truncate mt-0.5">{nextProgram.program.nome}</p>
-                    {nextProgram.program.locutor?.nome && <p className="text-primary-foreground/60 text-[11px] truncate">{nextProgram.program.locutor.nome}</p>}
-                  </div>
-                </div>
-              )}
+
             </div>
 
             <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
