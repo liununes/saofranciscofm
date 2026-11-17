@@ -2,3 +2,6 @@ project_id = "axtzvyybrmujrpuznbxd"
 
 [functions.rss-news-sync]
 verify_jwt = false
+
+[functions.instagram-news-sync]
+verify_jwt = false
