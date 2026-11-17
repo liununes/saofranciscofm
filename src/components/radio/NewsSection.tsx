@@ -19,6 +19,7 @@ interface NoticiaModal {
   patrocinador_ativo?: boolean;
   patrocinador?: any;
   publicidade_ativa?: boolean;
+  fonte?: string;
 }
 
 const formatDate = (dateStr?: string) => {
@@ -134,6 +135,7 @@ const NewsSection = () => {
                       <h3 className="font-display font-semibold text-base text-foreground group-hover:text-primary transition-colors mb-1.5 line-clamp-2">{n.titulo}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-3">{n.resumo}</p>
                       {n.created_at && <p className="text-xs text-muted-foreground mt-2">{formatDate(n.created_at)}</p>}
+                      {n.fonte && <p className="text-[11px] text-muted-foreground mt-1">Fonte: {n.fonte}</p>}
                       <span className="inline-flex items-center gap-1 text-sm text-primary font-medium mt-2 group-hover:gap-2 transition-all">
                         Ler mais <ArrowRight className="w-3.5 h-3.5" />
                       </span>
@@ -146,6 +148,7 @@ const NewsSection = () => {
                       <h3 className="font-display font-semibold text-base text-foreground group-hover:text-primary transition-colors mb-1.5 line-clamp-2">{n.titulo}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-2">{n.resumo}</p>
                       {n.created_at && <p className="text-xs text-muted-foreground mt-1">{formatDate(n.created_at)}</p>}
+                      {n.fonte && <p className="text-[11px] text-muted-foreground mt-1">Fonte: {n.fonte}</p>}
                       <span className="inline-flex items-center gap-1 text-sm text-primary font-medium mt-2 group-hover:gap-2 transition-all">
                         Ler mais <ArrowRight className="w-3.5 h-3.5" />
                       </span>
@@ -172,6 +175,7 @@ const NewsSection = () => {
           )}
           <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
             {selected?.created_at && <span>Publicado em: {formatDate(selected.created_at)}</span>}
+            {selected?.fonte && <span>Fonte: {selected.fonte}</span>}
             {selected?.updated_at && selected.updated_at !== selected.created_at && (
               <span>Atualizado em: {formatDateTime(selected.updated_at)}</span>
             )}
