@@ -3,7 +3,7 @@ import { useRadio } from '@/contexts/RadioContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Phone, ToggleLeft, Megaphone, LayoutDashboard, Menu, Ticket } from 'lucide-react';
+import { ArrowLeft, Radio, Music, Newspaper, Image, Users, MessageCircle, Palette, Trash2, Plus, Save, Mic, CalendarClock, Shield, LogOut, Eye, EyeOff, User, FileText, Globe, Phone, ToggleLeft, Megaphone, LayoutDashboard, Menu, Ticket, Sparkles, Copy, AlertTriangle } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -130,6 +130,12 @@ const AdminPanel = () => {
   const [prorrogacoes, setProrrogacoes] = useState<Record<string, string>>({});
   const [stats, setStats] = useState({ today: 0, total: 0 });
   const [saving, setSaving] = useState(false);
+  const [aiSourceTitle, setAiSourceTitle] = useState('');
+  const [aiSourceName, setAiSourceName] = useState('');
+  const [aiSourceUrl, setAiSourceUrl] = useState('');
+  const [aiSourceText, setAiSourceText] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiDraft, setAiDraft] = useState<any>(null);
 
   const [users, setUsers] = useState<any[]>([]);
   const [newUserEmail, setNewUserEmail] = useState('');
@@ -462,6 +468,45 @@ const AdminPanel = () => {
       toast.success('Música removida.');
     } catch (error) { toast.error(`Erro ao remover música: ${getSupabaseErrorMessage(error)}`); }
   };
+  const generateAiNews = async () => {
+    if (!aiSourceTitle.trim() || !aiSourceName.trim() || !aiSourceUrl.trim() || aiSourceText.trim().length < 120) {
+      toast.error('Preencha título, fonte, link e pelo menos 120 caracteres do material original.');
+      return;
+    }
+    setAiGenerating(true);
+    setAiDraft(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-news-draft', {
+        body: {
+          title: aiSourceTitle,
+          source: aiSourceName,
+          sourceUrl: aiSourceUrl,
+          sourceText: aiSourceText,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success || !data?.draft) throw new Error(data?.error || 'Não foi possível gerar a prévia.');
+      setAiDraft(data.draft);
+      toast.success('Prévia gerada. Revise o conteúdo antes de utilizá-lo.');
+    } catch (error: any) {
+      console.error('[Admin] Erro ao gerar notícia com Gemini:', error);
+      toast.error(error?.message || 'Falha ao gerar a matéria com IA.');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const copyAiDraft = async () => {
+    if (!aiDraft) return;
+    const text = `${aiDraft.titulo}\n\n${aiDraft.resumo}\n\n${aiDraft.conteudo}\n\nFonte: ${aiDraft.fonte} — ${aiDraft.link_fonte}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Prévia copiada.');
+    } catch {
+      toast.error('Não foi possível copiar automaticamente. Selecione e copie o texto.');
+    }
+  };
+
   const addNoticia = async () => {
     try {
       const { data, error } = await supabase.from('noticias').insert({ titulo: 'Nova notícia', resumo: '', link_completo: '' }).select().single();
@@ -886,6 +931,40 @@ const AdminPanel = () => {
         <h2 className="font-display font-bold text-xl text-foreground">Notícias</h2>
         <Button onClick={addNoticia} size="sm" className="gap-1"><Plus className="w-4 h-4" /> Adicionar</Button>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base"><Sparkles className="w-5 h-5 text-primary" /> Gerar matéria com Gemini</CardTitle>
+          <p className="text-sm text-muted-foreground">Cole o material de uma fonte confiável. A IA cria uma versão autoral para revisão. Nada é salvo ou publicado automaticamente.</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1"><Label>Título original</Label><Input value={aiSourceTitle} onChange={e => setAiSourceTitle(e.target.value)} placeholder="Título da notícia na fonte" /></div>
+            <div className="space-y-1"><Label>Nome da fonte</Label><Input value={aiSourceName} onChange={e => setAiSourceName(e.target.value)} placeholder="Ex.: Defesa Civil, Agência Brasil..." /></div>
+          </div>
+          <div className="space-y-1"><Label>Link da notícia original</Label><Input value={aiSourceUrl} onChange={e => setAiSourceUrl(e.target.value)} placeholder="https://..." /></div>
+          <div className="space-y-1"><Label>Texto ou informações da fonte</Label><Textarea value={aiSourceText} onChange={e => setAiSourceText(e.target.value)} rows={7} placeholder="Cole aqui o texto ou os dados confirmados que servirão de base para a matéria (mínimo de 120 caracteres)." /></div>
+          <Button onClick={generateAiNews} disabled={aiGenerating} className="gap-2">
+            <Sparkles className="w-4 h-4" />{aiGenerating ? 'Gerando prévia...' : 'Gerar matéria com IA'}
+          </Button>
+          {aiDraft && (
+            <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="w-4 h-4 text-primary" /> Prévia gerada — não publicada</div>
+                <span className="text-xs text-muted-foreground">Consistência estimada: {aiDraft.confidence}%</span>
+              </div>
+              {aiDraft.needs_review && <div className="flex gap-2 rounded-md bg-amber-500/10 p-3 text-sm text-amber-700"><AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" /><span>Esta matéria exige revisão editorial antes de ser utilizada.</span></div>}
+              <div className="space-y-1"><p className="text-xs font-semibold uppercase text-muted-foreground">Título</p><p className="font-semibold text-foreground">{aiDraft.titulo}</p></div>
+              <div className="space-y-1"><p className="text-xs font-semibold uppercase text-muted-foreground">Resumo</p><p className="text-sm text-foreground">{aiDraft.resumo}</p></div>
+              <div className="space-y-1"><p className="text-xs font-semibold uppercase text-muted-foreground">Matéria</p><div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{aiDraft.conteudo}</div></div>
+              {aiDraft.warnings?.length > 0 && <div className="space-y-1"><p className="text-xs font-semibold uppercase text-muted-foreground">Pontos de atenção</p><ul className="list-disc pl-5 text-sm text-muted-foreground">{aiDraft.warnings.map((warning: string, index: number) => <li key={index}>{warning}</li>)}</ul></div>}
+              {aiDraft.facts_used?.length > 0 && <div className="space-y-1"><p className="text-xs font-semibold uppercase text-muted-foreground">Fatos utilizados</p><ul className="list-disc pl-5 text-sm text-muted-foreground">{aiDraft.facts_used.map((fact: string, index: number) => <li key={index}>{fact}</li>)}</ul></div>}
+              <p className="text-xs text-muted-foreground">Fonte: {aiDraft.fonte} · <a href={aiDraft.link_fonte} target="_blank" rel="noreferrer" className="underline break-all">Consultar material original</a></p>
+              <Button variant="outline" size="sm" onClick={copyAiDraft} className="gap-2"><Copy className="w-4 h-4" /> Copiar prévia</Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Posição das notícias */}
       <Card>
