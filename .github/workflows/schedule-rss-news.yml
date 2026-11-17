@@ -1,0 +1,23 @@
+name: Automatic RSS news collection
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run RSS collection
+        env:
+          NEWS_CRON_SECRET: ${{ secrets.NEWS_CRON_SECRET }}
+        run: |
+          test -n "$NEWS_CRON_SECRET" || (echo "Configure o segredo NEWS_CRON_SECRET nas configurações do repositório." && exit 1)
+          curl --fail --silent --show-error --max-time 60 \
+            -X POST \
+            -H "x-news-cron-secret: $NEWS_CRON_SECRET" \
+            "https://axtzvyybrmujrpuznbxd.supabase.co/functions/v1/rss-news-sync"
