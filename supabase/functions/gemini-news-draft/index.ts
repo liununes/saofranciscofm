@@ -140,25 +140,39 @@ ${sourceText}
     const timeout = setTimeout(() => controller.abort(), 90000);
     let geminiResponse: Response;
     try {
-      geminiResponse = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": geminiKey,
-          },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.2,
-              responseMimeType: "application/json",
-              maxOutputTokens: 1800,
-            },
-          }),
-          signal: controller.signal,
+      const requestBody = JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json",
+          maxOutputTokens: 1800,
         },
-      );
+      });
+
+      // Tenta novamente até duas vezes quando o Gemini estiver temporariamente indisponível.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        geminiResponse = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": geminiKey,
+            },
+            body: requestBody,
+            signal: controller.signal,
+          },
+        );
+
+        const shouldRetry = [429, 503].includes(geminiResponse.status);
+        if (!shouldRetry || attempt === 2) break;
+
+        const delayMs = attempt === 0 ? 1500 : 3000;
+        console.warn(
+          `Gemini respondeu HTTP ${geminiResponse.status}. Nova tentativa ${attempt + 1}/2 em ${delayMs} ms.`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
     } finally {
       clearTimeout(timeout);
     }
