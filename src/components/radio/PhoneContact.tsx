@@ -23,7 +23,7 @@ const PhoneContact = ({ position, variant = 'bar', className = '' }: PhoneContac
 
   if (variant === 'header') {
     return (
-      <a {...linkProps} className={`flex items-center gap-1.5 text-primary-foreground/80 hover:text-primary-foreground transition-colors ${className}`}>
+      <a {...linkProps} className={`flex items-center gap-2 text-primary-foreground hover:text-white transition-colors rounded-xl px-3 py-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 ${className}`}>
         <Phone className="w-4 h-4" />
         <span className="font-semibold text-sm">{config.telefone_contato}</span>
       </a>
