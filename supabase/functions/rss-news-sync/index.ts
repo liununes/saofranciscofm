@@ -9,6 +9,9 @@ type NewsItem = {
 const FEEDS: FeedConfig[] = [
   { url: "https://g1.globo.com/rss/g1/mg/vales-mg/", name: "G1 Vales de Minas Gerais", scope: "Minas Gerais" },
   { url: "https://g1.globo.com/rss/g1/mg/grande-minas/", name: "G1 Grande Minas", scope: "Minas Gerais" },
+  { url: "https://www.portaljequitinhonhanews.com/rss/category/jequitinhonha", name: "Portal Jequitinhonha News", scope: "Minas Gerais" },
+  { url: "https://pordentrodeminas.com.br/assuntos/vale-do-rio-doce/feed", name: "Por Dentro de Minas - Vale do Rio Doce", scope: "Minas Gerais" },
+  { url: "https://pordentrodeminas.com.br/assuntos/vale-do-mucuri/feed", name: "Por Dentro de Minas - Vale do Mucuri", scope: "Minas Gerais" },
 ];
 
 function decodeEntities(value: string): string {
