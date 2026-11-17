@@ -1,0 +1,1 @@
+Secure diagnostic endpoint for validating the Instagram professional account token and reading the five most recent media items. Requires x-news-cron-secret; never returns or logs the access token.
