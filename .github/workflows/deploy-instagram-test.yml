@@ -32,3 +32,13 @@ jobs:
         run: |
           supabase link --project-ref axtzvyybrmujrpuznbxd
           supabase functions deploy instagram-connection-test --project-ref axtzvyybrmujrpuznbxd --no-verify-jwt --yes
+
+      - name: Test Instagram connection
+        env:
+          NEWS_CRON_SECRET: ${{ secrets.NEWS_CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            "https://axtzvyybrmujrpuznbxd.supabase.co/functions/v1/instagram-connection-test" \
+            -H "x-news-cron-secret: ${NEWS_CRON_SECRET}" \
+            -H "Content-Type: application/json"
