@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
 
   try {
     const profileUrl = new URL(`${base}/${encodeURIComponent(igUserId)}`);
-    profileUrl.searchParams.set("fields", "id,username,account_type");
+    profileUrl.searchParams.set("fields", "id,username");
     profileUrl.searchParams.set("access_token", token);
     const profileResponse = await fetch(profileUrl, { signal: AbortSignal.timeout(15000) });
     const profile = await profileResponse.json();
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     if (!mediaResponse.ok) {
       return Response.json({
         ok: false, stage: "media", http_status: mediaResponse.status,
-        profile: { id: profile.id, username: profile.username, account_type: profile.account_type },
+        profile: { id: profile.id, username: profile.username, account_type: profile.account_type || null },
         error: safeError(media),
       }, { status: 200 });
     }
