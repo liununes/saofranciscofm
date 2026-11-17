@@ -2,11 +2,24 @@ import { useMemo } from 'react';
 import { Ticket, ExternalLink } from 'lucide-react';
 import { useRadio } from '@/contexts/RadioContext';
 
+const parseLocalDate = (value?: string) => {
+  if (!value) return null;
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+};
+
+const formatLocalDate = (value?: string) => {
+  const date = parseLocalDate(value);
+  return date ? date.toLocaleDateString('pt-BR') : '';
+};
+
 const PromocoesSection = () => {
   const { config } = useRadio();
 
   const promocoesAtivas = useMemo(() => {
-    const hoje = new Date().toISOString().slice(0, 10);
+    const agora = new Date();
+    const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 
     return (config.promocoes || []).filter((p: any) => {
       if (!p.ativo) return false;
@@ -41,9 +54,9 @@ const PromocoesSection = () => {
 
             <div className="text-xs text-muted-foreground">
               {p.prorrogada_ate ? (
-                <span>🔁 Prorrogada até {new Date(p.prorrogada_ate).toLocaleDateString('pt-BR')}</span>
+                <span>🔁 Prorrogada até {formatLocalDate(p.prorrogada_ate)}</span>
               ) : p.data_validade ? (
-                <span>Válida até {new Date(p.data_validade).toLocaleDateString('pt-BR')}</span>
+                <span>Válida até {formatLocalDate(p.data_validade)}</span>
               ) : (
                 <span>Sem prazo de validade</span>
               )}
