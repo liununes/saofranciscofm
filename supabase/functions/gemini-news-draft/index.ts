@@ -137,7 +137,7 @@ ${sourceText}
 `;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
+    const timeout = setTimeout(() => controller.abort(), 90000);
     let geminiResponse: Response;
     try {
       geminiResponse = await fetch(
