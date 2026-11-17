@@ -24,16 +24,31 @@ const FEEDS: FeedConfig[] = [
   },
 ];
 
-const clean = (value: string) =>
-  value.replace(/<!\[CDATA\[|\]\]>/g, "").trim();
+function decodeEntities(value: string): string {
+  return value
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([\da-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)));
+}
 
-function nodeText(parent: Element, tag: string): string {
-  return parent.getElementsByTagName(tag)[0]?.textContent?.trim() ?? "";
+function tagText(xml: string, tag: string): string {
+  const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = xml.match(new RegExp(
+    `<(?:[\\w.-]+:)?${escaped}\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w.-]+:)?${escaped}\\s*>`,
+    "i",
+  ));
+  return match ? match[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim() : "";
 }
 
 function htmlToText(value: string): string {
-  const doc = new DOMParser().parseFromString(value, "text/html");
-  return (doc.body?.textContent ?? value)
+  return decodeEntities(value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " "))
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -48,18 +63,20 @@ function validHttpUrl(value: string): boolean {
   }
 }
 
-function getImage(item: Element): string | null {
-  const enclosure = item.querySelector('enclosure[type^="image/"]')?.getAttribute("url");
-  const media = item.getElementsByTagName("media:content")[0]?.getAttribute("url") ??
-    item.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url");
-  const candidate = enclosure || media;
-  return candidate && validHttpUrl(candidate) ? candidate : null;
+function attribute(tag: string, name: string): string {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return tag.match(new RegExp(`\\b${escaped}\\s*=\\s*["']([^"']+)["']`, "i"))?.[1] ?? "";
 }
 
-function getItems(xml: string): Element[] {
-  const doc = new DOMParser().parseFromString(xml, "text/xml");
-  if (doc.querySelector("parsererror")) throw new Error("O feed RSS retornou XML inválido.");
-  return Array.from(doc.getElementsByTagName("item"));
+function getImage(item: string): string | null {
+  const enclosure = item.match(/<enclosure\b[^>]*>/i)?.[0] ?? "";
+  const media = item.match(/<(?:media:content|media:thumbnail)\b[^>]*>/i)?.[0] ?? "";
+  const candidate = attribute(enclosure, "url") || attribute(media, "url");
+  return candidate && validHttpUrl(candidate) ? decodeEntities(candidate) : null;
+}
+
+function getItems(xml: string): string[] {
+  return Array.from(xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi), (match) => match[1]);
 }
 
 async function fetchFeed(feed: FeedConfig) {
@@ -68,15 +85,18 @@ async function fetchFeed(feed: FeedConfig) {
     signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) throw new Error(`${feed.name}: HTTP ${response.status}`);
-  return getItems(await response.text()).map((item) => {
-    const title = htmlToText(clean(nodeText(item, "title")));
-    const link = nodeText(item, "link");
-    const guid = nodeText(item, "guid") || link;
-    const description = htmlToText(clean(
-      nodeText(item, "description") ||
-      nodeText(item, "content:encoded"),
-    ));
-    const rawDate = nodeText(item, "pubDate");
+  const xml = await response.text();
+  const items = getItems(xml);
+  if (!items.length) throw new Error("Nenhum item RSS encontrado no XML recebido.");
+
+  return items.map((item) => {
+    const title = htmlToText(tagText(item, "title"));
+    const link = decodeEntities(tagText(item, "link"));
+    const guid = decodeEntities(tagText(item, "guid") || link);
+    const description = htmlToText(
+      tagText(item, "description") || tagText(item, "encoded"),
+    );
+    const rawDate = tagText(item, "pubDate");
     const publishedAt = rawDate ? new Date(rawDate) : new Date();
     return {
       title,
@@ -127,7 +147,6 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Evita importar notícias antigas no primeiro processamento e em falhas prolongadas.
         const ageHours = (Date.now() - item.publishedAt.getTime()) / 3600000;
         if (ageHours > 48 || ageHours < -2) {
           skipped++;
@@ -160,7 +179,6 @@ Deno.serve(async (req) => {
         });
 
         if (error) {
-          // Unique index protege contra duplicidade mesmo se duas execuções coincidirem.
           if (error.code === "23505") {
             skipped++;
             continue;
