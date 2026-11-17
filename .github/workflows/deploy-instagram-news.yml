@@ -32,3 +32,12 @@ jobs:
         run: |
           supabase link --project-ref axtzvyybrmujrpuznbxd
           supabase functions deploy instagram-news-sync --project-ref axtzvyybrmujrpuznbxd --no-verify-jwt --yes
+
+      - name: Test Instagram news collection
+        env:
+          NEWS_CRON_SECRET: ${{ secrets.NEWS_CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 60 \
+            -X POST \
+            -H "x-news-cron-secret: ${NEWS_CRON_SECRET}" \
+            "https://axtzvyybrmujrpuznbxd.supabase.co/functions/v1/instagram-news-sync"
