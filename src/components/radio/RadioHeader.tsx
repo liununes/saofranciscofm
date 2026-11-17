@@ -80,12 +80,12 @@ const RadioHeader = () => {
           <PhoneContact position="header" variant="header" className="hidden md:flex" />
           {/* Social icons */}
           {activeSocialLinks.length > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-2">
               {activeSocialLinks.map(s => {
                 const IconComp = ICON_MAP[s.icone] || Globe;
                 return (
-                  <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-primary-foreground/20 transition-colors text-primary-foreground" title={s.nome}>
-                    <IconComp className="w-4 h-4" />
+                  <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-primary-foreground/20 transition-colors text-primary-foreground" title={s.nome}>
+                    <IconComp className="w-6 h-6" />
                   </a>
                 );
               })}
@@ -106,12 +106,12 @@ const RadioHeader = () => {
             </Link>
           ))}
           {activeSocialLinks.length > 0 && (
-            <div className="flex items-center gap-2 pt-2 border-t border-primary-foreground/10">
+            <div className="flex items-center gap-3 pt-3 border-t border-primary-foreground/10">
               {activeSocialLinks.map(s => {
                 const IconComp = ICON_MAP[s.icone] || Globe;
                 return (
-                  <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-primary-foreground/20 text-primary-foreground" title={s.nome}>
-                    <IconComp className="w-5 h-5" />
+                  <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-xl flex items-center justify-center hover:bg-primary-foreground/20 text-primary-foreground bg-primary-foreground/10" title={s.nome}>
+                    <IconComp className="w-6 h-6" />
                   </a>
                 );
               })}
