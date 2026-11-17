@@ -82,14 +82,15 @@ const Index = () => {
 
       {config.visibilidade_player && <div id="programacao"><RadioPlayer /></div>}
 
+      {/* Slider logo abaixo do player */}
+      {config.visibilidade_slides && <div className="container mx-auto px-4 pt-4"><ImageSlider /></div>}
+
+
       <DynamicModules />
 
       <main className="radio-page__main radio-home-main container mx-auto px-4 py-8">
         {/* Centro sponsors */}
         {config.visibilidade_patrocinadores && <SponsorBlock sponsors={centroSponsors} align={align} />}
-
-        {/* Slider */}
-        {config.visibilidade_slides && <ImageSlider />}
 
         {/* Google Ads - Meio */}
         {config.ads_meio_ativo && config.ads_meio_codigo && (
