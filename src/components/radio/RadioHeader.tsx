@@ -111,7 +111,7 @@ const RadioHeader = () => {
                 const IconComp = ICON_MAP[s.icone] || Globe;
                 return (
                   <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-xl flex items-center justify-center hover:bg-primary-foreground/20 text-primary-foreground bg-primary-foreground/10" title={s.nome}>
-                    <IconComp className="w-5 h-5" />
+                    <IconComp className="w-6 h-6" />
                   </a>
                 );
               })}
