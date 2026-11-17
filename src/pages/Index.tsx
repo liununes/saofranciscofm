@@ -101,7 +101,7 @@ const Index = () => {
         <PromocoesSection />
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-8">
+        <div className={`grid grid-cols-1 gap-8 ${esquerdaSponsors.length > 0 && direitaSponsors.length > 0 ? "lg:grid-cols-[auto_minmax(0,1fr)_auto]" : esquerdaSponsors.length > 0 ? "lg:grid-cols-[auto_minmax(0,1fr)]" : direitaSponsors.length > 0 ? "lg:grid-cols-[minmax(0,1fr)_auto]" : "lg:grid-cols-1"}`}>
           {config.visibilidade_patrocinadores && esquerdaSponsors.length > 0 && (
             <div className="hidden lg:flex flex-col items-center gap-4">
               {esquerdaSponsors.map(p => (
@@ -116,39 +116,10 @@ const Index = () => {
             </div>
           )}
 
-          <div className="space-y-8">
-            {(() => {
-              const pos = config.noticias_posicao || 'centro';
-              const showNews = config.visibilidade_noticias;
-              const showMusic = config.visibilidade_musicas;
+          <div className="space-y-8 min-w-0">
+            {config.visibilidade_noticias && <div id="noticias"><NewsSection /></div>}
+            {config.visibilidade_musicas && <RecentSongs />}
 
-              // News on left side
-              if (pos === 'esquerda' && showNews) {
-                return (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div id="noticias" className="lg:col-span-1"><NewsSection /></div>
-                    {showMusic && <div className="lg:col-span-2"><RecentSongs /></div>}
-                  </div>
-                );
-              }
-              // News on right side
-              if (pos === 'direita' && showNews) {
-                return (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {showMusic && <div className="lg:col-span-2"><RecentSongs /></div>}
-                    <div id="noticias" className="lg:col-span-1"><NewsSection /></div>
-                  </div>
-                );
-              }
-              // News centered (default)
-              return (
-                <div className={showNews && showMusic ? "grid grid-cols-1 lg:grid-cols-3 gap-8" : "space-y-8"}>
-                  {showNews && <div id="noticias" className={showMusic ? "lg:col-span-2" : ""}><NewsSection /></div>}
-                  {showMusic && <div className="lg:col-span-1"><RecentSongs /></div>}
-                </div>
-              );
-            })()}
-            
             {/* Telefone - posições centro, meio-esquerda, meio-direita */}
             <PhoneContact position="centro" variant="block" />
             <PhoneContact position="meio-esquerda" variant="block" />
