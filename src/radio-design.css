@@ -31,8 +31,8 @@ body { background:hsl(var(--radio-canvas)); }
 .radio-header__brand { min-width:0; }
 .radio-header__brand img { max-width:190px; max-height:52px; filter:drop-shadow(0 3px 8px #00152b55); }
 .radio-header__brand span { font-size:1.05rem; letter-spacing:-.025em; }
-.radio-header nav { gap:.35rem; }
-.radio-header nav a { padding:.7rem .95rem; border-radius:999px; color:hsl(0 0% 100% / .82); font-size:.83rem; font-weight:650; transition:background .2s,color .2s; }
+.radio-header nav { gap:.4rem; }
+.radio-header nav a { padding:.75rem 1rem; border-radius:999px; color:hsl(0 0% 100% / .88); font-size:.98rem; line-height:1.35; font-weight:650; transition:background .2s,color .2s; }
 .radio-header nav a:hover { background:hsl(0 0% 100% / .12); color:white; }
 .radio-header a:focus-visible,.radio-page button:focus-visible { outline:3px solid hsl(var(--radio-gold)); outline-offset:3px; }
 .radio-player { position:relative; overflow:hidden; isolation:isolate; padding:clamp(2.4rem,5vw,4.8rem) 0; background:radial-gradient(ellipse at 15% 0%,hsl(207 100% 55% / .3),transparent 38%),radial-gradient(ellipse at 95% 100%,hsl(42 100% 51% / .12),transparent 32%),linear-gradient(118deg,hsl(216 82% 12%),hsl(215 77% 20%) 56%,hsl(211 88% 29%)); }
@@ -95,6 +95,10 @@ body { background:hsl(var(--radio-canvas)); }
  .radio-page__main { width:100%; padding:1.2rem 1rem 2rem; }
  .radio-header__inner { width:100%; min-height:68px; padding-inline:1rem; }
  .radio-header__brand img { max-width:145px; max-height:44px; }
+ .radio-header nav { gap:.25rem; }
+ .radio-header nav a { display:block; padding:.8rem .65rem; font-size:1.02rem; line-height:1.4; font-weight:650; }
+ .radio-header > nav.md\\:hidden { padding:.65rem 1rem 1rem; }
+ .radio-header > nav.md\\:hidden a { padding:.8rem .5rem; border-radius:.65rem; }
  .radio-player { padding:2rem 0; }
  .radio-player__inner { width:calc(100% - 2rem); }
  .radio-player__inner > .flex { gap:.65rem; }
