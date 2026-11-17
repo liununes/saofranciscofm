@@ -18,7 +18,7 @@ const RadioFooter = () => {
         </p>
 
         {/* Contador de Acessos Público */}
-        <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-primary-foreground/40 uppercase tracking-widest font-bold">
+        <div className="mt-2 flex items-center justify-center gap-1 text-xs text-primary-foreground/65 uppercase tracking-wider font-bold">
           <Eye className="w-3 h-3" />
           <span>Acessos: {config.total_visitas || '...'}</span>
         </div>

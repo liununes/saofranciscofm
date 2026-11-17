@@ -59,7 +59,7 @@ const NewsSection = () => {
     if (!pat) {
       return (
         <div className="space-y-3">
-          <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{text}</div>
+          <div className="radio-news__article-body prose max-w-none text-foreground whitespace-pre-wrap">{text}</div>
         </div>
       );
     }
@@ -88,7 +88,7 @@ const NewsSection = () => {
 
     return (
       <div className="space-y-4">
-        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{before}</div>
+        <div className="radio-news__article-body prose max-w-none text-foreground whitespace-pre-wrap">{before}</div>
 
         {/* Ad block (full-width) */}
         <div className="my-6 p-6 bg-muted/60 rounded-xl border border-border text-center w-full">
@@ -96,7 +96,7 @@ const NewsSection = () => {
           <InlineAd patrocinador={pat} />
         </div>
 
-        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">{after}</div>
+        <div className="radio-news__article-body prose max-w-none text-foreground whitespace-pre-wrap">{after}</div>
       </div>
     );
   };
@@ -171,7 +171,7 @@ const NewsSection = () => {
             <DialogTitle className="font-display text-xl leading-tight">{selected?.titulo}</DialogTitle>
           </DialogHeader>
           {selected?.imagem && (
-            <img src={selected.imagem} alt={selected.titulo} className="w-full h-56 object-cover rounded-xl" />
+            <img src={selected.imagem} alt={selected.titulo} className="w-full max-h-[360px] object-cover rounded-xl" />
           )}
           <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
             {selected?.created_at && <span>Publicado em: {formatDate(selected.created_at)}</span>}

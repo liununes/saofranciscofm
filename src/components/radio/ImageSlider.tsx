@@ -9,7 +9,7 @@ const ImageSlider = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const images = config.slide_imagens.length > 0
-    ? config.slide_imagens.sort((a, b) => a.ordem - b.ordem).map(s => s.imagem)
+    ? [...config.slide_imagens].sort((a, b) => a.ordem - b.ordem).map(s => s.imagem)
     : [slide1, slide2];
 
   useEffect(() => {
@@ -41,10 +41,10 @@ const ImageSlider = () => {
 
       {images.length > 1 && (
         <>
-          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-card/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-foreground">
+          <button onClick={prev} aria-label="Slide anterior" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-card/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-foreground">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-card/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-foreground">
+          <button onClick={next} aria-label="Próximo slide" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-card/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-foreground">
             <ChevronRight className="w-5 h-5" />
           </button>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
@@ -52,6 +52,8 @@ const ImageSlider = () => {
               <button
                 key={i}
                 onClick={() => setCurrentIndex(i)}
+                aria-label={`Ir para o slide ${i + 1}`}
+                aria-current={i === currentIndex ? "true" : undefined}
                 className={`w-2 h-2 rounded-full transition-all ${
                   i === currentIndex ? 'bg-secondary w-6' : 'bg-card/60'
                 }`}

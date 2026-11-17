@@ -124,3 +124,47 @@ body { background:hsl(var(--radio-canvas)); }
 .radio-recent-songs > div:last-child > div:first-child { background:hsl(var(--radio-blue) / .07); border:1px solid hsl(var(--radio-blue) / .13); }
 .radio-promotions { padding:clamp(1.15rem,2vw,1.8rem); }
 @media(max-width:767px){ .radio-player__eyebrow{font-size:.62rem;letter-spacing:.13em;margin-bottom:.9rem;} }
+
+
+/* Refinamento de leitura e experiência — novembro/2026 */
+.radio-header nav a { font-size:1rem; }
+.radio-header__brand span { font-size:clamp(1.05rem,1.4vw,1.2rem); }
+.radio-section-title,
+.radio-news > h2,.radio-section > h2 { font-size:clamp(1.35rem,1.8vw,1.6rem); }
+.radio-news__item h3 { font-size:1.12rem; line-height:1.45; }
+.radio-news__item p { font-size:.98rem; line-height:1.65; }
+.radio-news__item .radio-news__read { font-size:.95rem; }
+.radio-news__modal { max-height:90dvh !important; padding:clamp(1rem,3vw,1.6rem) !important; }
+.radio-news__modal [data-slot="dialog-title"] { font-size:clamp(1.35rem,3vw,1.8rem); line-height:1.3; }
+.radio-news__article-body { font-size:1.05rem; line-height:1.85; }
+.radio-news__modal > img { max-height: min(42vh,360px); }
+.radio-player__panel p { font-size:1rem; }
+.radio-player__panel p.text-xs { font-size:.9rem; }
+.radio-player__panel p.text-sm { font-size:1.02rem; }
+.radio-player__panel [class*="text-[10px]"] { font-size:.75rem; }
+.radio-promotions .radio-promo h3 { font-size:1.2rem; line-height:1.4; }
+.radio-promotions .radio-promo p { font-size:1rem; line-height:1.65; }
+.radio-promotions .radio-promo > div:nth-child(3) { font-size:.9rem; }
+.radio-recent-songs p.text-sm { font-size:1rem; }
+.radio-recent-songs p.text-xs { font-size:.9rem; }
+.radio-footer__inner > p { font-size:.95rem; line-height:1.6; }
+.radio-footer__inner > div.mt-2 { font-size:.75rem; }
+.radio-slider { aspect-ratio:21/8; }
+.radio-slider img { object-fit:cover; }
+@media (hover:none) {
+ .radio-slider button { opacity:1 !important; }
+}
+@media(max-width:767px) {
+ .radio-header__brand span { font-size:1rem; }
+ .radio-player__inner > .flex { flex-wrap:wrap; }
+ .radio-player__panel { flex:1 1 100%; min-width:0; }
+ .radio-player__panel p { font-size:.98rem; }
+ .radio-player__panel p.text-xs { font-size:.86rem; }
+ .radio-slider { aspect-ratio:16/9; min-height:0; }
+ .radio-news__item h3 { font-size:1.08rem; }
+ .radio-news__item p { font-size:.95rem; }
+ .radio-news__modal { width:calc(100vw - 1rem) !important; max-width:none !important; max-height:92dvh !important; border-radius:1rem !important; }
+ .radio-news__article-body { font-size:1rem; line-height:1.75; }
+ .radio-promotions .radio-promo p { font-size:.96rem; }
+ .radio-footer__inner > p { font-size:.9rem; }
+}
