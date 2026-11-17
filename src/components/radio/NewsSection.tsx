@@ -108,10 +108,7 @@ const NewsSection = () => {
           <Newspaper className="w-5 h-5 text-secondary" />
           Notícias
         </h2>
-        <div className={isHorizontalGrid
-          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-          : "space-y-4"
-        }>
+        <div className="radio-news__grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {config.noticias.map(n => (
             <article
               key={n.id}
@@ -130,8 +127,10 @@ const NewsSection = () => {
               <div className={`p-4 rounded-xl hover:bg-muted transition-colors border border-transparent hover:border-border ${isHorizontalGrid ? 'flex flex-col h-full' : ''}`}>
                 {isHorizontalGrid ? (
                   <>
-                    {n.imagem && <img src={n.imagem} alt={n.titulo} className="w-full h-40 rounded-xl object-cover mb-3" />}
-                    <div className="flex-1 min-w-0">
+                    <div className="radio-news__image">
+                      {n.imagem ? <img src={n.imagem} alt={n.titulo} /> : <div className="radio-news__image-placeholder" aria-hidden="true" />}
+                    </div>
+                    <div className="radio-news__body flex-1 min-w-0">
                       <h3 className="font-display font-semibold text-base text-foreground group-hover:text-primary transition-colors mb-1.5 line-clamp-2">{n.titulo}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-3">{n.resumo}</p>
                       {n.created_at && <p className="text-xs text-muted-foreground mt-2">{formatDate(n.created_at)}</p>}
