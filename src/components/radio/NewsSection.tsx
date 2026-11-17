@@ -35,9 +35,7 @@ const formatDateTime = (dateStr?: string) => {
 const NewsSection = () => {
   const { config } = useRadio();
   const [selected, setSelected] = useState<NoticiaModal | null>(null);
-  const posicao = config.noticias_posicao || 'centro';
-  const hasOtherBlocks = config.visibilidade_musicas;
-  const isHorizontalGrid = posicao === 'centro' && !hasOtherBlocks;
+  const isHorizontalGrid = true;
 
   const openNoticia = async (n: any) => {
     const { data } = await supabase.from('noticias').select('*').eq('id', n.id).single();
