@@ -168,3 +168,21 @@ body { background:hsl(var(--radio-canvas)); }
  .radio-promotions .radio-promo p { font-size:.96rem; }
  .radio-footer__inner > p { font-size:.9rem; }
 }
+
+
+/* Cards de notícias com dimensões uniformes */
+.radio-news__grid { align-items:stretch; grid-auto-rows:1fr; }
+.radio-news__item { display:flex; height:100%; min-height:350px; }
+.radio-news__item > div { display:flex; flex:1; flex-direction:column; width:100%; height:100%; }
+.radio-news__item .radio-news__image { flex:0 0 170px; height:170px; overflow:hidden; background:hsl(var(--radio-canvas)); }
+.radio-news__item .radio-news__image img { display:block; width:100%; height:100%; object-fit:cover; }
+.radio-news__item .radio-news__image-placeholder { width:100%; height:100%; background:linear-gradient(135deg,hsl(var(--radio-blue) / .12),hsl(var(--radio-gold) / .12)); }
+.radio-news__item .radio-news__body { display:flex; flex-direction:column; padding:1.05rem 1.15rem 1.15rem; }
+.radio-news__item .radio-news__body h3 { min-height:3.25em; }
+.radio-news__item .radio-news__body p { min-height:4.65em; }
+.radio-news__item .radio-news__body > span { margin-top:auto; padding-top:.65rem; }
+@media(max-width:767px) {
+ .radio-news__item { min-height:330px; }
+ .radio-news__item .radio-news__image { flex-basis:155px; height:155px; }
+ .radio-news__item .radio-news__body { padding:.9rem; }
+}
