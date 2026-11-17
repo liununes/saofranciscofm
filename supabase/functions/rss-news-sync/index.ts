@@ -1,15 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-type FeedConfig = { url: string; name: string; scope: "regional" | "nacional" };
+type FeedConfig = { url: string; name: string; scope: "Minas Gerais" };
 type NewsItem = {
   title: string; link: string; guid: string; summary: string; image: string | null;
   publishedAt: Date; feed: FeedConfig;
 };
 
 const FEEDS: FeedConfig[] = [
-  { url: "https://g1.globo.com/rss/g1/mg/vales-mg/", name: "G1 Vales de Minas Gerais", scope: "regional" },
-  { url: "https://g1.globo.com/rss/g1/mg/grande-minas/", name: "G1 Grande Minas", scope: "regional" },
-  { url: "https://g1.globo.com/rss/g1/", name: "G1", scope: "nacional" },
+  { url: "https://g1.globo.com/rss/g1/mg/vales-mg/", name: "G1 Vales de Minas Gerais", scope: "Minas Gerais" },
+  { url: "https://g1.globo.com/rss/g1/mg/grande-minas/", name: "G1 Grande Minas", scope: "Minas Gerais" },
 ];
 
 function decodeEntities(value: string): string {
