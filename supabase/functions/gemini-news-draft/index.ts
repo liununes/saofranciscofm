@@ -167,10 +167,12 @@ ${sourceText}
     if (!geminiResponse.ok) {
       console.error("Gemini API retornou erro:", geminiResponse.status, JSON.stringify(geminiPayload).slice(0, 1200));
       const status = geminiResponse.status === 429 ? 429 : 502;
+      const providerMessage = cleanText(geminiPayload?.error?.message, 600);
       return json({
         error: geminiResponse.status === 429
           ? "Limite gratuito do Gemini atingido. Aguarde e tente novamente."
-          : "O Gemini não conseguiu processar a matéria. Verifique a chave e o acesso ao modelo.",
+          : `Gemini API respondeu HTTP ${geminiResponse.status}${providerMessage ? `: ${providerMessage}` : "."}`,
+        provider_status: geminiResponse.status,
       }, status);
     }
 
