@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
         ? (item.thumbnail_url || item.media_url)
         : (item.media_url || item.thumbnail_url);
       return {
-        titulo: caption.replace(/\\s+/g, " ").slice(0, 250) || "Publicação da Rádio São Francisco FM",
+        titulo: caption.replace(/\s+/g, " ").slice(0, 250) || "Publicação da Rádio São Francisco FM",
         resumo: caption.slice(0, 360),
         conteudo: caption,
         link_completo: item.permalink,
