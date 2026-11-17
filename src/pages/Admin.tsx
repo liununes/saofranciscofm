@@ -489,8 +489,17 @@ const AdminPanel = () => {
       setAiDraft(data.draft);
       toast.success('Prévia gerada. Revise o conteúdo antes de utilizá-lo.');
     } catch (error: any) {
+      let userMessage = error?.message || 'Falha ao gerar a matéria com IA.';
+      if (error?.context instanceof Response) {
+        try {
+          const details = await error.context.clone().json();
+          if (typeof details?.error === 'string' && details.error.trim()) userMessage = details.error;
+        } catch {
+          // Mantém a mensagem original quando a resposta não vier em JSON.
+        }
+      }
       console.error('[Admin] Erro ao gerar notícia com Gemini:', error);
-      toast.error(error?.message || 'Falha ao gerar a matéria com IA.');
+      toast.error(userMessage);
     } finally {
       setAiGenerating(false);
     }
