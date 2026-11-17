@@ -17,6 +17,7 @@ export interface Noticia {
   created_at?: string;
   updated_at?: string;
   destaque?: boolean;
+  fonte?: string;
 }
 
 export interface Patrocinador {
@@ -302,7 +303,7 @@ export const RadioProvider = ({ children }: { children: ReactNode }) => {
         ads_rodape_ativo: fromDatabase(rc?.ads_rodape_ativo, false),
         total_visitas: fromDatabase(prev.total_visitas, 0),
         musicas_recentes: musicas === null ? prev.musicas_recentes : (musicas || []).map(m => ({ id: m.id, titulo: m.titulo, artista: m.artista, hora_execucao: m.hora_execucao })),
-        noticias: noticias === null ? prev.noticias : (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '', created_at: n.created_at, updated_at: n.updated_at, destaque: (n as any).destaque || false })),
+        noticias: noticias === null ? prev.noticias : (noticias || []).map(n => ({ id: n.id, titulo: n.titulo, resumo: n.resumo || '', link_completo: n.link_completo || '', imagem: n.imagem_url || '', created_at: n.created_at, updated_at: n.updated_at, destaque: (n as any).destaque || false, fonte: n.fonte || '' })),
         patrocinadores: patrocinadores === null ? prev.patrocinadores : (patrocinadores || []).map(p => ({
           id: p.id,
           nome: p.nome,
